@@ -22,11 +22,18 @@ RDEPEND="abi_x86_32? (
 		!app-emulation/emul-linux-x86-baselibs[-abi_x86_32(-)]
 	)"
 
-src_unpack() {
-	mkdir -p ${S}
-}
+S=${WORKDIR}
 
 src_install() {
-	dohostsyms /bin/bzip2 /bin/bunzip2 /bin/bzcat /usr/bin/bzcmp /usr/bin/bzdiff /usr/bin/bzegrep \
-		/usr/bin/bzfgrep /usr/bin/bzgrep /usr/bin/bzip2recover /usr/bin/bzless /usr/bin/bzmore 
+	dohostsyms /bin/bzip2 /bin/bunzip2 /bin/bzcat /usr/bin/bzcmp /usr/bin/bzdiff \
+		/usr/bin/bzgrep /usr/bin/bzip2recover /usr/bin/bzless /usr/bin/bzmore 
+	dohostoptsyms /usr/bin/bzegrep /usr/bin/bzfgrep
+	if [ ! $(type -P bzegrep) ]; then
+		echo "Making bzegrep symlink"
+		dohostsym bzgrep /usr/bin/bzegrep
+	fi
+	if [ ! $(type -P bzfgrep) ]; then
+		echo "Making bzfgrep symlink"
+		dohostsym bzgrep /usr/bin/bzfgrep
+	fi
 }

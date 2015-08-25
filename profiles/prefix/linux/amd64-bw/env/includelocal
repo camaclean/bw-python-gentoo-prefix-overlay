@@ -1,0 +1,2 @@
+CFLAGS="-I. ${CFLAGS}"
+CXXFLAGS="-I. ${CXXFLAGS}"

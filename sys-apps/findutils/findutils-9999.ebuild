@@ -19,10 +19,9 @@ RDEPEND="selinux? ( sys-libs/libselinux )
 DEPEND="${RDEPEND}
 	nls? ( sys-devel/gettext )"
 
-src_unpack() {
-	mkdir -p ${S}
-}
+S=${WORKDIR}
 
 src_install() {
-	dohostsyms /usr/bin/find /usr/bin/oldfind /usr/bin/xargs
+	dohostsyms /usr/bin/find /usr/bin/xargs
+	dohostoptsyms /usr/bin/oldfind
 }

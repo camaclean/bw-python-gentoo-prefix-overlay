@@ -28,9 +28,7 @@ RDEPEND="!<app-arch/lzma-4.63
 DEPEND="${RDEPEND}
 	${EXTRA_DEPEND}"
 
-src_unpack() {
-	mkdir -p $S
-}
+S=${WORKDIR}
 
 src_install() {
 	dohostsyms /usr/bin/lzmadec /usr/bin/lzmainfo /usr/bin/xz /usr/bin/xzdec /usr/bin/xzdiff \

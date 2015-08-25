@@ -20,9 +20,7 @@ DEPEND="${RDEPEND}
 	nls? ( >=sys-devel/gettext-0.10.35 )
 	xattr? ( sys-apps/attr )"
 
-src_unpack() {
-	mkdir -p $S
-}
+S=${WORKDIR}
 
 src_install() {
 	dohostsyms /bin/tar

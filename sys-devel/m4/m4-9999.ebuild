@@ -18,9 +18,7 @@ RDEPEND=""
 
 inherit hostsym
 
-src_unpack() {
-	mkdir -p $S
-}
+S=${WORKDIR}
 
 src_install() {
 	dohostsyms /usr/bin/m4

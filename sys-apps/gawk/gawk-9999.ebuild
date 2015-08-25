@@ -19,9 +19,9 @@ RDEPEND="mpfr? ( dev-libs/mpfr )
 DEPEND="${RDEPEND}
 	nls? ( sys-devel/gettext )"
 
-src_unpack() {
-	mkdir -p $S
-}
+S=${WORKDIR}
+
 src_install() {
-	dohostsyms /usr/bin/dgawk /usr/bin/gawk /usr/bin/igawk /usr/bin/pgawk /usr/bin/awk
+	dohostsyms /usr/bin/gawk /usr/bin/pgawk /usr/bin/awk
+	dohostoptsyms /usr/bin/dgawk /usr/bin/igawk
 }

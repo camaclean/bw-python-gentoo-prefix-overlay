@@ -1,0 +1,3 @@
+CFLAGS="${CFLAGS} -I/usr/include/ncurses"
+CXXFLAGS="${CFLAGS} -I/usr/include/ncurses"
+LDFLAGS="${LDFLAGS} -I/usr/include/ncures -lncurses"

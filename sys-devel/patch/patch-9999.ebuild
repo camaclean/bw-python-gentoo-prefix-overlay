@@ -18,9 +18,7 @@ RDEPEND="xattr? ( sys-apps/attr )"
 DEPEND="${RDEPEND}
 	test? ( sys-apps/ed )"
 
-src_unpack() {
-	mkdir -p ${S}
-}
+S=${WORKDIR}
 
 src_install() {
 	dohostsyms /usr/bin/patch

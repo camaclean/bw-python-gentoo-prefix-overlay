@@ -20,9 +20,7 @@ DEPEND="${CDEPEND}
 RDEPEND="${CDEPEND}
 	nls? ( virtual/libintl )"
 
-src_unpack() {
-	mkdir -p ${S}
-}
+S=${WORKDIR}
 
 src_install() {
 	dohostsyms /usr/bin/gmake /usr/bin/make

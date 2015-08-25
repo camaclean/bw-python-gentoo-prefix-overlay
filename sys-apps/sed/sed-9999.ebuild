@@ -18,9 +18,7 @@ RDEPEND="acl? ( virtual/acl )
 DEPEND="${RDEPEND}
 	nls? ( sys-devel/gettext )"
 
-src_unpack() {
-	mkdir -p $S
-}
+S=${WORKDIR}
 
 src_install() {
 	dohostsyms /bin/sed

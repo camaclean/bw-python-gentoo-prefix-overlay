@@ -40,9 +40,7 @@ DEPEND="${RDEPEND}
 	static? ( ${LIB_DEPEND} )
 	app-arch/xz-utils"
 
-src_unpack() {
-	mkdir -p $S
-}
+S=${WORKDIR}
 
 src_install() {
 	dohostsyms /bin/basename /bin/cat /bin/chgrp /bin/chmod /bin/chown /bin/chroot /bin/cp \
@@ -57,13 +55,14 @@ src_install() {
 		/usr/bin/dirname /usr/bin/du /usr/bin/env /usr/bin/expand /usr/bin/expr /usr/bin/factor \
 		/usr/bin/fmt /usr/bin/fold /usr/bin/head /usr/bin/hostid /usr/bin/id /usr/bin/install \
 		/usr/bin/join /usr/bin/link /usr/bin/logname /usr/bin/md5sum /usr/bin/mkfifo /usr/bin/mktemp \
-		/usr/bin/nice /usr/bin/nl /usr/bin/nohup /usr/bin/nproc /usr/bin/numfmt /usr/bin/od \
-		/usr/bin/paste /usr/bin/pathchk /usr/bin/pinky /usr/bin/pr /usr/bin/printenv /usr/bin/printf \
-		/usr/bin/ptx /usr/bin/readlink /usr/bin/realpath /usr/bin/runcon /usr/bin/seq /usr/bin/sha1sum \
+		/usr/bin/nice /usr/bin/nl /usr/bin/nohup /usr/bin/nproc /usr/bin/od /usr/bin/paste \
+		/usr/bin/pathchk /usr/bin/pinky /usr/bin/pr /usr/bin/printenv /usr/bin/printf /usr/bin/ptx \
+		/usr/bin/readlink /usr/bin/runcon /usr/bin/seq /usr/bin/sha1sum \
 		/usr/bin/sha224sum /usr/bin/sha256sum /usr/bin/sha384sum /usr/bin/sha512sum /usr/bin/shred \
 		/usr/bin/shuf /usr/bin/sleep /usr/bin/sort /usr/bin/split /usr/bin/stat /usr/bin/stdbuf \
 		/usr/bin/sum /usr/bin/tac /usr/bin/tail /usr/bin/tee /usr/bin/test /usr/bin/timeout \
 		/usr/bin/touch /usr/bin/tr /usr/bin/truncate /usr/bin/tsort /usr/bin/tty /usr/bin/uname \
 		/usr/bin/unexpand /usr/bin/uniq /usr/bin/unlink /usr/bin/users /usr/bin/vdir /usr/bin/wc \
 		/usr/bin/who /usr/bin/whoami /usr/bin/yes
+ 	dohostoptsyms /usr/bin/numfmt /usr/bin/realpath 
 }

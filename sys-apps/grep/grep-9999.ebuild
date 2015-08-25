@@ -23,9 +23,7 @@ DEPEND="${RDEPEND}
 	nls? ( sys-devel/gettext )
 	static? ( ${LIB_DEPEND} )"
 
-src_unpack() {
-	mkdir -p $S
-}
+S=${WORKDIR}
 
 src_install() {
 	dohostsyms /bin/grep /bin/egrep /bin/fgrep

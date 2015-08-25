@@ -1,0 +1,3 @@
+CFLAGS="-O2 -pipe -march=native -I$EPREFIX/usr/include -I/usr/include"
+CXXFLAGS="${CFLAGS}"
+LDFLAGS="${LDFLAGS} -Wl,--rpath=$EPREFIX/lib -Wl,--rpath=$EPREFIX/usr/lib"

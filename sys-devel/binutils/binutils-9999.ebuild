@@ -9,21 +9,16 @@ inherit hostsym
 KEYWORDS="~x64-freebsd ~x86-freebsd ~x86-interix ~amd64-linux ~ia64-linux ~x86-linux ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
 SLOT="0"
 
-src_unpack() {
-	mkdir -p $S
-}
+S=${WORKDIR}
 
 src_install() {
-	dohostsym /usr/bin/addr2line \
+	dohostsyms /usr/bin/addr2line \
 		/usr/bin/ar \
 		/usr/bin/as \
-		/usr/bin/c++flit \
-		/usr/bin/dwp \
+		/usr/bin/c++filt \
 		/usr/bin/elfedit \
 		/usr/bin/gprof \
 		/usr/bin/ld \
-		/usr/bin/ld.bfd \
-		/usr/bin/ld.gold \
 		/usr/bin/nm \
 		/usr/bin/objcopy \
 		/usr/bin/objdump \
@@ -32,4 +27,7 @@ src_install() {
 		/usr/bin/size \
 		/usr/bin/strings \
 		/usr/bin/strip
+	dohostoptsyms /usr/bin/dwp \
+		/usr/bin/ld.bfd \
+		/usr/bin/ld.gold
 }
