@@ -1,6 +1,6 @@
-=app-arch/xz-utils-9999::BWGentooPrefix
 sys-apps/man-db
-=sys-devel/automake-wrapper-9999::BWGentooPrefix
-=sys-devel/autoconf-wrapper-9999::BWGentooPrefix
-=sys-devel/automake-1.15.9999::BWGentooPrefix
-=sys-devel/autoconf-2.69::BWGentooPrefix
+=app-arch/xz-utils-9999
+=sys-devel/automake-wrapper-9999
+=sys-devel/autoconf-wrapper-9999
+=sys-devel/automake-1.15.9999
+=sys-devel/autoconf-2.69-r9999
