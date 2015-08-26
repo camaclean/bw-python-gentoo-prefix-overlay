@@ -19,9 +19,5 @@ ABI="amd64"
 IUSE_IMPLICIT="abi_x86_64"
 LIBDIR_amd64="lib"
 
-
-CFLAGS="-I$EPREFIX/usr/include -I/usr/include -L$EPREFIX/lib -L$EPREFIX/usr/lib -L/lib64 -L/usr/lib64"
-CXXFLAGS="-I$EPREFIX/usr/include -I/usr/include -L$EPREFIX/lib -L$EPREFIX/usr/lib -L/lib64 -L/usr/lib64"
-LDFLAGS="-Wl,--rpath=$EPREFIX/lib -Wl,--rpath=$EPREFIX/usr/lib -L$EPREFIX/lib -L$EPREFIX/usr/lib"
 PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:$EPREFIX/usr/lib/pkgconfig"
-ACLOCAL_PATH="$EPREFIX/usr/share/aclocal:/usr/share/aclocal"
+ACLOCAL_PATH="$EPREFIX/user/share/aclocal:/usr/share/aclocal"
