@@ -25,7 +25,7 @@ sys-apps/diffutils-3.3
 sys-apps/net-tools-1.60_p20130513023548
 sys-process/psmisc-22.21-r2
 dev-libs/libpcre-8.36
-app-editors/nano-2.3.6
+#app-editors/nano-2.3.6
 sys-process/procps-3.3.9-r2
 sys-apps/texinfo-5.2
 sys-apps/groff-1.22.2

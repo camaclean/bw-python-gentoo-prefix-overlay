@@ -5,6 +5,8 @@ if [ "$#" -ne 1 ]; then
 	exit 1
 fi
 
+module switch PrgEnv-cray PrgEnv-gnu
+
 export EPREFIX="$1"
 
 export PATH="$EPREFIX/usr/bin:$EPREFIX/bin:$EPREFIX/tmp/usr/bin:$EPREFIX/tmp/bin:/usr/bin:/bin"
@@ -84,6 +86,42 @@ fi
 
 if [ ! -f "$EPREFIX/startprefix" ]; then
 	./bootstrap-prefix.sh $EPREFIX startscript
+	cd $EPREFIX
+	patch -p0 <<EOT
+*** startprefix Thu Aug 27 08:26:28 2015
+--- startprefix Wed Aug 26 14:34:31 2015
+***************
+*** 12,17 ****
+--- 12,19 ----
+  # env -i HOME=\$HOME TERM=\$TERM USER=\$USER \$SHELL -l
+  # hence this script starts the Prefix shell like this
+  
++ export HOST_PATH=\$PATH
++ 
+  # What is our prefix?
+  EPREFIX="/u/staff/cmaclean/test2"
+  
+*************** echo "Entering Gentoo Prefix \${EPREFIX}"
+*** 38,44 ****
+  # start the login shell, clean the entire environment but what's needed
+  # PROFILEREAD is necessary on SUSE not to wipe the env on shell start
+  [[ -n \${PROFILEREAD} ]] && DOPROFILEREAD="PROFILEREAD=\${PROFILEREAD}"
+! env -i HOME=\$HOME TERM=\$TERM USER=\$USER SHELL=\$SHELL \$DOPROFILEREAD \$SHELL -l
+  # and leave a message when we exit... the shell might return non-zero
+  # without having real problems, so don't send alarming messages about
+  # that
+--- 40,46 ----
+  # start the login shell, clean the entire environment but what's needed
+  # PROFILEREAD is necessary on SUSE not to wipe the env on shell start
+  [[ -n \${PROFILEREAD} ]] && DOPROFILEREAD="PROFILEREAD=\${PROFILEREAD}"
+! env -i HOME=\$HOME TERM=\$TERM USER=\$USER SHELL=\$SHELL HOST_PATH=\$HOST_PATH \$DOPROFILEREAD \$SHELL -l
+  # and leave a message when we exit... the shell might return non-zero
+  # without having real problems, so don't send alarming messages about
+  # that
+EOT
+	cd -
+	echo 'export PATH="$PATH:$HOST_PATH"' >> $EPREFIX/etc/profile
+
 fi
 
 if [ ! -f "$EPREFIX/.rebuilt" ]; then

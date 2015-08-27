@@ -1,0 +1,16 @@
+diff -p a/mpi.cfg b/mpi.cfg
+*** a/mpi.cfg     2015-08-26 16:01:28.213473347 -0500
+--- b/mpi.cfg     2015-08-26 15:38:39.237210951 -0500
+*************** runtime_library_dirs = %(mpi_dir)s/lib/s
+*** 182,184 ****
+--- 182,191 ----
+  mpicc         = cc
+  mpicxx        = c++
+  include_dirs  = misc/fakempi
++ 
++ # Cray MPI and compiler
++ [cray]
++ mpicc = cc
++ mpicxx = /usr/bin/CC
++ extra_link_args = -shared
++ compile_args = -O2
