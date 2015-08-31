@@ -50,7 +50,8 @@ ln -snf /dev/shm/$USER/build2 $EPREFIX/var/tmp/portage
 #Set stage2/3 configs on the first run
 if [ ! -f "$EPREFIX/.stage2_config_set" ]; then
 	git clone https://github.com/camaclean/bw-python-gentoo-prefix-overlay.git $EPREFIX/usr/local/bw-python-gentoo-prefix-overlay
-	sed -i 's|^CFLAGS=".*"|CFLAGS="$\{CFLAGS\} -O2 -pipe -march=native -I$EPREFIX/usr/include -I/usr/include -L$EPREFIX/lib -L$EPREFIX/usr/lib -L/lib64 -L/usr/lib64"|' $EPREFIX/etc/portage/make.conf
+	sed -i '1iMARCH="bdver1"' $EPREFIX/etc/portage/make.conf
+	sed -i 's|^CFLAGS=".*"|CFLAGS="\$\{CFLAGS\} -O2 -pipe -march=\$MARCH -I$EPREFIX/usr/include -I/usr/include -L$EPREFIX/lib -L$EPREFIX/usr/lib -L/lib64 -L/usr/lib64"|' $EPREFIX/etc/portage/make.conf
 	sed -i 's|^MAKEOPTS=".*"|MAKEOPTS="-j9"|' $EPREFIX/etc/portage/make.conf
 	sed -i 's|^MAKEOPTS=".*"|MAKEOPTS="-j9"|' $EPREFIX/tmp/etc/portage/make.conf
 	echo 'LDFLAGS="${LDFLAGS} -Wl,--rpath=$EPREFIX/lib -Wl,--rpath=$EPREFIX/usr/lib"' >> $EPREFIX/etc/portage/make.conf
