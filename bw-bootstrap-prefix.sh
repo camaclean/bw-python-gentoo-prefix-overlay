@@ -1,5 +1,7 @@
 #!/bin/bash
 
+trap 'exit 1' TERM KILL INT QUIT ABRT
+
 if [ "$#" -ne 1 ]; then
 	echo "Usage: $0 EPREFIX"
 	exit 1
@@ -89,10 +91,10 @@ if [ ! -f "$EPREFIX/startprefix" ]; then
 	cd $EPREFIX
 	patch -p0 <<EOT
 *** startprefix.old     2015-08-27 08:26:28.000000000 -0500
---- test2/startprefix   2015-08-28 11:04:34.000000000 -0500
+--- startprefix   2015-08-28 11:04:34.000000000 -0500
 ***************
 *** 1,4 ****
-! #!/u/staff/cmaclean/test2/bin/bash
+! #!$EPREFIX/bin/bash
   # Copyright 2006-2014 Gentoo Foundation; Distributed under the GPL v2
   # \$Id: startprefix.in 61219 2012-09-04 19:05:55Z grobian $
   
@@ -102,11 +104,11 @@ if [ ! -f "$EPREFIX/startprefix" ]; then
   # \$Id: startprefix.in 61219 2012-09-04 19:05:55Z grobian $
   
 ***************
-*** 12,17 ****
---- 12,33 ----
-  # env -i HOME=\$HOME TERM=\$TERM USER=\$USER \$SHELL -l
+*** 13,18 ****
+--- 13,34 ----
   # hence this script starts the Prefix shell like this
   
+
 + module switch PrgEnv-cray PrgEnv-gnu
 + module load cblas
 + module load cmake
@@ -124,10 +126,10 @@ if [ ! -f "$EPREFIX/startprefix" ]; then
 + fi
 + 
   # What is our prefix?
-  EPREFIX="/u/staff/cmaclean/test2"
+  EPREFIX="$EPREFIX"
   
 *************** echo "Entering Gentoo Prefix \${EPREFIX}"
-*** 38,44 ****
+*** 39,45 ****
   # start the login shell, clean the entire environment but what's needed
   # PROFILEREAD is necessary on SUSE not to wipe the env on shell start
   [[ -n \${PROFILEREAD} ]] && DOPROFILEREAD="PROFILEREAD=\${PROFILEREAD}"
@@ -135,7 +137,7 @@ if [ ! -f "$EPREFIX/startprefix" ]; then
   # and leave a message when we exit... the shell might return non-zero
   # without having real problems, so don't send alarming messages about
   # that
---- 54,60 ----
+--- 55,61 ----
   # start the login shell, clean the entire environment but what's needed
   # PROFILEREAD is necessary on SUSE not to wipe the env on shell start
   [[ -n \${PROFILEREAD} ]] && DOPROFILEREAD="PROFILEREAD=\${PROFILEREAD}"
@@ -156,4 +158,8 @@ if [ ! -f "$EPREFIX/.rebuilt" ]; then
 	emerge -ve world || exit 1
 	touch "$EPREFIX/.rebuilt"
 fi
-emerge -av mpi4py pycurl
+
+echo "The base Blue Waters python prefix has now been built"
+echo "Next, start the prefix with $EPREFIX/startprefix and build the desired packages."
+echo "To build the default BW Python packages, run:"
+echo "$EPREFIX/usr/local/bw-python-gentoo-prefix-overlay/emerge-defaults.sh"
