@@ -88,15 +88,40 @@ if [ ! -f "$EPREFIX/startprefix" ]; then
 	./bootstrap-prefix.sh $EPREFIX startscript
 	cd $EPREFIX
 	patch -p0 <<EOT
-*** startprefix Thu Aug 27 08:26:28 2015
---- startprefix Wed Aug 26 14:34:31 2015
+*** startprefix.old     2015-08-27 08:26:28.000000000 -0500
+--- test2/startprefix   2015-08-28 11:04:34.000000000 -0500
+***************
+*** 1,4 ****
+! #!/u/staff/cmaclean/test2/bin/bash
+  # Copyright 2006-2014 Gentoo Foundation; Distributed under the GPL v2
+  # \$Id: startprefix.in 61219 2012-09-04 19:05:55Z grobian $
+  
+--- 1,4 ----
+! #!/bin/bash
+  # Copyright 2006-2014 Gentoo Foundation; Distributed under the GPL v2
+  # \$Id: startprefix.in 61219 2012-09-04 19:05:55Z grobian $
+  
 ***************
 *** 12,17 ****
---- 12,19 ----
+--- 12,33 ----
   # env -i HOME=\$HOME TERM=\$TERM USER=\$USER \$SHELL -l
   # hence this script starts the Prefix shell like this
   
-+ export HOST_PATH=\$PATH
++ module switch PrgEnv-cray PrgEnv-gnu
++ module load cblas
++ module load cmake
++ 
++ HOST_PATH=\$PATH
++ CRAY_CFLAGS="\$(cc --cray-print-opts=cflags)"
++ CRAY_LDFLAGS="\$(cc --cray-print-opts=libs)"
++ CRAY_PKG_CONFIG_PATH="\$(cc --cray-print-opts=pkg_config_path)"
++ CRAY_LIBRARY_PATHS="\$(echo \$CRAY_LDFLAGS | grep -Po '(?<=-L)([\S]*)')" 
++ if [[ \$(echo "\$CRAY_LIBRARY_PATHS" | wc -l) > 0 ]]
++ then
++       while read -r path; do
++               CRAY_LDFLAGS="\$CRAY_LDFLAGS -Wl,--rpath=\$path" #,--enable-new-dtags"
++       done <<< "\$CRAY_LIBRARY_PATHS"
++ fi
 + 
   # What is our prefix?
   EPREFIX="/u/staff/cmaclean/test2"
@@ -110,17 +135,20 @@ if [ ! -f "$EPREFIX/startprefix" ]; then
   # and leave a message when we exit... the shell might return non-zero
   # without having real problems, so don't send alarming messages about
   # that
---- 40,46 ----
+--- 54,60 ----
   # start the login shell, clean the entire environment but what's needed
   # PROFILEREAD is necessary on SUSE not to wipe the env on shell start
   [[ -n \${PROFILEREAD} ]] && DOPROFILEREAD="PROFILEREAD=\${PROFILEREAD}"
-! env -i HOME=\$HOME TERM=\$TERM USER=\$USER SHELL=\$SHELL HOST_PATH=\$HOST_PATH \$DOPROFILEREAD \$SHELL -l
+! env -i HOME=\$HOME TERM=\$TERM USER=\$USER SHELL=\$SHELL HOST_PATH="\$HOST_PATH" CRAY_CFLAGS="\$CRAY_CFLAGS" CRAY_LDFLAGS="\$CRAY_LDFLAGS" CRAY_PKG_CONFIG_PATH="\$CRAY_PKG_CONFIG_PATH" \$DOPROFILEREAD \$SHELL -l
   # and leave a message when we exit... the shell might return non-zero
   # without having real problems, so don't send alarming messages about
   # that
 EOT
 	cd -
 	echo 'export PATH="$PATH:$HOST_PATH"' >> $EPREFIX/etc/profile
+	echo 'export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$EPREFIX/usr/lib/pkgconfig"' >> $EPREFIX/etc/profile
+	echo 'export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$CRAY_PKG_CONFIG_PATH"' >> $EPREFIX/etc/profile
+	sed -i -e "s|:/usr/bin:/bin||" -e "s|:/usr/sbin:/sbin||" $EPREFIX/etc/profile
 
 fi
 
@@ -128,3 +156,4 @@ if [ ! -f "$EPREFIX/.rebuilt" ]; then
 	emerge -ve world || exit 1
 	touch "$EPREFIX/.rebuilt"
 fi
+emerge -av mpi4py pycurl

@@ -4,3 +4,8 @@ sys-apps/man-db
 =sys-devel/autoconf-wrapper-9999
 =sys-devel/automake-1.15.9999
 =sys-devel/autoconf-2.69-r9999
+=dev-lang/tk-8.6.4-r1
+=dev-lang/tcl-8.5.17-r100
+=dev-lang/tk-8.5.17-r100
+#=sys-apps/util-linux-2.26.2
+#=sys-apps/util-linux-2.26.1-r1
