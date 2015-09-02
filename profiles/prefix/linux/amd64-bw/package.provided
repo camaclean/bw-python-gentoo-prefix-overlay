@@ -83,4 +83,8 @@ sys-fs/e2fsprogs-1.42.9-r1
 media-libs/fontconfig-2.6.0
 virtual/os-headers-0
 virtual/ttf-fonts-1
-media-libs/libpng-1.2.31:1.2
+#x11-libs/cairo-1.8.8
+app-text/sgml-common-0.6.3-r5
+sys-apps/less-479
+app-misc/ca-certificates-20141019.3.19
+dev-util/cmake-2.8.10.2

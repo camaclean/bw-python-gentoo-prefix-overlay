@@ -52,9 +52,10 @@ if [ ! -f "$EPREFIX/.stage2_config_set" ]; then
 	git clone https://github.com/camaclean/bw-python-gentoo-prefix-overlay.git $EPREFIX/usr/local/bw-python-gentoo-prefix-overlay
 	sed -i '1iMARCH="bdver1"' $EPREFIX/etc/portage/make.conf
 	sed -i 's|^CFLAGS=".*"|CFLAGS="\$\{CFLAGS\} -O2 -pipe -march=\$MARCH -I$EPREFIX/usr/include -I/usr/include -L$EPREFIX/lib -L$EPREFIX/usr/lib -L/lib64 -L/usr/lib64"|' $EPREFIX/etc/portage/make.conf
+	sed -i 's|^USE=".*"|USE="unicode nls jpeg jpeg2k lcms tiff truetype lapack -e2fsprogs lzo lzma"|' $EPREFIX/etc/portage/make.conf
 	sed -i 's|^MAKEOPTS=".*"|MAKEOPTS="-j9"|' $EPREFIX/etc/portage/make.conf
 	sed -i 's|^MAKEOPTS=".*"|MAKEOPTS="-j9"|' $EPREFIX/tmp/etc/portage/make.conf
-	echo 'LDFLAGS="${LDFLAGS} -Wl,--rpath=$EPREFIX/lib -Wl,--rpath=$EPREFIX/usr/lib"' >> $EPREFIX/etc/portage/make.conf
+	echo 'LDFLAGS="${LDFLAGS} -Wl,--as-needed -Wl,--rpath=$EPREFIX/lib -Wl,--rpath=$EPREFIX/usr/lib -Wl,--enable-new-dtags"' >> $EPREFIX/etc/portage/make.conf
 	mkdir -p $EPREFIX/etc/portage/repos.conf
 	echo '[BWGentooPrefix]' >> $EPREFIX/etc/portage/repos.conf/bwgp.conf
 	echo "location = $EPREFIX/usr/local/bw-python-gentoo-prefix-overlay" >> $EPREFIX/etc/portage/repos.conf/bwgp.conf
@@ -64,8 +65,8 @@ if [ ! -f "$EPREFIX/.stage2_config_set" ]; then
 	echo 'auto-sync = yes' >> $EPREFIX/etc/portage/repos.conf/bwgp.conf
 	ln -snf $EPREFIX/usr/local/bw-python-gentoo-prefix-overlay/profiles/prefix/linux/amd64-bw $EPREFIX/tmp/etc/portage/make.profile
 	ln -snf $EPREFIX/usr/local/bw-python-gentoo-prefix-overlay/profiles/prefix/linux/amd64-bw $EPREFIX/etc/portage/make.profile
-	cp -r $EPREFIX/usr/local/bw-python-gentoo-prefix-overlay/profiles/prefix/linux/amd64-bw/env $EPREFIX/etc/portage/
-	cp $EPREFIX/usr/local/bw-python-gentoo-prefix-overlay/profiles/prefix/linux/amd64-bw/package.env $EPREFIX/etc/portage/
+	#cp -r $EPREFIX/usr/local/bw-python-gentoo-prefix-overlay/profiles/prefix/linux/amd64-bw/env $EPREFIX/etc/portage/
+	#cp $EPREFIX/usr/local/bw-python-gentoo-prefix-overlay/profiles/prefix/linux/amd64-bw/package.env $EPREFIX/etc/portage/
 	touch "$EPREFIX/.stage2_config_set"
 else
 	echo "Stage 2 config already set. Updating overlay."
@@ -91,44 +92,47 @@ if [ ! -f "$EPREFIX/startprefix" ]; then
 	./bootstrap-prefix.sh $EPREFIX startscript
 	cd $EPREFIX
 	patch -p0 <<EOT
-*** startprefix.old     2015-08-27 08:26:28.000000000 -0500
---- startprefix   2015-08-28 11:04:34.000000000 -0500
+*** startprefix.orig    Mon Aug 31 11:06:10 2015
+--- startprefix Tue Sep  1 11:18:06 2015
 ***************
-*** 1,4 ****
-! #!$EPREFIX/bin/bash
-  # Copyright 2006-2014 Gentoo Foundation; Distributed under the GPL v2
-  # \$Id: startprefix.in 61219 2012-09-04 19:05:55Z grobian $
-  
---- 1,4 ----
-! #!/bin/bash
-  # Copyright 2006-2014 Gentoo Foundation; Distributed under the GPL v2
-  # \$Id: startprefix.in 61219 2012-09-04 19:05:55Z grobian $
-  
-***************
-*** 13,18 ****
---- 13,34 ----
+*** 13,21 ****
+--- 13,48 ----
   # hence this script starts the Prefix shell like this
   
-
+  
 + module switch PrgEnv-cray PrgEnv-gnu
 + module load cblas
++ module unload xalt
 + module load cmake
 + 
 + HOST_PATH=\$PATH
 + CRAY_CFLAGS="\$(cc --cray-print-opts=cflags)"
 + CRAY_LDFLAGS="\$(cc --cray-print-opts=libs)"
 + CRAY_PKG_CONFIG_PATH="\$(cc --cray-print-opts=pkg_config_path)"
-+ CRAY_LIBRARY_PATHS="\$(echo \$CRAY_LDFLAGS | grep -Po '(?<=-L)([\S]*)')" 
++ LD_LIB_PATHS="\$(echo \$LD_LIBRARY_PATH | tr ':' '\n')"
++ CRAY_LIBRARY_PATHS="\$LD_LIB_PATHS\n\$(echo \$CRAY_LDFLAGS | grep -Po '(?<=-L)([\S]*)')"
 + if [[ \$(echo "\$CRAY_LIBRARY_PATHS" | wc -l) > 0 ]]
 + then
 +       while read -r path; do
 +               CRAY_LDFLAGS="\$CRAY_LDFLAGS -Wl,--rpath=\$path" #,--enable-new-dtags"
 +       done <<< "\$CRAY_LIBRARY_PATHS"
 + fi
++ if [[ \$(echo "\$LD_LIB_PATHS" | wc -l) > 0 ]]
++ then
++       while read -r path; do
++               LDP_LDFLAGS="\$LDP_LDFLAGS -Wl,--rpath=\$path" #,--enable-new-dtags"
++       done <<< "\$LD_LIB_PATHS"
++ fi
 + 
   # What is our prefix?
-  EPREFIX="$EPREFIX"
+  EPREFIX="/u/staff/cmaclean/test4"
   
++ mkdir -p /dev/shm/\$USER/portage
++ ln -snf /dev/shm/\$USER/portage \$EPREFIX/var/tmp/portage
++ 
+  if [[ \${SHELL#\${EPREFIX}} != \${SHELL} ]] ; then
+        echo "You appear to be in prefix already (SHELL=\$SHELL)" > /dev/stderr
+        exit -1
 *************** echo "Entering Gentoo Prefix \${EPREFIX}"
 *** 39,45 ****
   # start the login shell, clean the entire environment but what's needed
@@ -138,18 +142,18 @@ if [ ! -f "$EPREFIX/startprefix" ]; then
   # and leave a message when we exit... the shell might return non-zero
   # without having real problems, so don't send alarming messages about
   # that
---- 55,61 ----
+--- 66,72 ----
   # start the login shell, clean the entire environment but what's needed
   # PROFILEREAD is necessary on SUSE not to wipe the env on shell start
   [[ -n \${PROFILEREAD} ]] && DOPROFILEREAD="PROFILEREAD=\${PROFILEREAD}"
-! env -i HOME=\$HOME TERM=\$TERM USER=\$USER SHELL=\$SHELL HOST_PATH="\$HOST_PATH" CRAY_CFLAGS="\$CRAY_CFLAGS" CRAY_LDFLAGS="\$CRAY_LDFLAGS" CRAY_PKG_CONFIG_PATH="\$CRAY_PKG_CONFIG_PATH" \$DOPROFILEREAD \$SHELL -l
+! env -i HOME=\$HOME TERM=\$TERM USER=\$USER SHELL=\$SHELL HOST_PATH="\$HOST_PATH" CRAY_CFLAGS="\$CRAY_CFLAGS" CRAY_LDFLAGS="\$CRAY_LDFLAGS" CRAY_PKG_CONFIG_PATH="\$CRAY_PKG_CONFIG_PATH" LDP_LDFLAGS="\$LDP_LDFLAGS" \$DOPROFILEREAD \$SHELL -l
   # and leave a message when we exit... the shell might return non-zero
   # without having real problems, so don't send alarming messages about
   # that
 EOT
 	cd -
 	echo 'export PATH="$PATH:$HOST_PATH"' >> $EPREFIX/etc/profile
-	echo 'export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$EPREFIX/usr/lib/pkgconfig"' >> $EPREFIX/etc/profile
+	echo "export PKG_CONFIG_PATH=\"\$PKG_CONFIG_PATH:$EPREFIX/usr/lib/pkgconfig:/usr/lib64/pkgconfig\"" >> $EPREFIX/etc/profile
 	echo 'export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$CRAY_PKG_CONFIG_PATH"' >> $EPREFIX/etc/profile
 	sed -i -e "s|:/usr/bin:/bin||" -e "s|:/usr/sbin:/sbin||" $EPREFIX/etc/profile
 

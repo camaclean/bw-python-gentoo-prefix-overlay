@@ -1,0 +1,17 @@
+diff --git a/setupext.py b/setupext.py
+index 736c412..23e61c3 100755
+--- a/setupext.py
++++ b/setupext.py
+@@ -917,9 +917,9 @@ class FreeType(SetupPackage):
+     name = "freetype"
+ 
+     def check(self):
+-        if sys.platform == 'win32':
+-            check_include_file(get_include_dirs(), 'ft2build.h', 'freetype')
+-            return 'Using unknown version found on system.'
++        #Host freetype is not found correctly with BW Prefix
++        check_include_file(get_include_dirs(), 'ft2build.h', 'freetype')
++        return 'Using unknown version found on system.'
+ 
+         status, output = getstatusoutput("freetype-config --ftversion")
+         if status == 0:
