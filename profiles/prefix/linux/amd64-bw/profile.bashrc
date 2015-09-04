@@ -5,14 +5,18 @@
 
 Pkgenvs=("dev-python/mpi4py cray" 
 	 "dev-python/numpy cray"
+	 "sci-libs/arpack cray"
+	 "dev-libs/c-blosc cray"
 	 "sys-libs/zlib includelocal"
-	 "dev-lang/python ncurses"
 	 "dev-util/cmake ncurses"
 	 "sys-libs/readline ncurses"
 	 "dev-libs/openssl nolibdirs"
 	 "sys-libs/ncurses nolibdirs"
 	 "media-libs/libpng nodirs"
-	 "dev-lang/python:2.7 ncurses rt"
+	 "dev-lang/python ncurses"
+	 "dev-lang/python:2.7 rt"
+	 "sci-libs/superlu cray"
+         "dev-python/pysparse cray"
 );
 
 
@@ -71,42 +75,53 @@ do
 	if matches_atom "${pkgarr[0]}"; then
 		for env in ${pkgarr[@]:1}
 		do
-			echo "$env"
 			case $env in
 			cray)
 				export USING_CRAY_ENV="yes"
 				;;
 
 			includelocal)
-				CFLAGS="-I. ${CFLAGS}"
-				CXXFLAGS="-I. ${CXXFLAGS}"
+				export CFLAGS="-I. ${CFLAGS}"
+				export FFLAGS="-I. ${CFLAGS}"
+				export CXXFLAGS="-I. ${CXXFLAGS}"
 				;;
 
 			ncurses)
-				CFLAGS="${CFLAGS} -I/usr/include/ncurses"
-				CXXFLAGS="${CXXFLAGS} -I/usr/include/ncurses"
-				LDFLAGS="${LDFLAGS} -I/usr/include/ncures -lncurses"
+				export CFLAGS="${CFLAGS} -I/usr/include/ncurses"
+				export FFLAGS="${CFLAGS} -I/usr/include/ncurses"
+				export CXXFLAGS="${CXXFLAGS} -I/usr/include/ncurses"
+				export LDFLAGS="${LDFLAGS} -I/usr/include/ncures"
+				export LDFLAGS="${LDFLAGS} -lncurses"
 				;;
 
 			nodirs)
-				CFLAGS="-O2 -pipe -march=$MARCH"
-				CXXFLAGS="${CFLAGS}"
+				export CFLAGS="-O2 -pipe -march=$MARCH"
+				export FFLAGS="-O2 -pipe -march=$MARCH"
+				export CXXFLAGS="${CFLAGS}"
 				;;
 
 			nolibdirs)
-				CFLAGS=$(echo "$CFLAGS" | perl -pe 's/-L[\S]+ //g and s/-l[\S]+//g')
-				CXXFLAGS=$(echo "$CXXFLAGS" | perl -pe 's/-L[\S]+ //g and s/-l[\S]+//g')
-				LDFLAGS=$(echo "$LDFLAGS" | perl -pe 's/-L[\S]+ //g and s/-l[\S]+//g')
+				export CFLAGS=$(echo "$CFLAGS" | perl -pe 's/-L[\S]+//g and s/-l[\S]+//g and s/[\s]+/ /g')
+				export FFLAGS=$(echo "$CFLAGS" | perl -pe 's/-L[\S]+//g and s/-l[\S]+//g and s/[\s]+/ /g')
+				export CXXFLAGS=$(echo "$CXXFLAGS" | perl -pe 's/-L[\S]+ //g and s/-l[\S]+//g and s/[\s]+/ /g')
+				export LDFLAGS=$(echo "$LDFLAGS" | perl -pe 's/-L[\S]+//g and s/-l[\S]+//g and s/[\s]+/ /g')
 				;;
 
 			nodirs)
-				CFLAGS=$(echo "$CFLAGS" | perl -pe 's/-L[\S]+ //g and s/-l[\S]+//g and s/-I[\S]+ //g and s/[\s]+/ /g')
-				CXXFLAGS=$(echo "$CXXFLAGS" | perl -pe 's/-L[\S]+ //g and s/-l[\S]+//g and s/-I[\S]+ //g and s/[\s]+/ /g')
-				LDFLAGS=$(echo "$LDFLAGS" | perl -pe 's/-L[\S]+ //g and s/-l[\S]+//g and s/-I[\S]+ //g and s/[\s]+/ /g')
+				export CFLAGS=$(echo "$CFLAGS" | perl -pe 's/-L[\S]+//g and s/-l[\S]+//g and s/-I[\S]+//g and s/[\s]+/ /g')
+				export FFLAGS=$(echo "$CFLAGS" | perl -pe 's/-L[\S]+//g and s/-l[\S]+//g and s/-I[\S]+//g and s/[\s]+/ /g')
+				export CXXFLAGS=$(echo "$CXXFLAGS" | perl -pe 's/-L[\S]+//g and s/-l[\S]+//g and s/-I[\S]+//g and s/[\s]+/ /g')
+				export LDFLAGS=$(echo "$LDFLAGS" | perl -pe 's/-L[\S]+//g and s/-l[\S]+//g and s/-I[\S]+//g and s/[\s]+/ /g')
+				;;
+
+			craycc)
+				export CC=cc
+				export CXX=CC
+				export FC=ftn
 				;;
 
 			rt)
-				LDFLAGS="${LDFLAGS} -lrt"
+				export LDFLAGS="${LDFLAGS} -lrt"
 				;;
 
 			*)
@@ -123,6 +138,7 @@ fi
 
 if [ -n "${USING_CRAY_ENV}" ] && [[ ${EBUILD_PHASE} == unpack ]]; then
 	export CFLAGS="$CRAY_CFLAGS $CFLAGS"
+	export FFLAGS="$CRAY_CFLAGS $FFLAGS"
 	export LDFLAGS="$CRAY_LDFLAGS $LDFLAGS"
 fi
 

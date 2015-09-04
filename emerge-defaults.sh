@@ -1,2 +1,2 @@
 #!/bin/bash
-emerge -av pillow native-mpi mpi4py
+emerge -av gentoolkit eix pillow native-mpi mpi4py matplotlib pycuda h5py netcfd4-python pandas statsmodels
