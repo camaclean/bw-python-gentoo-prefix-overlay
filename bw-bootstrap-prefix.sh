@@ -130,77 +130,54 @@ else
 	echo "Stage 3 already built. Skipping."
 fi
 
-if [ ! -f "$EPREFIX/startprefix" ]; then
-	./bootstrap-prefix.sh $EPREFIX startscript
-	cd $EPREFIX
-	patch -p0 <<EOT
-*** startprefix.orig    Mon Aug 31 11:06:10 2015
---- startprefix Tue Sep  1 11:18:06 2015
-***************
-*** 13,21 ****
---- 13,50 ----
-  # hence this script starts the Prefix shell like this
-  
-  
-+ module switch PrgEnv-cray PrgEnv-gnu
-+ module load cblas
-+ module unload xalt
-+ module load cmake
-+ module load boost
-+ module load cudatoolkit
-+ 
-+ HOST_PATH=\$PATH
-+ CRAY_CFLAGS="\$(cc --cray-print-opts=cflags)"
-+ CRAY_LDFLAGS="\$(cc --cray-print-opts=libs)"
-+ CRAY_PKG_CONFIG_PATH="\$(cc --cray-print-opts=pkg_config_path)"
-+ LD_LIB_PATHS="\$(echo \$LD_LIBRARY_PATH | tr ':' '\n')"
-+ CRAY_LIBRARY_PATHS="\$LD_LIB_PATHS\n\$(echo \$CRAY_LDFLAGS | grep -Po '(?<=-L)([\S]*)')"
-+ if [[ \$(echo "\$CRAY_LIBRARY_PATHS" | wc -l) > 0 ]]
-+ then
-+       while read -r path; do
-+               CRAY_LDFLAGS="\$CRAY_LDFLAGS -Wl,--rpath=\$path" #,--enable-new-dtags"
-+       done <<< "\$CRAY_LIBRARY_PATHS"
-+ fi
-+ if [[ \$(echo "\$LD_LIB_PATHS" | wc -l) > 0 ]]
-+ then
-+       while read -r path; do
-+               LDP_LDFLAGS="\$LDP_LDFLAGS -Wl,--rpath=\$path" #,--enable-new-dtags"
-+       done <<< "\$LD_LIB_PATHS"
-+ fi
-+ 
-  # What is our prefix?
-  EPREFIX="${EPREFIX}"
-  
-+ mkdir -p /dev/shm/\$USER/portage
-+ ln -snf /dev/shm/\$USER/portage \$EPREFIX/var/tmp/portage
-+ 
-  if [[ \${SHELL#\${EPREFIX}} != \${SHELL} ]] ; then
-        echo "You appear to be in prefix already (SHELL=\$SHELL)" > /dev/stderr
-        exit -1
-*************** echo "Entering Gentoo Prefix \${EPREFIX}"
-*** 39,45 ****
-  # start the login shell, clean the entire environment but what's needed
-  # PROFILEREAD is necessary on SUSE not to wipe the env on shell start
-  [[ -n \${PROFILEREAD} ]] && DOPROFILEREAD="PROFILEREAD=\${PROFILEREAD}"
-! env -i HOME=\$HOME TERM=\$TERM USER=\$USER SHELL=\$SHELL \$DOPROFILEREAD \$SHELL -l
-  # and leave a message when we exit... the shell might return non-zero
-  # without having real problems, so don't send alarming messages about
-  # that
---- 68,74 ----
-  # start the login shell, clean the entire environment but what's needed
-  # PROFILEREAD is necessary on SUSE not to wipe the env on shell start
-  [[ -n \${PROFILEREAD} ]] && DOPROFILEREAD="PROFILEREAD=\${PROFILEREAD}"
-! env -i HOME=\$HOME TERM=\$TERM USER=\$USER SHELL=\$SHELL HOST_PATH="\$HOST_PATH" CRAY_CFLAGS="\$CRAY_CFLAGS" CRAY_LDFLAGS="\$CRAY_LDFLAGS" CRAY_PKG_CONFIG_PATH="\$CRAY_PKG_CONFIG_PATH" LDP_LDFLAGS="\$LDP_LDFLAGS" \$DOPROFILEREAD \$SHELL -l
-  # and leave a message when we exit... the shell might return non-zero
-  # without having real problems, so don't send alarming messages about
-  # that
-EOT
-	cd -
-fi
+cat > $EPREFIX/setup-env.sh <<EOT
+module switch PrgEnv-cray PrgEnv-gnu
+module load cblas
+module unload xalt
+module load cmake
+module load cray-hdf5-parallel
+module load cray-netcdf-hdf5parallel
+module load cray-tpsl
+#module load cudatoolkit
+module load boost
 
-export PKG_CONFIG_PATH="$EPREFIX/usr/lib/pkgconfig:$PKG_CONFIG_PATH:$CRAY_PKG_CONFIG_PATH:/usr/lib64/pkgconfig"
-export LD_LIBRARY_PATH="$LD_LIBRARY_PATH_BAK"
-export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH_BAK"
+export EPREFIX="\$1"
+export HOST_PATH="\$PATH"
+export CRAY_CFLAGS="\$(cc --cray-print-opts=cflags)"
+export CRAY_CFLAGS="\$CRAY_CFLAGS \$CRAY_BOOST_INCLUDE_OPTS"
+export CRAY_LDFLAGS="\$(cc --cray-print-opts=libs)"
+export CRAY_PKG_CONFIG_PATH="\$(cc --cray-print-opts=pkg_config_path)"
+LD_LIB_PATHS="\$(echo \$LD_LIBRARY_PATH | tr ':' '\n')"
+
+export PATH="\$EPREFIX/usr/bin:\$EPREFIX/bin:\$EPREFIX/tmp/usr/bin:\$EPREFIX/tmp/bin:\$PATH"
+unset LD_LIBRARY_PATH
+unset DYLD_LIBRARY_PATH
+export PKG_CONFIG_PATH_BAK="\$EPREFIX/usr/lib/pkgconfig:\$PKG_CONFIG_PATH:/usr/lib64/pkgconfig"
+#unset PKG_CONFIG_PATH
+
+CRAY_LIBRARY_PATHS="\$LD_LIB_PATHS
+\$(echo \$CRAY_LDFLAGS | grep -Po '(?<=-L)([\S]*)')"
+if [[ \$(echo "\$CRAY_LIBRARY_PATHS" | wc -l) > 0 ]]
+then
+	while read -r path; do
+		CRAY_LDFLAGS="\$CRAY_LDFLAGS -Wl,--rpath=\$path" #,--enable-new-dtags"
+	done <<< "\$CRAY_LIBRARY_PATHS"
+fi
+if [[ \$(echo "\$LD_LIB_PATHS" | wc -l) > 0 ]]
+then
+	while read -r path; do
+		LDP_LDFLAGS="\$LDP_LDFLAGS -Wl,--rpath=\$path" #,--enable-new-dtags"
+	done <<< "\$LD_LIB_PATHS"
+fi
+export CRAY_LDFLAGS="\$CRAY_LDFLAGS \$CRAY_BOOST_POST_LINK_OPTS"
+export LDP_LDFLAGS="\$LDP_LDFLAGS \$CRAY_BOOST_POST_LINK_OPTS"
+export PATH="\$PATH:\$HOST_PATH"
+export PKG_CONFIG_PATH="\$EPREFIX/usr/lib/pkgconfig:\$PKG_CONFIG_PATH:\$CRAY_PKG_CONFIG_PATH:/usr/lib64/pkgconfig"
+
+export PKG_CONFIG_PATH="\$EPREFIX/usr/lib/pkgconfig:\$PKG_CONFIG_PATH:\$CRAY_PKG_CONFIG_PATH:/usr/lib64/pkgconfig"
+export LD_LIBRARY_PATH="\$LD_LIBRARY_PATH_BAK"
+export DYLD_LIBRARY_PATH="\$DYLD_LIBRARY_PATH_BAK"
+EOT
 
 if [ ! -f "$EPREFIX/.rebuilt" ]; then
 	emerge -ve world || exit 1
