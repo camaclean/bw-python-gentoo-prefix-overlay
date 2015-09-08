@@ -6,7 +6,7 @@ EAPI=5
 
 PYTHON_COMPAT=( python2_7 python3_{3,4} )
 
-inherit distutils-r1 multilib
+inherit distutils-r1 multilib craymodules
 
 DESCRIPTION="Python wrapper for NVIDIA CUDA"
 HOMEPAGE="http://mathema.tician.de/software/pycuda/ http://pypi.python.org/pypi/pycuda"
@@ -36,6 +36,7 @@ DEPEND="${RDEPEND}
 RESTRICT="userpriv"
 
 cuda_sanitize() {
+	echo "$PATH"
 	local rawldflags=$(raw-ldflags)
 	# Be verbose if wanted
 	[[ "${CUDA_VERBOSE}" == true ]] && NVCCFLAGS+=" -v"
@@ -48,6 +49,14 @@ cuda_sanitize() {
 
 	debug-print "Using ${NVCCFLAGS} for cuda"
 	export NVCCFLAGS
+}
+
+pkg_setup() {
+	module load cudatoolkit
+}
+
+pkg_install() {
+	module unload cudatoolkit
 }
 
 python_prepare_all() {
@@ -66,7 +75,6 @@ python_prepare_all() {
 python_configure() {
 	local myopts=()
 	use opengl && myopts+=( --cuda-enable-gl )
-	module load cudatoolkit
 
         export LDFLAGS="$LDFLAGS -L/opt/cray/nvidia/default/lib64 -Wl,--rpath=/opt/cray/nvidia/default/lib64"
 	mkdir "${BUILD_DIR}" || die
