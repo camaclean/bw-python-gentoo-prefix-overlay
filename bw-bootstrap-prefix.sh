@@ -178,6 +178,7 @@ export PKG_CONFIG_PATH="\$EPREFIX/usr/lib/pkgconfig:\$PKG_CONFIG_PATH:\$CRAY_PKG
 export LD_LIBRARY_PATH="\$LD_LIBRARY_PATH_BAK"
 export DYLD_LIBRARY_PATH="\$DYLD_LIBRARY_PATH_BAK"
 EOT
+chmod +x $EPREFIX/setup-env.sh
 
 if [ ! -f "$EPREFIX/.rebuilt" ]; then
 	emerge -ve world || exit 1
