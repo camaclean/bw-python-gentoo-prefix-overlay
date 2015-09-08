@@ -92,7 +92,6 @@ sys-apps/less-479
 app-misc/ca-certificates-20141019.3.19
 dev-util/cmake-2.8.10.2
 dev-util/cmake-3.2.3
-dev-lang/perl-5.22.0
 x11-drivers/nvidia-drivers-352.09
 dev-util/nvidia-cuda-toolkit-6.5.14
 dev-libs/boost-1.53.0

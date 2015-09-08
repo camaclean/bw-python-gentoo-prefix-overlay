@@ -120,7 +120,7 @@ if [ ! -f "$EPREFIX/.stage3_config_set" ]; then
 	echo 'export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$CRAY_PKG_CONFIG_PATH"' >> $EPREFIX/etc/profile
 	sed -i -e "s|:/usr/bin:/bin||" -e "s|:/usr/sbin:/sbin||" $EPREFIX/etc/profile
 	touch "$EPREFIX/.stage3_config_set"
-	ln -snf /usr/bin/perl $EPREFIX/usr/bin/perl
+	#ln -snf /usr/bin/perl $EPREFIX/usr/bin/perl
 fi
 
 if [ ! -f "$EPREFIX/.stage3_built" ]; then
@@ -138,11 +138,7 @@ if [ ! -f "$EPREFIX/startprefix" ]; then
 --- startprefix Tue Sep  1 11:18:06 2015
 ***************
 *** 13,21 ****
-<<<<<<< HEAD
 --- 13,50 ----
-=======
---- 13,48 ----
->>>>>>> e3216d002b581a849258802ff62d21226728ac8f
   # hence this script starts the Prefix shell like this
   
   
