@@ -8,14 +8,46 @@ if [ "$#" -ne 1 ]; then
 fi
 
 module switch PrgEnv-cray PrgEnv-gnu
+module load cblas
+module unload xalt
+module load cmake
+module load cray-hdf5-parallel
+module load cray-netcdf-hdf5parallel
+module load cray-tpsl
+#module load cudatoolkit
+module load boost
 
 export EPREFIX="$1"
+export HOST_PATH="$PATH"
+export CRAY_CFLAGS="$(cc --cray-print-opts=cflags)"
+export CRAY_LDFLAGS="$(cc --cray-print-opts=libs)"
+export CRAY_PKG_CONFIG_PATH="$(cc --cray-print-opts=pkg_config_path)"
+LD_LIB_PATHS="$(echo $LD_LIBRARY_PATH | tr ':' '\n')"
 
-export PATH="$EPREFIX/usr/bin:$EPREFIX/bin:$EPREFIX/tmp/usr/bin:$EPREFIX/tmp/bin:/usr/bin:/bin"
+export PATH="$EPREFIX/sbin:$EPREFIX/usr/sbin:$EPREFIX/usr/bin:$EPREFIX/bin:$EPREFIX/tmp/usr/bin:$EPREFIX/tmp/bin:$PATH"
+export LD_LIBRARY_PATH_BAK="$LD_LIBRARY_PATH"
+export DYLD_LIBRARY_PATH_BAK="$DYLD_LIBRARY_PATH"
 unset LD_LIBRARY_PATH
 unset DYLD_LIBRARY_PATH
 set PKG_CONFIG_PATH_BAK="$PKG_CONFIG_PATH"
 unset PKG_CONFIG_PATH
+
+CRAY_LIBRARY_PATHS="$LD_LIB_PATHS\n$(echo $CRAY_LDFLAGS | grep -Po '(?<=-L)([\S]*)')"
+if [[ $(echo "$CRAY_LIBRARY_PATHS" | wc -l) > 0 ]]
+then
+	while read -r path; do
+		CRAY_LDFLAGS="$CRAY_LDFLAGS -Wl,--rpath=$path" #,--enable-new-dtags"
+	done <<< "$CRAY_LIBRARY_PATHS"
+fi
+if [[ $(echo "$LD_LIB_PATHS" | wc -l) > 0 ]]
+then
+	while read -r path; do
+		LDP_LDFLAGS="$LDP_LDFLAGS -Wl,--rpath=$path" #,--enable-new-dtags"
+	done <<< "$LD_LIB_PATHS"
+fi
+export CRAY_LDFLAGS="$CRAY_LDFLAGS $CRAY_BOOST_POST_LINK_OPTS"
+export LDP_LDFLAGS="$LDP_LDFLAGS $CRAY_BOOST_POST_LINK_OPTS"
+export PATH="$PATH:$HOST_PATH"
 
 #Download bootstrap script and set stage1 configs on the first run
 if [ ! -f "$EPREFIX/.stage1_config_set" ]; then
@@ -52,10 +84,11 @@ if [ ! -f "$EPREFIX/.stage2_config_set" ]; then
 	git clone https://github.com/camaclean/bw-python-gentoo-prefix-overlay.git $EPREFIX/usr/local/bw-python-gentoo-prefix-overlay
 	sed -i '1iMARCH="bdver1"' $EPREFIX/etc/portage/make.conf
 	sed -i 's|^CFLAGS=".*"|CFLAGS="\$\{CFLAGS\} -O2 -pipe -march=\$MARCH -I$EPREFIX/usr/include -I/usr/include -L$EPREFIX/lib -L$EPREFIX/usr/lib -L/lib64 -L/usr/lib64"|' $EPREFIX/etc/portage/make.conf
-	sed -i 's|^USE=".*"|USE="unicode nls jpeg jpeg2k lcms tiff truetype lapack -e2fsprogs lzo lzma"|' $EPREFIX/etc/portage/make.conf
+	sed -i 's|^USE=".*"|USE="unicode nls jpeg jpeg2k lcms tiff truetype lapack -e2fsprogs lzo lzma python mpi threads hdf hdf5 sqlite"|' $EPREFIX/etc/portage/make.conf
 	sed -i 's|^MAKEOPTS=".*"|MAKEOPTS="-j9"|' $EPREFIX/etc/portage/make.conf
 	sed -i 's|^MAKEOPTS=".*"|MAKEOPTS="-j9"|' $EPREFIX/tmp/etc/portage/make.conf
-	echo 'LDFLAGS="${LDFLAGS} -Wl,--as-needed -Wl,--rpath=$EPREFIX/lib -Wl,--rpath=$EPREFIX/usr/lib -Wl,--enable-new-dtags"' >> $EPREFIX/etc/portage/make.conf
+	echo 'LDFLAGS="${LDFLAGS} -Wl,--rpath=$EPREFIX/lib -Wl,--rpath=$EPREFIX/usr/lib -Wl,--enable-new-dtags"' >> $EPREFIX/etc/portage/make.conf
+	echo 'FFLAGS="${CFLAGS}"' >> $EPREFIX/etc/portage/make.conf
 	mkdir -p $EPREFIX/etc/portage/repos.conf
 	echo '[BWGentooPrefix]' >> $EPREFIX/etc/portage/repos.conf/bwgp.conf
 	echo "location = $EPREFIX/usr/local/bw-python-gentoo-prefix-overlay" >> $EPREFIX/etc/portage/repos.conf/bwgp.conf
@@ -81,6 +114,15 @@ else
 	echo "Stage 2 already built. Skipping."
 fi
 
+if [ ! -f "$EPREFIX/.stage3_config_set" ]; then
+	echo 'export PATH="$PATH:$HOST_PATH"' >> $EPREFIX/etc/profile
+	echo "export PKG_CONFIG_PATH=\"\$PKG_CONFIG_PATH:$EPREFIX/usr/lib/pkgconfig:/usr/lib64/pkgconfig\"" >> $EPREFIX/etc/profile
+	echo 'export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$CRAY_PKG_CONFIG_PATH"' >> $EPREFIX/etc/profile
+	sed -i -e "s|:/usr/bin:/bin||" -e "s|:/usr/sbin:/sbin||" $EPREFIX/etc/profile
+	touch "$EPREFIX/.stage3_config_set"
+	ln -snf /usr/bin/perl $EPREFIX/usr/bin/perl
+fi
+
 if [ ! -f "$EPREFIX/.stage3_built" ]; then
 	./bootstrap-prefix.sh $EPREFIX stage3 || exit 1
 	touch "$EPREFIX/.stage3_built"
@@ -96,7 +138,11 @@ if [ ! -f "$EPREFIX/startprefix" ]; then
 --- startprefix Tue Sep  1 11:18:06 2015
 ***************
 *** 13,21 ****
+<<<<<<< HEAD
+--- 13,50 ----
+=======
 --- 13,48 ----
+>>>>>>> e3216d002b581a849258802ff62d21226728ac8f
   # hence this script starts the Prefix shell like this
   
   
@@ -104,6 +150,8 @@ if [ ! -f "$EPREFIX/startprefix" ]; then
 + module load cblas
 + module unload xalt
 + module load cmake
++ module load boost
++ module load cudatoolkit
 + 
 + HOST_PATH=\$PATH
 + CRAY_CFLAGS="\$(cc --cray-print-opts=cflags)"
@@ -125,7 +173,7 @@ if [ ! -f "$EPREFIX/startprefix" ]; then
 + fi
 + 
   # What is our prefix?
-  EPREFIX="/u/staff/cmaclean/test4"
+  EPREFIX="${EPREFIX}"
   
 + mkdir -p /dev/shm/\$USER/portage
 + ln -snf /dev/shm/\$USER/portage \$EPREFIX/var/tmp/portage
@@ -142,7 +190,7 @@ if [ ! -f "$EPREFIX/startprefix" ]; then
   # and leave a message when we exit... the shell might return non-zero
   # without having real problems, so don't send alarming messages about
   # that
---- 66,72 ----
+--- 68,74 ----
   # start the login shell, clean the entire environment but what's needed
   # PROFILEREAD is necessary on SUSE not to wipe the env on shell start
   [[ -n \${PROFILEREAD} ]] && DOPROFILEREAD="PROFILEREAD=\${PROFILEREAD}"
@@ -152,19 +200,19 @@ if [ ! -f "$EPREFIX/startprefix" ]; then
   # that
 EOT
 	cd -
-	echo 'export PATH="$PATH:$HOST_PATH"' >> $EPREFIX/etc/profile
-	echo "export PKG_CONFIG_PATH=\"\$PKG_CONFIG_PATH:$EPREFIX/usr/lib/pkgconfig:/usr/lib64/pkgconfig\"" >> $EPREFIX/etc/profile
-	echo 'export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$CRAY_PKG_CONFIG_PATH"' >> $EPREFIX/etc/profile
-	sed -i -e "s|:/usr/bin:/bin||" -e "s|:/usr/sbin:/sbin||" $EPREFIX/etc/profile
-
 fi
+
+export PKG_CONFIG_PATH="$EPREFIX/usr/lib/pkgconfig:$PKG_CONFIG_PATH:$CRAY_PKG_CONFIG_PATH:/usr/lib64/pkgconfig"
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH_BAK"
+export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH_BAK"
 
 if [ ! -f "$EPREFIX/.rebuilt" ]; then
 	emerge -ve world || exit 1
 	touch "$EPREFIX/.rebuilt"
 fi
 
-echo "The base Blue Waters python prefix has now been built"
-echo "Next, start the prefix with $EPREFIX/startprefix and build the desired packages."
-echo "To build the default BW Python packages, run:"
-echo "$EPREFIX/usr/local/bw-python-gentoo-prefix-overlay/emerge-defaults.sh"
+#echo "The base Blue Waters python prefix has now been built"
+#echo "Next, start the prefix with $EPREFIX/startprefix and build the desired packages."
+#echo "To build the default BW Python packages, run:"
+#echo "$EPREFIX/usr/local/bw-python-gentoo-prefix-overlay/emerge-defaults.sh"
+$EPREFIX/usr/local/bw-python-gentoo-prefix-overlay/emerge-defaults.sh
