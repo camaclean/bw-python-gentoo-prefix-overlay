@@ -98,9 +98,8 @@ if [ ! -f "$EPREFIX/.stage2_config_set" ]; then
 	echo 'auto-sync = yes' >> $EPREFIX/etc/portage/repos.conf/bwgp.conf
 	ln -snf $EPREFIX/usr/local/bw-python-gentoo-prefix-overlay/profiles/prefix/linux/amd64-bw $EPREFIX/tmp/etc/portage/make.profile
 	ln -snf $EPREFIX/usr/local/bw-python-gentoo-prefix-overlay/profiles/prefix/linux/amd64-bw $EPREFIX/etc/portage/make.profile
-	cp -r $EPREFIX/usr/local/bw-python-gentoo-prefix-overlay/profiles/prefix/linux/amd64-bw/env $EPREFIX/etc/portage/
-	cp $EPREFIX/usr/local/bw-python-gentoo-prefix-overlay/profiles/prefix/linux/amd64-bw/package.env $EPREFIX/etc/portage/
-	echo '. /etc/bash.bashrc.local' >> $EPREFIX/etc/bash/bashrc
+	#cp -r $EPREFIX/usr/local/bw-python-gentoo-prefix-overlay/profiles/prefix/linux/amd64-bw/env $EPREFIX/etc/portage/
+	#cp $EPREFIX/usr/local/bw-python-gentoo-prefix-overlay/profiles/prefix/linux/amd64-bw/package.env $EPREFIX/etc/portage/
 	touch "$EPREFIX/.stage2_config_set"
 else
 	echo "Stage 2 config already set. Updating overlay."
@@ -139,7 +138,11 @@ if [ ! -f "$EPREFIX/startprefix" ]; then
 --- startprefix Tue Sep  1 11:18:06 2015
 ***************
 *** 13,21 ****
+<<<<<<< HEAD
 --- 13,50 ----
+=======
+--- 13,48 ----
+>>>>>>> e3216d002b581a849258802ff62d21226728ac8f
   # hence this script starts the Prefix shell like this
   
   
@@ -197,7 +200,6 @@ if [ ! -f "$EPREFIX/startprefix" ]; then
   # that
 EOT
 	cd -
-
 fi
 
 export PKG_CONFIG_PATH="$EPREFIX/usr/lib/pkgconfig:$PKG_CONFIG_PATH:$CRAY_PKG_CONFIG_PATH:/usr/lib64/pkgconfig"
