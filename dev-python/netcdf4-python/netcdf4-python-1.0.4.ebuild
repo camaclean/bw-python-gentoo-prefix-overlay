@@ -21,6 +21,7 @@ KEYWORDS="~amd64 ~x86 ~amd64-linux ~x86-linux"
 IUSE="test cray"
 
 RDEPEND="
+	dev-python/numpy
 	sci-libs/hdf5
 	sci-libs/netcdf:=[hdf]"
 DEPEND="${RDEPEND}"
