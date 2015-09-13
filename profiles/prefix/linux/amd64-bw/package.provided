@@ -58,6 +58,7 @@ app-editors/vim-core-7.4.827
 virtual/cblas-2.0-r3
 virtual/lapack-3.5-r2
 sci-libs/cblas-reference-20110218-r1
+sci-libs/blas-reference-20070226-r2
 sci-libs/lapack-reference-3.5.0
 media-libs/freetype-2.6
 x11-libs/libSM-1.1.0
@@ -91,12 +92,12 @@ sys-apps/less-479
 app-misc/ca-certificates-20141019.3.19
 dev-util/cmake-2.8.10.2
 dev-util/cmake-3.2.3
-dev-lang/perl-5.22.0
 x11-drivers/nvidia-drivers-352.09
 dev-util/nvidia-cuda-toolkit-6.5.14
 dev-libs/boost-1.53.0
 dev-util/boost-build-1.53.0
 virtual/blas-2.1-r3
+virtual/blas-1.0
 sci-libs/hdf5-1.8.14-r1
 sci-libs/netcdf-4.3.3.1
 virtual/perl-Scalar-List-Utils-1.410.0

@@ -1,1 +1,2 @@
 virtual/mpi sys-cluster/native-mpi
+virtual/blas sci-libs/libsci

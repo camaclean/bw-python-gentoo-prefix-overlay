@@ -18,7 +18,8 @@ RDEPEND="${DEPEND}"
 
 S=${WORKDIR}
 
-pkg_install() {
+src_install() {
+	mkdir -p ${D}/${EPREFIX}/usr/lib/pkgconfig
 	ln -snf $CRAY_LIBSCI_PREFIX_DIR/lib/pkgconfig/sci_mpi.pc ${D}/${EPREFIX}/usr/lib/pkgconfig/blas.pc
 	ln -snf $CRAY_LIBSCI_PREFIX_DIR/lib/pkgconfig/sci_mpi.pc ${D}/${EPREFIX}/usr/lib/pkgconfig/cblas.pc
 	ln -snf $CRAY_LIBSCI_PREFIX_DIR/lib/pkgconfig/sci_mpi.pc ${D}/${EPREFIX}/usr/lib/pkgconfig/lapack.pc
