@@ -1,0 +1,147 @@
+*** etc/profile	Tue Sep 15 08:32:14 2015
+--- etc/profile	Tue Sep 15 08:33:54 2015
+***************
+*** 4,9 ****
+--- 4,65 ----
+  # environment for login shells.
+  #
+  
++ #
++ # for prefix-chaining, the very first thing to do is to load
++ # the profiles for all chained instances above.
++ #
++ # TODO: is it safe in any case to shell source make.conf?
++ # don't do any recursive expansion here. if the parent can
++ # use READONLY_EPREFIX's, it has to have the same profile as
++ # we have here, and thus it will source parents before
++ # evaluating anything from itself.
++ #
++ _ro_root=$(. "@GENTOO_PORTAGE_EPREFIX@"/etc/portage/make.conf && echo $READONLY_EPREFIX)
++ _ro_deps=${_ro_root#*:}
++ _ro_root=${_ro_root%:*}
++ 
++ #
++ # prevent dooming of _ro_* variables by recursing down the
++ # profile chain, by backing the up, tagged by resursion depth.
++ #
++ 
++ [[ -z "${_ro_recursion_level}" ]] && _ro_recursion_level=0
++ ((++_ro_recursion_level))
++ 
++ for _ro_backup_var in _ro_root _ro_deps; do
++ 	eval "_ro_b${_ro_recursion_level}_${_ro_backup_var}=\${${_ro_backup_var}}"
++ done
++ 
++ if [ -n "${_ro_root}" -a -f "${_ro_root}"/etc/profile ]; then
++ 	. "${_ro_root}"/etc/profile
++ fi
++ 
++ for _ro_backup_var in _ro_root _ro_deps; do
++ 	eval "${_ro_backup_var}=\${_ro_b${_ro_recursion_level}_${_ro_backup_var}}"
++ done
++ 
++ ((--_ro_recursion_level))
++ 
++ #
++ # With prefix-chaining we want another set of variables that
++ # should be retained for all prefixes. for example it is ok
++ # to retain PKG_CONFIG_PATH if the parent of the chain can
++ # be used to resolve RDEPEND...
++ #
++ if [[ -n "${_ro_root}" ]]; then
++ 	_ro_chained_path_vars="PATH MANPATH"
++ 
++ 	if [[ ${_ro_deps} == *RDEPEND* ]]; then
++ 		_ro_chained_path_vars="${_ro_chained_path_vars} PKG_CONFIG_PATH"
++ 	else
++ 		unset PKG_CONFIG_PATH
++ 	fi
++ 
++ 	for var in ${_ro_chained_path_vars}; do
++ 		eval "_ro_backupenv_paths_${var}=\${${var}}"
++ 	done
++ fi
++ 
+  # Load environment settings from profile.env, which is created by
+  # env-update from the files in "@GENTOO_PORTAGE_EPREFIX@"/etc/env.d
+  if [ -e "@GENTOO_PORTAGE_EPREFIX@"/etc/profile.env ] ; then
+*************** if [ -n "${BASH_VERSION}" ] ; then
+*** 47,55 ****
+--- 103,136 ----
+  		# it in the user's dot-files), but it shouldn't make any 
+  		# difference.
+  		. "@GENTOO_PORTAGE_EPREFIX@"/etc/bash/bashrc
++ 	elif [ -n "${_ro_root}" ]; then
++ 		# We're in a prefix chain, but have no local bash. we rely on bash
++ 		# beeing there _somewhere_ in the chain, so we do not need to set
++ 		# PS1 explicitly.
++ 		if [ -z "${PS1}" ]; then
++ 			# try harder to find something in the parent prefix of the chain.
++ 			# dont bother to search multiple chain members up to the top.
++ 			if [ -f "${_ro_root}/etc/bash/bashrc" ]; then
++ 				. "${_ro_root}/etc/bash/bashrc"
++ 			fi
++ 		fi
+  	else
+  		PS1='\u@\h \w \$ '
+  	fi
++ 
++ 	# Set the last dirpart of the current prefix somewhere
++ 	# in the prompt, so one immediately knows where he/she is.
++ 	if [ ${_ro_recursion_level} == 0 ]; then
++ 		# we're in the last prefix of the chain here.
++ 		_ro_name="@GENTOO_PORTAGE_EPREFIX@"
++ 		_ro_name="${_ro_name##*/}"
++ 
++ 		# use color only if the prompt already contains color escapes
++ 		case "${PS1}" in
++ 		*'\[\033['*'m\]'*) 	PS1="\[\033[01;36m\][${_ro_name}]\[\033[00m\] ${PS1}" ;;
++ 		*) 					PS1="[${_ro_name}] ${PS1}" ;;
++ 		esac
++ 	fi
+  else
+  	# Setup a bland default prompt.  Since this prompt should be useable
+  	# on color and non-color terminals, as well as shells that don't
+*************** else
+*** 57,63 ****
+--- 138,177 ----
+  	PS1="${USER:-$(whoami 2>/dev/null)}@$(uname -n 2>/dev/null) \$ "
+  fi
+  
++ # when chaining prefixes, we want the prompt to be passed to the child too,
++ # so we need to export it.
++ export PS1
++ 
+  for sh in "@GENTOO_PORTAGE_EPREFIX@"/etc/profile.d/*.sh ; do
+  	[ -r "$sh" ] && . "$sh"
+  done
+  unset sh
++ 
++ #
++ # finally chain the save variables for previous prefixes in the chain.
++ #
++ if [[ -n "${_ro_chained_path_vars}" ]]; then
++ 	for var in ${_ro_chained_path_vars}; do
++ 		eval "export ${var}=\${${var}}:\${_ro_backupenv_paths_${var}}"
++ 		eval "unset _ro_backupenv_paths_${var}"
++ 	done
++ fi
++ 
++ #
++ # final finally set EPREFIX to our prefix if we don't have a local portage. this
++ # was previously done by the startprefix script, but we want to be able to start
++ # this environment by simply sourcing etc/profile with the correct shell.
++ #
++ if [[ -z "${EPREFIX}" ]]; then
++ 	if [[ ! -x "@GENTOO_PORTAGE_EPREFIX@"/usr/bin/emerge ]]; then
++ 		export EPREFIX="@GENTOO_PORTAGE_EPREFIX@"
++ 	fi
++ elif [[ "${EPREFIX}" != "@GENTOO_PORTAGE_EPREFIX@" && ${_ro_recursion_level} == 0 ]]; then
++ 	echo "WARNING: EPREFIX is set from environment to \"${EPREFIX}\"."
++ 	echo "         You are entering the prefix \"@GENTOO_PORTAGE_EPREFIX@\"."
++ 	echo "         Having EPREFIX set this way will probably render this environment unusable."
++ fi
++ 
++ unset _ro_root
++ unset _ro_deps
++ unset _ro_chained_path_vars

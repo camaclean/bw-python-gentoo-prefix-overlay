@@ -17,7 +17,7 @@ HOMEPAGE="http://prefix.gentoo.org/"
 LICENSE="GPL-2"
 KEYWORDS="~ppc-aix ~x64-freebsd ~x86-freebsd ~hppa-hpux ~ia64-hpux ~x86-interix ~amd64-linux ~ia64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
 SLOT="0"
-IUSE="build doc epydoc +ipc linguas_ru pypy2_0 python2 python3 selinux xattr prefix-chaining"
+IUSE="build doc epydoc +ipc linguas_ru pypy2_0 python2 python3 selinux xattr prefix-chaining cray cray-standalone"
 
 for _pyimpl in ${PYTHON_COMPAT[@]} ; do
 	IUSE+=" python_targets_${_pyimpl}"
@@ -235,8 +235,12 @@ src_prepare() {
 		epatch "${WORKDIR}/${PN}-${PATCHVER}.patch"
 	fi
 
-	use prefix-chaining && epatch "${FILESDIR}"/${PN}-2.2.20-prefix-chaining.patch
 	epatch "${FILESDIR}"/${PN}-2.2.8-ebuildshell.patch # 155161
+	use prefix-chaining && epatch "${FILESDIR}"/${PN}-2.2.20-prefix-chaining.patch
+	if use prefix && use cray && use !cray-standalone ; then
+		epatch "${FILESDIR}"/${PN}-2.2.20-minimal-cray.patch
+	fi
+	
 
 	if ! use ipc ; then
 		einfo "Disabling ipc..."
@@ -313,6 +317,11 @@ src_prepare() {
 src_configure() {
 	if use prefix ; then
 		local extrapath="/usr/bin:/bin"
+		export PATH
+		echo "Path in ebuild: $PATH"
+		echo "Bash arguments: $-"
+		echo `which cc`
+		echo `which gcc`
 		# ok, we can't rely on PORTAGE_ROOT_USER being there yet, as people
 		# tend not to update that often, as long as we are a separate ebuild
 		# we can assume when unset, it's time for some older trick
@@ -324,7 +333,10 @@ src_configure() {
 			# we need this for e.g. mtree on FreeBSD (and Darwin) which is in
 			# /usr/sbin
 			extrapath="/usr/sbin:/usr/bin:/sbin:/bin"
+			
+			# Use the whole path to be able to find compiles loaded in Cray modules
 		fi
+		#use cray && extrapath="$PATH:$extrapath"
 
 		econf \
 			--with-portage-user="${PORTAGE_USER:-portage}" \

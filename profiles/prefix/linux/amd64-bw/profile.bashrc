@@ -2,6 +2,12 @@
 #echo "Bashrc: $PKG_CONFIG_PATH"
 #export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$CRAY_PKG_CONFIG_PATHS"
 #echo "Bashrc: $PKG_CONFIG_PATH"
+if [[ $USER == "" ]]; then
+	export USER="user"
+fi
+#echo "${EBUILD_PHASE} profile.bashrc"
+#export PATH=""
+#. $EPREFIX/etc/profile
 
 Pkgenvs=("dev-python/mpi4py cray" 
 	 "dev-python/numpy cray"
@@ -143,8 +149,9 @@ if [ -n "${USING_CRAY_ENV}" ] && [[ ${EBUILD_PHASE} == unpack ]]; then
 fi
 
 if [[ ${EBUILD_PHASE} == unpack ]]; then
-	PATHTMP="$(echo $PATH | sed 's|:/usr/bin:/bin||')"
-	export PATH="$PATHTMP:$HOST_PATH"
+	PATHTMP="$(echo $PATH | sed 's|:/usr/bin:/bin||g')"
+	#export PATH="$PATHTMP:$HOST_PATH"
+	export PATH="$PATHTMP:/usr/bin:/bin"
 	export LDFLAGS="$LDFLAGS $LDP_LDFLAGS"
 	export LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
 fi

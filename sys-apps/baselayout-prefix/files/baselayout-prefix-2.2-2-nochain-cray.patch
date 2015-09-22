@@ -1,0 +1,89 @@
+*** profile	Tue Sep 15 08:32:14 2015
+--- profile	Thu Sep 17 15:43:04 2015
+***************
+*** 4,15 ****
+--- 4,26 ----
+  # environment for login shells.
+  #
+  
++ export INFOPATH_BAK="$INFOPATH"
++ export MANPATH_BAK="$MANPATH"
++ export PATH_BAK="$PATH"
++ [[ "$USER" == "" ]] && export USER="user"
++ 
+  # Load environment settings from profile.env, which is created by
+  # env-update from the files in /etc/env.d
+  if [ -e "@GENTOO_PORTAGE_EPREFIX@"/etc/profile.env ] ; then
+  	. "@GENTOO_PORTAGE_EPREFIX@"/etc/profile.env
+  fi
+  
++ export INFOPATH="$INFOPATH:$INFOPATH_BAK"
++ export MANPATH="$MANPATH:$MANPATH_BAK"
++ export PATH="$PATH:$PATH_BAK"
++ [[ -f /etc/profile ]] && . /etc/profile
++ unset INFOPATH_BAK MANPATH_BAK PATH_BAK
++ 
+  # You should override these in your ~/.bashrc (or equivalent) for per-user
+  # settings.  For system defaults, you can add a new file in /etc/profile.d/.
+  export EDITOR=${EDITOR:-"@GENTOO_PORTAGE_EPREFIX@"/bin/nano}
+*************** for sh in "@GENTOO_PORTAGE_EPREFIX@"/etc
+*** 61,63 ****
+--- 72,129 ----
+  	[ -r "$sh" ] && . "$sh"
+  done
+  unset sh
++ 
++ #
++ # Load the necessary Cray modules
++ #
++ module load craype
++ module load gcc
++ module switch PrgEnv-cray PrgEnv-gnu >/dev/null 2>&1 #Suppress warning if module has already been switched
++ module load cblas
++ module unload xalt
++ module load cmake
++ module load cray-hdf5-parallel
++ module load cray-netcdf-hdf5parallel
++ module load cray-tpsl
++ #module load cudatoolkit
++ module load boost
++ 
++ #
++ # Setting CC=cc, CXX=CC, and F77/F95/FC=ftn breaks some packages because some scripts fail to
++ # identify the compiler correctly. The workaround is to get the Cray wrappers to tell us what
++ # they are doing.
++ #
++ export HOST_PATH="${PATH}"
++ export CRAY_CFLAGS="$(cc --cray-print-opts=cflags) $CRAY_BOOST_INCLUDE_OPTS"
++ export CRAY_LDFLAGS="$(cc --cray-print-opts=libs)"
++ export CRAY_PKG_CONFIG_PATH="$(cc --cray-print-opts=pkg_config_path)"
++ 
++ #
++ # Create RPATH link flags from -L linker options and LD_LIBRARY_PATH
++ # TODO: Replace this by settinga cray environment variable before
++ #       running cc --cray-print-opts lines?
++ #
++ LD_LIB_PATHS="$(echo $LD_LIBRARY_PATH | tr ':' '\n')"
++ CRAY_LIBRARY_PATHS="$LD_LIB_PATHS
++ $(echo $CRAY_LDFLAGS | grep -Po '(?<=-L)([\S]*)')"
++ if [[ $(echo "$CRAY_LIBRARY_PATHS" | wc -l) > 0 ]]
++ then
++ 	while read -r path; do
++ 		CRAY_LDFLAGS="$CRAY_LDFLAGS -Wl,--rpath=$path"
++ 	done <<< "$CRAY_LIBRARY_PATHS"
++ fi
++ if [[ $(echo "$LD_LIB_PATHS" | wc -l) > 0 ]]
++ then
++ 	while read -r path; do
++ 		LDP_LDFLAGS="$LDP_LDFLAGS -Wl,--rpath=$path"
++ 	done <<< "$LD_LIB_PATHS"
++ fi
++ 
++ #
++ # Finish exporting variables. CRAY_*FLAGS can be added to build options via profile.bashrc
++ # or package.env systems if needed. These are not enabled by default because it adds
++ # often unnecessary -l options and -Wl,--as-needed can break linking due to bad ordering.
++ #
++ export CRAY_LDFLAGS="$CRAY_LDFLAGS $CRAY_BOOST_POST_LINK_OPTS"
++ export LDP_LDFLAGS="$LDP_LDFLAGS $CRAY_BOOST_POST_LINK_OPTS"
++ export PKG_CONFIG_PATH="@GENTOO_PORTAGE_EPREFIX@/usr/lib/pkgconfig:$CRAY_PKG_CONFIG_PATH:$PKG_CONFIG_PATH:/usr/lib64/pkgconfig"

@@ -340,10 +340,12 @@ index 400617d..1b97405 100644
  
  	def print_verbose(self, show_repos):
  		"""Prints the verbose output to std_out
-@@ -916,6 +956,7 @@ class Display(object):
+@@ -916,6 +956,9 @@ class Display(object):
  		# now finally print out the messages
  		self.print_messages(show_repos)
  		self.print_blockers()
++		from portage.dep.dep_check import ro_selected
++		self.ro_selected = ro_selected
 +		self.print_ro_selected()
  		if self.conf.verbosity == 3:
  			self.print_verbose(show_repos)
@@ -470,7 +472,7 @@ index 69b358c..62e6aa4 100644
 +		# the ro_vartrees instances are created below as they are needed to
 +		# avoid reading vartrees of portage instances which aren't required
 +		# while resolving this dependencies.
-+		for type in ("DEPEND","RDEPEND", "PDEPEND"):
++		for type in ("DEPEND", "HDEPEND", "RDEPEND", "PDEPEND"):
 +			ro_trees[type] = []
 +			
 +			for ro_root, ro_dep_types in settings.readonly_roots.items():
@@ -612,7 +614,7 @@ index 8712195..2b5fb3e 100644
 +			# does not do this.
 +			self.readonly_roots = {}
 +			my_ro_current_instance = config_root
-+			my_ro_widest_depset = set(['DEPEND', 'RDEPEND', 'PDEPEND'])
++			my_ro_widest_depset = set(['DEPEND', 'HDEPEND', 'RDEPEND', 'PDEPEND'])
 +
 +			while True:
 +				my_ro_current_make_conf_file = os.path.join(my_ro_current_instance,MAKE_CONF_FILE.lstrip(os.path.sep))
@@ -622,7 +624,7 @@ index 8712195..2b5fb3e 100644
 +
 +					if my_ro_cfg.has_key("READONLY_EPREFIX"):
 +						if not my_ro_cfg["READONLY_EPREFIX"].find(":"):
-+						raise portage.exception.InvalidReadonlyERoot("ERROR: malformed READONLY_EPREFIX in %s" % (my_ro_current_make_conf_file))
++							raise portage.exception.InvalidReadonlyERoot("ERROR: malformed READONLY_EPREFIX in %s" % (my_ro_current_make_conf_file))
 +
 +						(my_ro_cfg_root,my_ro_cfg_root_deps) = my_ro_cfg["READONLY_EPREFIX"].rsplit(":",1)
 +
