@@ -118,12 +118,39 @@ S="${WORKDIR}"/prefix-${PN}-${TARBALL_PV}
 S_PL="${WORKDIR}"/${PN}-${PV_PL}
 
 compatible_python_is_selected() {
-	[[ $("${EPREFIX}/usr/bin/python" -c 'import sys ; sys.stdout.write(sys.hexversion >= 0x2060000 and "good" or "bad")') = good ]]
+	local prefixes="$EPREFIX:$PORTAGE_READONLY_EPREFIXES:/"
+	save_IFS=$IFS
+	IFS=":"
+	local i prefix
+	for i in prefixes; do
+		if [[ i != "" ]]; then
+			if [ -x ${i}/usr/bin/python ]; then
+				prefix=${i}
+				break
+			fi
+		fi
+	done
+	IFS=$save_IFS
+
+	[[ $("${prefix}/usr/bin/python" -c 'import sys ; sys.stdout.write(sys.hexversion >= 0x2060000 and "good" or "bad")') = good ]]
 }
 
 current_python_has_xattr() {
 	[[ ${EPYTHON} ]] || die 'No Python implementation set (EPYTHON is null).'
-	local PYTHON=${EPREFIX}/usr/bin/${EPYTHON}
+	local prefixes="$EPREFIX:$PORTAGE_READONLY_EPREFIXES:/"
+	save_IFS=$IFS
+	IFS=":"
+	local i prefix
+	for i in prefixes; do
+		if [[ i != "" ]]; then
+			if [ -x ${i}/usr/bin/python ]; then
+				prefix=${i}
+				break
+			fi
+		fi
+	done
+	IFS=$save_IFS
+	local PYTHON=${prefix}/usr/bin/${EPYTHON}
 	[[ $("${PYTHON}" -c 'import sys ; sys.stdout.write(sys.hexversion >= 0x3030000 and "yes" or "no")') = yes ]] || \
 	"${PYTHON}" -c 'import xattr' 2>/dev/null
 }
@@ -318,10 +345,6 @@ src_configure() {
 	if use prefix ; then
 		local extrapath="/usr/bin:/bin"
 		export PATH
-		echo "Path in ebuild: $PATH"
-		echo "Bash arguments: $-"
-		echo `which cc`
-		echo `which gcc`
 		# ok, we can't rely on PORTAGE_ROOT_USER being there yet, as people
 		# tend not to update that often, as long as we are a separate ebuild
 		# we can assume when unset, it's time for some older trick

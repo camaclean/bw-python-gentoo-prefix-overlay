@@ -11,7 +11,7 @@ PORT_TMPDIR=
 #
 # get ourselfs the functions.sh script for ebegin/eend/etc.
 #
-. "${PARENT_EPREFIX}"/sbin/functions.sh
+. "${PARENT_EPREFIX}"/lib/gentoo/functions.sh
 
 for arg in "$@"; do
 	case "${arg}" in
@@ -64,7 +64,7 @@ eend_exit() {
 ebegin "creating directory structure"
 (
 	set -e
-	mkdir -p "${CHILD_EPREFIX}"/etc
+	mkdir -p "${CHILD_EPREFIX}"/etc/portage
 	mkdir -p "${CHILD_EPREFIX}"/var/log
 )
 eend_exit $?
@@ -81,6 +81,7 @@ ebegin "creating make.conf"
 	echo "#"
 	echo "CFLAGS=\"$(portageq envvar CFLAGS)\""
 	echo "CXXFLAGS=\"$(portageq envvar CXXFLAGS)\""
+	echo "FFLAGS=\"$(portageq envvar FFLAGS)\""
 	echo "MAKEOPTS=\"$(portageq envvar MAKEOPTS)\""
     niceness=$(portageq envvar PORTAGE_NICENESS)
     [[ -n ${niceness} ]] &&
@@ -95,7 +96,7 @@ ebegin "creating make.conf"
 	echo "# if you know exactly what you are doing!"
 	echo "# by default, only DEPEND is inherited from the parent in"
 	echo "# the chain. if you want more, make it a comma seperated"
-	echo "# list - like this: DEPEND,RDEPEND,PDEPEN - which would the"
+	echo "# list - like this: DEPEND,RDEPEND,PDEPEND,HDEPEND - which would the"
 	echo "# all that is possible"
 	echo "#"
 	echo "PORTDIR=\"$(portageq envvar PORTDIR)\""
@@ -108,13 +109,21 @@ ebegin "creating make.conf"
 	else
 		echo "PORTAGE_TMPDIR=\"${PORT_TMPDIR}\""
 	fi
-	echo "READONLY_EPREFIX=\"${PARENT_EPREFIX}:DEPEND\""
+	echo "READONLY_EPREFIX=\"${PARENT_EPREFIX}:DEPEND,RDEPEND,PDEPEND,HDEPEND\""
+	echo "EPREFIX=\"${CHILD_PREFIX}\""
+	echo "BASE_EPREFIX=\"${PARENT_EPREFIX}\""
 
 	if test "${DO_SOURCES}" == "yes"; then
         # don't fail if nothing found
-		egrep "^source .*" "${PARENT_EPREFIX}/etc/make.conf" 2>/dev/null || true
+		egrep "^source .*" "${PARENT_EPREFIX}/etc/portage/make.conf" 2>/dev/null || true
 	fi
-) > "${CHILD_EPREFIX}"/etc/make.conf
+) > "${CHILD_EPREFIX}"/etc/portage/make.conf
+eend_exit $?
+
+ebegin "create .portage_not_installed"
+(
+	touch "${CHILD_EPREFIX}"/usr/lib/portage/.portage_not_installed
+)
 eend_exit $?
 
 #
@@ -122,7 +131,7 @@ eend_exit $?
 #
 ebegin "creating make.profile"
 (
-	ln -s "${CHILD_PROFILE}" "${CHILD_EPREFIX}/etc/make.profile"
+	ln -s "${CHILD_PROFILE}" "${CHILD_EPREFIX}/etc/portage/make.profile"
 )
 eend_exit $?
 
@@ -131,7 +140,7 @@ eend_exit $?
 #
 ebegin "adjusting permissions"
 (
-	chmod 644 "${CHILD_EPREFIX}"/etc/make.conf
+	chmod 644 "${CHILD_EPREFIX}"/etc/portage/make.conf
 )
 eend_exit $?
 
@@ -165,6 +174,6 @@ eend_exit $?
 # wow, all ok :)
 #
 ewarn
-ewarn "all done. don't forget to tune ${CHILD_EPREFIX}/etc/make.conf."
+ewarn "all done. don't forget to tune ${CHILD_EPREFIX}/etc/portage/make.conf."
 ewarn "to enter the new prefix, run \"${CHILD_EPREFIX}/startprefix\"."
 ewarn

@@ -127,3 +127,4 @@ dev-perl/Digest-HMAC-1.30.0-r1
 dev-perl/Net-SSLeay-1.650.0
 virtual/perl-File-Temp-0.230.400-r3
 dev-db/sqlite-3.8.10.2
+sci-libs/scalapack-2.0.2

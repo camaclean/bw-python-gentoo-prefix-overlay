@@ -48,7 +48,8 @@ src_prepare() {
 }
 
 src_configure() {
-	echo "Ebuild PATH: $PATH"
+	#echo "Ebuild PATH: $PATH"
+	echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
 	local myeconfargs=(
 		--enable-shared
 		--without-superlu

@@ -2,10 +2,13 @@
 --- etc/profile	Tue Sep 15 08:33:54 2015
 ***************
 *** 4,9 ****
---- 4,65 ----
+--- 4,68 ----
   # environment for login shells.
   #
   
++ thisprofile=$_
++ [[ -z "$PORTAGE_OVERRIDE_EPREFIX" ]] && export PORTAGE_OVERRIDE_EPREFIX="@GENTOO_PORTAGE_EPREFIX@"
++ 
 + #
 + # for prefix-chaining, the very first thing to do is to load
 + # the profiles for all chained instances above.
@@ -32,7 +35,7 @@
 + 	eval "_ro_b${_ro_recursion_level}_${_ro_backup_var}=\${${_ro_backup_var}}"
 + done
 + 
-+ if [ -n "${_ro_root}" -a -f "${_ro_root}"/etc/profile ]; then
++ if [ -n "${_ro_root}" -a -f "${_ro_root}"/etc/profile ] && [[ ${_ro_root}/etc/profile != $thisprofile ]]; then
 + 	. "${_ro_root}"/etc/profile
 + fi
 + 
@@ -67,7 +70,7 @@
   if [ -e "@GENTOO_PORTAGE_EPREFIX@"/etc/profile.env ] ; then
 *************** if [ -n "${BASH_VERSION}" ] ; then
 *** 47,55 ****
---- 103,136 ----
+--- 106,139 ----
   		# it in the user's dot-files), but it shouldn't make any 
   		# difference.
   		. "@GENTOO_PORTAGE_EPREFIX@"/etc/bash/bashrc
@@ -104,7 +107,7 @@
   	# on color and non-color terminals, as well as shells that don't
 *************** else
 *** 57,63 ****
---- 138,177 ----
+--- 141,180 ----
   	PS1="${USER:-$(whoami 2>/dev/null)}@$(uname -n 2>/dev/null) \$ "
   fi
   

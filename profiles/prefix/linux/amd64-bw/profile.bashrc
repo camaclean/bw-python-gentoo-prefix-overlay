@@ -8,6 +8,8 @@ fi
 #echo "${EBUILD_PHASE} profile.bashrc"
 #export PATH=""
 #. $EPREFIX/etc/profile
+#export PATH="$EPREFIX/usr/lib/portage/bin/ebuild-helpers/unprivileged:$EPREFIX/usr/lib/portage/bin/ebuild-helpers/:$PATH"
+#echo "bashrc PATH: $PATH"
 
 Pkgenvs=("dev-python/mpi4py cray" 
 	 "dev-python/numpy cray"
@@ -143,9 +145,9 @@ fi
 #fi
 
 if [ -n "${USING_CRAY_ENV}" ] && [[ ${EBUILD_PHASE} == unpack ]]; then
-	export CFLAGS="$CRAY_CFLAGS $CFLAGS"
-	export FFLAGS="$CRAY_CFLAGS $FFLAGS"
-	export LDFLAGS="$CRAY_LDFLAGS $LDFLAGS"
+	export CFLAGS="$CFLAGS $CRAY_CFLAGS"
+	export FFLAGS="$FFLAGS $CRAY_CFLAGS"
+	export LDFLAGS="$LDFLAGS $CRAY_LDFLAGS"
 fi
 
 if [[ ${EBUILD_PHASE} == unpack ]]; then
