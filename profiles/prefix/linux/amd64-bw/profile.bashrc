@@ -5,7 +5,7 @@
 if [[ $USER == "" ]]; then
 	export USER="user"
 fi
-#echo "${EBUILD_PHASE} profile.bashrc"
+echo "Ebuild phase in profile.bashrc: ${EBUILD_PHASE}"
 #export PATH=""
 #. $EPREFIX/etc/profile
 #export PATH="$EPREFIX/usr/lib/portage/bin/ebuild-helpers/unprivileged:$EPREFIX/usr/lib/portage/bin/ebuild-helpers/:$PATH"

@@ -1,8 +1,8 @@
 *** etc/profile	Tue Sep 15 14:54:13 2015
 --- etc/profile	Thu Sep 17 15:44:15 2015
 *************** if [[ -n "${_ro_root}" ]]; then
-*** 59,70 ****
---- 59,81 ----
+*** 58,69 ****
+--- 58,80 ----
   	done
   fi
   
@@ -27,8 +27,8 @@
   # settings.  For system defaults, you can add a new file in "@GENTOO_PORTAGE_EPREFIX@"/etc/profile.d/.
   export EDITOR=${EDITOR:-"@GENTOO_PORTAGE_EPREFIX@"/bin/nano}
 *************** elif [[ "${EPREFIX}" != "@GENTOO_PORTAGE
-*** 172,177 ****
---- 183,247 ----
+*** 171,176 ****
+--- 182,246 ----
   	echo "         Having EPREFIX set this way will probably render this environment unusable."
   fi
   

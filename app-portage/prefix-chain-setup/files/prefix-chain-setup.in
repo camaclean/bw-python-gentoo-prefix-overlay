@@ -65,7 +65,10 @@ ebegin "creating directory structure"
 (
 	set -e
 	mkdir -p "${CHILD_EPREFIX}"/etc/portage
+	mkdir -p "${CHILD_EPREFIX}"/usr/portage/distfiles
 	mkdir -p "${CHILD_EPREFIX}"/var/log
+	mkdir -p "${CHILD_EPREFIX}"/usr/lib/portage
+	touch "${CHILD_EPREFIX}"/usr/lib/portage/.portage_not_installed
 )
 eend_exit $?
 
@@ -110,20 +113,18 @@ ebegin "creating make.conf"
 		echo "PORTAGE_TMPDIR=\"${PORT_TMPDIR}\""
 	fi
 	echo "READONLY_EPREFIX=\"${PARENT_EPREFIX}:DEPEND,RDEPEND,PDEPEND,HDEPEND\""
-	echo "EPREFIX=\"${CHILD_PREFIX}\""
+	echo "EPREFIX=\"${CHILD_EPREFIX}\""
 	echo "BASE_EPREFIX=\"${PARENT_EPREFIX}\""
+	echo "DISTDIR=\"${CHILD_EPREFIX}/usr/portage/distfiles\""
+	_ro_name="${CHILD_EPREFIX}"
+	_ro_name="${_ro_name##*/}"
+	echo "PORTAGE_TMPDIR=\"/dev/shm/$USER/$_ro_name\""
 
 	if test "${DO_SOURCES}" == "yes"; then
         # don't fail if nothing found
 		egrep "^source .*" "${PARENT_EPREFIX}/etc/portage/make.conf" 2>/dev/null || true
 	fi
 ) > "${CHILD_EPREFIX}"/etc/portage/make.conf
-eend_exit $?
-
-ebegin "create .portage_not_installed"
-(
-	touch "${CHILD_EPREFIX}"/usr/lib/portage/.portage_not_installed
-)
 eend_exit $?
 
 #

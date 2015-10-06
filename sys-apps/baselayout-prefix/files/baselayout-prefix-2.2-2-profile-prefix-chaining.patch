@@ -2,11 +2,10 @@
 --- etc/profile	Tue Sep 15 08:33:54 2015
 ***************
 *** 4,9 ****
---- 4,68 ----
+--- 4,67 ----
   # environment for login shells.
   #
   
-+ thisprofile=$_
 + [[ -z "$PORTAGE_OVERRIDE_EPREFIX" ]] && export PORTAGE_OVERRIDE_EPREFIX="@GENTOO_PORTAGE_EPREFIX@"
 + 
 + #
@@ -35,7 +34,7 @@
 + 	eval "_ro_b${_ro_recursion_level}_${_ro_backup_var}=\${${_ro_backup_var}}"
 + done
 + 
-+ if [ -n "${_ro_root}" -a -f "${_ro_root}"/etc/profile ] && [[ ${_ro_root}/etc/profile != $thisprofile ]]; then
++ if [ -n "${_ro_root}" -a -f "${_ro_root}"/etc/profile ] && [[ ${_ro_root}/etc/profile != $BASH_SOURCE ]]; then
 + 	. "${_ro_root}"/etc/profile
 + fi
 + 
@@ -70,7 +69,7 @@
   if [ -e "@GENTOO_PORTAGE_EPREFIX@"/etc/profile.env ] ; then
 *************** if [ -n "${BASH_VERSION}" ] ; then
 *** 47,55 ****
---- 106,139 ----
+--- 105,138 ----
   		# it in the user's dot-files), but it shouldn't make any 
   		# difference.
   		. "@GENTOO_PORTAGE_EPREFIX@"/etc/bash/bashrc
@@ -107,7 +106,7 @@
   	# on color and non-color terminals, as well as shells that don't
 *************** else
 *** 57,63 ****
---- 141,180 ----
+--- 140,181 ----
   	PS1="${USER:-$(whoami 2>/dev/null)}@$(uname -n 2>/dev/null) \$ "
   fi
   
@@ -144,6 +143,8 @@
 + 	echo "         You are entering the prefix \"@GENTOO_PORTAGE_EPREFIX@\"."
 + 	echo "         Having EPREFIX set this way will probably render this environment unusable."
 + fi
++ 
++ mkdir -p $(. "@GENTOO_PORTAGE_EPREFIX@"/etc/portage/make.conf && portageq envvar PORTAGE_TMPDIR) 2>/dev/null || true
 + 
 + unset _ro_root
 + unset _ro_deps
