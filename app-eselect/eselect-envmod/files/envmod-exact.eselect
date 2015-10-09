@@ -1,0 +1,198 @@
+# Copyright 1999-2015 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+# $Id: $
+
+DESCRIPTION="Select Cray modules"
+MAINTAINER="cmaclean"
+SVN_DATE='$Date: $'
+VERSION=$(svn_date_to_version "${SVN_DATE}" )
+
+ENV_D_PATH="${EROOT%/}/etc/env.d"
+PROFILE_D_PATH="${EROOT%/}/etc/profile.d/cray"
+MAN_PATH="${EROOT%/}/usr/share/man/man1/"
+
+modulefile=${BASH_SOURCE##*/}
+module=${modulefile%.eselect}
+
+MODULE_SET_CONFIG="${ENV_D_PATH}/${module}/selected"
+
+find_versions() {
+	module=$1
+	local save_IFS=$IFS
+	IFS='\n'
+	echo "$(modulecmd bash -t avail ${module} --long 2>&1)" | while read -r line; do
+		IFS=' '
+		if [[ ${line} == ${module}/* ]] ; then
+			local tmp="$(echo ${line} | perl -p -e "s/\s+/ /g")"
+			local info tmp2=( ${tmp} )
+			if [[ ${tmp2[1]} == default ]] ; then
+				info=( $(echo ${tmp2[0]} | tr '/' ' ') "default" )
+			else
+				info=( $(echo ${tmp2[0]} | tr '/' ' ') )
+			fi
+			echo "${info[@]}"
+		fi
+	done
+	IFS=$save_IFS
+	return 0
+}
+
+find_targets() {
+	local save_IFS=$IFS
+	IFS=$'\n'
+	readarray -t versions <<<"$(find_versions "${module}")"
+	IFS=$'\n'
+	echo "${versions[@]}"
+	{
+		for v in ${versions[@]}; do
+			tmp=( $v )
+			echo "${tmp[0]}/${tmp[1]}"
+		done
+	} | tr '\n' ' '
+	IFS=$save_IFS
+}
+
+loaded_module() {
+	echo "$(modulecmd bash -t list 2>&1 | grep $module | tr '/' ' ')"
+}
+
+module_is_loaded() {
+	if [ -z "$(echo "$(modulecmd bash -t list 2>&1 | grep $1 | tr '/' ' ')")" ]; then return 1; else return 0; fi;
+}
+
+describe_set() {
+	echo "Set profile.d to load environment module"
+}
+
+do_set() {	
+	local target="${1}" targets=() pos version versions tmp t curr package
+	local save_IFS=$IFS
+	IFS=$'\n'
+	readarray -t versions <<<"$(find_versions "$module")"
+	for v in ${versions[@]} ; do
+		IFS=' '
+		tmp=( ${v} )
+		t="${tmp[0]}/${tmp[1]}"
+		targets+=( ${t} )
+		if [[ ${target} == ${tmp[0]}/default ]] && [[ ${tmp[2]} == default ]] ; then
+			version="default"
+			target="${tmp[0]}/default"
+			full_module="${tmp[0]}"
+		fi
+	done
+	if is_number "${target}" && [[ ${target} -ge 1 ]]; then
+		pos=$((${target} - 1))
+		IFS=' '
+		curr=( ${versions[$pos]} )
+		version="${curr[1]}"
+		target="${curr[0]}/${curr[1]}"
+		full_module="${curr[0]}"
+	fi
+	IFS=$save_IFS
+
+	if ! has "${target}" "${targets[@]}" && [[ ${target} != */default ]] ; then
+		die -q "Invalid target ${target}"
+	fi
+
+	echo "${target}" > ${MODULE_SET_CONFIG}
+	mkdir -p "${PROFILE_D_PATH}"
+
+	{
+		echo ". ${EPREFIX}/lib/gentoo/modules.sh"
+		echo "if module_is_loaded \"${module}\"; then"
+		echo "	module=( \$(loaded_module \"${module}\") )"
+		echo "	eval \"\$(modulecmd bash switch \${module[0]} ${target%/default})\""
+		echo "else"
+		echo "	eval \"\$(modulecmd bash load ${target%/default})\""
+		echo "fi"
+		echo "unset -f module_is_loaded"
+	} > ${PROFILE_D_PATH}/cm-${module}.sh
+}
+
+describe_unset() {
+	echo "Unload environment module ${module}"
+}
+
+do_unset() {
+	echo "none" > ${MODULE_SET_CONFIG}
+	mkdir -p "${PROFILE_D_PATH}"
+	{
+		echo ". ${EPREFIX}/lib/gentoo/modules.sh"
+		echo "eval \"\$(modulecmd bash unload ${module})\""
+		echo "unset -f module_is_loaded"
+	} > ${PROFILE_D_PATH}/cm-${module}.sh
+}
+
+describe_show() {
+	echo "Display the current module set by eselect"
+}
+
+do_show() {
+	if [ -f "$MODULE_SET_CONFIG" ] ; then
+		using=$( cat "$MODULE_SET_CONFIG" )
+	else
+		using="none"
+	fi
+	if [[ using == "none" || using == default ]] ; then
+	eckage.provided overridecho "$(loaded_module)"
+		echo "$using"
+	else
+		echo "$module/$using"
+	fi
+}
+
+describe_list() {
+	echo "List Cray modules to select"
+}
+
+do_list() {
+	#find_versions $module
+	local i v using active default versions targets=() counter=0 defaults=()
+	local save_IFS=$IFS
+	mkdir -p ${MODULE_SET_CONFIG%/selected}
+	IFS=$'\n'
+	readarray -t versions <<<"$(find_versions "${module}")"
+	if [ -f "${MODULE_SET_CONFIG}" ] ; then
+		using=$(cat "${MODULE_SET_CONFIG}")
+	fi
+	for v in ${versions[@]}; do
+		IFS=' '
+		info=($v)
+		if [[ ${info[2]} == default ]] ; then
+			targets+=( "${info[0]}/${info[1]} (default)" )
+			defaults+=( "${info[0]}/default" )
+			if [[ $using == ${info[0]}/default ]] ; then
+				active="${info[0]}/${info[1]}"
+			elif [[ $using == ${info[1]} ]] ; then
+				active="${info[0]}/${info[1]}"
+			fi
+		else
+			targets+=( "${info[0]}/${info[1]}" )
+		fi
+		if [[ $using == ${info[0]}/${info[1]} ]] ; then
+			active="${info[0]}/${info[1]}"
+		fi
+	done
+	if [ -z "${active}" ] ; then
+		loaded=( $(loaded_module) )
+		if [[ -z "${loaded[@]}" ]] ; then
+			echo "none" > ${MODULE_SET_CONFIG}
+		elif has "${loaded[0]}/default" "${defaults[@]}" ; then
+			active="${loaded[0]}/${loaded[1]} (default)"
+			echo "${loaded[0]}/default" > ${MODULE_SET_CONFIG}
+		else
+			active="${loaded[0]}/${loaded[1]}"
+			echo "${loaded[0]}/${loaded[1]}" > ${MODULE_SET_CONFIG}
+		fi
+	fi
+	for (( i = 0; i < ${#targets[@]}; i++ )); do
+    	if [[ ${targets[${i}]% (default)} == ${active} ]] ; then
+			targets[${i}]=$(highlight_marker "${targets[${i}]}")
+		fi
+	done
+	write_numbered_list -m "(none found)" "${targets[@]}"
+	IFS=$save_IFS
+}
+
+# vim: ts=4 sw=4 noet fdm=marker
+# vim: set ft=eselect :
