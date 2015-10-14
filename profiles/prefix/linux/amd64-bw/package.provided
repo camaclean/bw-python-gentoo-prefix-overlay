@@ -128,3 +128,10 @@ dev-perl/Net-SSLeay-1.650.0
 virtual/perl-File-Temp-0.230.400-r3
 dev-db/sqlite-3.8.10.2
 sci-libs/scalapack-2.0.2
+#app-arch/xz-utils-5.2.2
+virtual/ssh-0
+virtual/man-0-r1
+sys-apps/coreutils-9999
+app-arch/bzip2-9999
+sys-devel/make-9999
+sys-devel/patch-9999

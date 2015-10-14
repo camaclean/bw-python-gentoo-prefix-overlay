@@ -114,13 +114,14 @@ diff --git a/bin/phase-functions.sh b/bin/phase-functions.sh
 index 013cc43..e1c4473 100644
 --- a/bin/phase-functions.sh
 +++ b/bin/phase-functions.sh
-@@ -87,7 +87,8 @@ PORTAGE_MUTABLE_FILTERED_VARS="AA HOSTNAME"
+@@ -87,7 +87,9 @@ PORTAGE_MUTABLE_FILTERED_VARS="AA HOSTNAME"
  __filter_readonly_variables() {
  	local x filtered_vars
  	local readonly_bash_vars="BASHOPTS BASHPID DIRSTACK EUID
 -		FUNCNAME GROUPS PIPESTATUS PPID SHELLOPTS UID BASH_VERSINFO"
 + 		FUNCNAME GROUPS PIPESTATUS PPID SHELLOPTS UID BASH_VERSINFO 
-+                PROFILEREAD RCLOCAL_BASEOPTS RCLOCAL_PRGENV _HOMEBASHRC"
++ 		PROFILEREAD RCLOCAL_BASEOPTS RCLOCAL_PRGENV _HOMEBASHRC
++ 		PELOCAL_PRGENV TMOUT"
  	local bash_misc_vars="BASH BASH_.* COLUMNS COMP_WORDBREAKS HISTCMD
  		HISTFILE HOSTNAME HOSTTYPE IFS LINENO MACHTYPE OLDPWD
  		OPTERR OPTIND OSTYPE POSIXLY_CORRECT PS4 PWD RANDOM
@@ -759,7 +760,7 @@ index 8712195..b9c326c 100644
 +				if os.path.exists(my_ro_current_make_conf_file):
 +					my_ro_cfg = getconfig(my_ro_current_make_conf_file, tolerant=1)
 +
-+					if my_ro_cfg.has_key("READONLY_EPREFIX"):
++					if "READONLY_EPREFIX" in my_ro_cfg:
 +						if not my_ro_cfg["READONLY_EPREFIX"].find(":"):
 +							raise portage.exception.InvalidReadonlyERoot("ERROR: malformed READONLY_EPREFIX in %s" % (my_ro_current_make_conf_file))
 +
@@ -768,7 +769,7 @@ index 8712195..b9c326c 100644
 +						if not os.path.exists(my_ro_cfg_root):
 +							raise portage.exception.InvalidReadonlyERoot("ERROR: malformed READONLY_EPREFIX in %s: path does not exist!" % (my_ro_current_instance))
 +
-+						if self.readonly_roots.has_key(my_ro_cfg_root):
++						if my_ro_cfg_root in self.readonly_roots:
 +							raise portage.exception.InvalidReadonlyERoot("ERROR: circular READONLY_EPREFIX's in %s. %s already checked for %s" % (my_ro_current_make_conf_file, my_ro_cfg_root, self.readonly_roots[my_ro_cfg_root]))
 +
 +						if my_ro_cfg_root == config_root:
