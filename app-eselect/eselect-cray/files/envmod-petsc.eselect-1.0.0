@@ -1,0 +1,18 @@
+# Copyright 1999-2015 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+# $Id: $
+
+DESCRIPTION="Eselect module for Cray PETSc"
+MAINTAINER="Colin MacLean"
+SVN_DATE='$Date: $'
+VERSION=$(svn_date_to_version "${SVN_DATE}" )
+
+inherit envmod-multi
+
+module_names=(	"cray-petsc"
+				"cray-petsc-64"
+				"cray-petsc-complex"
+				"cray-petsc-complex-64"
+			 )
+
+# vim: ts=4 sw=4 noet fdm=marker
