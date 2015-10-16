@@ -131,3 +131,10 @@ sci-libs/scalapack-2.0.2
 sci-libs/fftw-3.3.4
 sci-libs/mumps-4.10.0-r1
 sci-libs/scotch-5.1.12b
+#app-arch/xz-utils-5.2.2 provided package lacks lzma support
+virtual/ssh-0
+virtual/man-0-r1
+sys-apps/coreutils-9999
+app-arch/bzip2-9999
+sys-devel/make-9999
+sys-devel/patch-9999
