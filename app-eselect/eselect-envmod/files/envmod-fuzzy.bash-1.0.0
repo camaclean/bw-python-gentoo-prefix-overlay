@@ -1,0 +1,22 @@
+# Copyright 1999-2015 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+# $Id: $
+
+inherit envmod-module
+
+DESCRIPTION="Eselect module for Environment Modules category"
+MAINTAINER="Colin MacLean"
+SVN_DATE='$Date: $'
+VERSION=$(svn_date_to_version "${SVN_DATE}" )
+
+match_type="fuzzy"
+match_module() {
+	if [[ $1 == ${module}* ]] ; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+# vim: ts=4 sw=4 noet fdm=marker
+# vim: set ft=eselect :
