@@ -128,3 +128,6 @@ dev-perl/Net-SSLeay-1.650.0
 virtual/perl-File-Temp-0.230.400-r3
 dev-db/sqlite-3.8.10.2
 sci-libs/scalapack-2.0.2
+sci-libs/fftw-3.3.4
+sci-libs/mumps-4.10.0-r1
+sci-libs/scotch-5.1.12b
