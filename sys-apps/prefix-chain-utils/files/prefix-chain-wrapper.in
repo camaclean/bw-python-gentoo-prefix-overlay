@@ -3,8 +3,8 @@
 link_dirs=()
 include_dirs=()
 libs=()
-rpaths=()
 opts=()
+rpaths=()
 chost="@GENTOO_PORTAGE_CHOST@"
 prefix="@GENTOO_PORTAGE_EPREFIX@"
 absprefix=${prefix}
@@ -15,15 +15,21 @@ if [[ ${CHOST} == *"-winnt"* ]]; then
 fi
 mode=link
 orig_args=("$@")
+o_opt=""
 
-for opt in "$@"; do
+for ((i = 1; i <= $#; ++i)) do
+ opt="${orig_args[$i]}"
  case "$opt" in
-  -L)	link_dirs=("${link_dirs[@]}" "-L$1"); shift ;;
+  -L)	((++i)); link_dirs=("${link_dirs[@]}" "-L${orig_args[$i]}") ;;
   -L*)	link_dirs=("${link_dirs[@]}" "${opt}") ;;
   -l*)  libs=("${libs[@]}" "${opt}") ;;
-  -Wl,--rpath=*) rpaths=("${rpaths[@]}" "${opt}") ;;
-  -I)   include_dirs=("${include_dirs[@]}" "-I$1"); shift ;;
+  -Wl,--rpath=*) rpaths=("${rpaths[@]}" "${opt#-Wl,--rpath=}") ;;
+  -Wl,-rpath,*) rpaths=("${rpaths[@]}" "${opt#-Wl,-rpath,}") ;;
+  -Wl,-R,*) rpaths=("${rpaths[@]}" "${opt#-Wl,-R,*}") ;;
+  -I)   ((++i)); include_dirs=("${include_dirs[@]}" "-I${orig_args[$i]}") ;;
   -I*)  include_dirs=("${include_dirs[@]}" "${opt}") ;;
+  -o)   ((++i)); o_opt="-o ${orig_args[$i]}" ;;
+  -o*)  o_opt="${opt}" ;;
   *)
   	case "${opt}" in
 	-v)	
@@ -65,14 +71,28 @@ esac
 
 pfx_link=("-L${prefix}/usr/lib" "-L${prefix}/lib")
 pfx_link_r=("${rpath_opt}${prefix}/lib" "${rpath_opt}${prefix}/usr/lib")
-pfx_comp=("-I${prefix}/include" "-I${prefix}/usr/include")
+for rp in ${link_dirs[@]} ; do
+  #found=""
+  #for rp2 in ${rpaths[@]} ; do
+  #  if [[ $rp == $rp2 ]] ; then
+  #    found="yes"
+  #  fi
+  #done
+  #[ -z "${found}" ] &&
+  pfx_link_r+=( "${rpath_opt}${rp}" )
+done
+for rp in ${rpaths[@]} ; do
+  pfx_link_r+=( "${rpath_opt}${rp}" )
+done
+pfx_comp=("-I${prefix}/usr/include")
 
+ex="$(basename $0)"
 case "$mode" in
-link)      exec "$(basename $0)" "${link_dirs[@]}" "${pfx_link[@]}" "${opts[@]}" "${pfx_comp[@]}" "${pfx_link_r[@]}" ;;
-compile)	exec "$(basename $0)" "${link_dirs[@]}" "${opts[@]}" "${pfx_comp[@]}" ;;
-version)	exec "$(basename $0)" "${orig_args[@]}" ;;
+link)      exec ${ex##$chost-} ${link_dirs[@]} ${pfx_link[@]} ${opts[@]} ${pfx_comp[@]} ${libs[@]} $o_opt ${pfx_link_r[@]} ;;
+compile)	exec ${ex##$chost-} ${link_dirs[@]} ${opts[@]} ${pfx_comp[@]} ${o_opt} ;;
+version)	exec ${ex##$chost-} ${orig_args[@]} ;;
 dirs)
-	"$(basename $0)" "${orig_args[@]}" | while read line; do
+	${ex#$chost-} ${orig_args[@]} | while read line; do
 		if [[ "${line}" == "libraries: ="* ]]; then
 			echo "libraries: =${prefix}/usr/lib:${prefix}/lib:${line#"libraries: ="}"
 		else
