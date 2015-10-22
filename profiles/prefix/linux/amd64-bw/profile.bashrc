@@ -3,8 +3,12 @@
 #export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$CRAY_PKG_CONFIG_PATHS"
 #echo "Bashrc: $PKG_CONFIG_PATH"
 
-Pkgenvs=("dev-python/mpi4py cray" 
+Pkgenvs=(
 	 "dev-python/numpy cray"
+	 "dev-python/numpy-pypy cray"
+	 "dev-python/pypy ncurses"
+	 "dev-python/pypy3 ncurses"
+	 "dev-python/pycdf cray"
 	 "sci-libs/arpack cray"
 	 "dev-libs/c-blosc cray"
 	 "sys-libs/zlib includelocal"
@@ -18,6 +22,7 @@ Pkgenvs=("dev-python/mpi4py cray"
 	 "sci-libs/superlu cray"
          "dev-python/pysparse cray"
 );
+	 #"dev-python/mpi4py cray" 
 
 
 . $EPREFIX/etc/portage/make.profile/versionator.sh
@@ -68,7 +73,7 @@ matches_atom() {
 	fi
 }
 
-if [[ ${EBUILD_PHASE} == unpack ]]; then
+if [[ ${EBUILD_PHASE} == unpack || ${EBUILD_PHASE} == install ]]; then
 for pkg in "${Pkgenvs[@]}"
 do
 	pkgarr=($pkg);
@@ -76,8 +81,32 @@ do
 		for env in ${pkgarr[@]:1}
 		do
 			case $env in
+			asneeded)
+				export LDFLAGS="-Wl,--as-needed $LDFLAGS"
+				;;
+
 			cray)
 				export USING_CRAY_ENV="yes"
+				export CC=cc
+				export CXX=CC
+				export F77=ftn
+				export FC=ftn
+				export F90=ftn
+				;;
+
+			crayshared)
+				export CC="cc -shared"
+				export CXX="CC -shared"
+				export F77="ftn -shared"
+				export FC="ftn -shared"
+				export F90="ftn -shared"
+				;;
+
+			crayrpath)
+				CRAY_CFLAGS_NOLIBS=$( echo "$CRAY_CFLAGS" | perl -pe 's/-l[\S]+//g and s/[\s]+/ /g')
+				export CFLAGS="$CRAY_CFLAGS_NOLIBS $CFLAGS"
+				export CXXFLAGS="$CRAY_CFLAGS_NOLIBS $CXXFLAGS"
+				export LDFLAGS="$CRAY_RPATH_LDFLAGS $LDFLAGS"
 				;;
 
 			includelocal)
@@ -137,9 +166,15 @@ fi
 #fi
 
 if [ -n "${USING_CRAY_ENV}" ] && [[ ${EBUILD_PHASE} == unpack ]]; then
-	export CFLAGS="$CRAY_CFLAGS $CFLAGS"
-	export FFLAGS="$CRAY_CFLAGS $FFLAGS"
-	export LDFLAGS="$CRAY_LDFLAGS $LDFLAGS"
+	export CC=cc
+	export CXX=CC
+	export F77=ftn
+	export FC=ftn
+	export F90=ftn
+	#export CFLAGS="$CRAY_CFLAGS $CFLAGS"
+	##export CXXFLAGS="$CRAY_CFLAGS $CXXFLAGS"
+	#export FFLAGS="$CRAY_CFLAGS $FFLAGS"
+	#export LDFLAGS="$CRAY_LDFLAGS $LDFLAGS"
 fi
 
 if [[ ${EBUILD_PHASE} == unpack ]]; then

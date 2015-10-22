@@ -34,21 +34,15 @@ S="${WORKDIR}/${MY_P/_/-}"
 
 src_configure() {
 	tc-export PKG_CONFIG
-	export FC="ftn -dynamic"
-	export F77="ftn -dynamic"
-	if use cray; then
-		local myeconfargs=(
-			--with-blas="sci_gnu"
-			--with-lapack="sci_gnu"
-			$(use_enable mpi)
-			)
-	else
-		local myeconfargs=(
-			--with-blas="$($(tc-getPKG_CONFIG) --libs blas)"
-			--with-lapack="$($(tc-getPKG_CONFIG) --libs lapack)"
-			$(use_enable mpi)
-			)
+	if use cray ; then 
+		export FC="ftn"
+		export F77="ftn"
 	fi
+	local myeconfargs=(
+		--with-blas="$($(tc-getPKG_CONFIG) --libs blas)"
+		--with-lapack="$($(tc-getPKG_CONFIG) --libs lapack)"
+		$(use_enable mpi)
+		)
 	autotools-utils_src_configure
 }
 

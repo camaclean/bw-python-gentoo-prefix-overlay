@@ -41,9 +41,16 @@ PATCHES=(
 python_prepare_all() {
 	if use cray; then
 		export HDF5_DIR
-		export CFLAGS="$CRAY_CFLAGS $CFLAGS"
-		export FFLAGS="$CRAY_CFLAGS $FFLAGS"
-		export LDFLAGS="$CRAY_LDFLAGS $LDFLAGS"
+		export CC=cc
+		export CXX=CC
+		export FC=ftn
+		export F77=ftn
+		export F90=ftn
+		export F95=ftn
+		export F08=ftn
+		#export CFLAGS="$CRAY_CFLAGS $CFLAGS"
+		#export FFLAGS="$CRAY_CFLAGS $FFLAGS"
+		#export LDFLAGS="$CRAY_LDFLAGS $LDFLAGS"
 	else
 		export HDF5_DIR="${EPREFIX}"/usr
 	fi

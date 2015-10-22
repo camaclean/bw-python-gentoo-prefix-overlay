@@ -84,7 +84,7 @@ if [ ! -f "$EPREFIX/.stage2_config_set" ]; then
 	git clone https://github.com/camaclean/bw-python-gentoo-prefix-overlay.git $EPREFIX/usr/local/bw-python-gentoo-prefix-overlay
 	sed -i '1iMARCH="bdver1"' $EPREFIX/etc/portage/make.conf
 	sed -i 's|^CFLAGS=".*"|CFLAGS="\$\{CFLAGS\} -O2 -pipe -march=\$MARCH -I$EPREFIX/usr/include -I/usr/include -L$EPREFIX/lib -L$EPREFIX/usr/lib -L/lib64 -L/usr/lib64"|' $EPREFIX/etc/portage/make.conf
-	sed -i 's|^USE=".*"|USE="unicode nls jpeg jpeg2k lcms tiff truetype lapack -e2fsprogs lzo lzma python mpi threads hdf hdf5 sqlite tk"|' $EPREFIX/etc/portage/make.conf
+	sed -i 's|^USE=".*"|USE="unicode nls jpeg jpeg2k lcms tiff truetype lapack -e2fsprogs lzo lzma python mpi threads hdf hdf5 sqlite tk ncurses"|' $EPREFIX/etc/portage/make.conf
 	sed -i 's|^MAKEOPTS=".*"|MAKEOPTS="-j9"|' $EPREFIX/etc/portage/make.conf
 	sed -i 's|^MAKEOPTS=".*"|MAKEOPTS="-j9"|' $EPREFIX/tmp/etc/portage/make.conf
 	echo 'LDFLAGS="${LDFLAGS} -Wl,--rpath=$EPREFIX/lib -Wl,--rpath=$EPREFIX/usr/lib -Wl,--enable-new-dtags"' >> $EPREFIX/etc/portage/make.conf
@@ -114,6 +114,22 @@ else
 	echo "Stage 2 already built. Skipping."
 fi
 
+#if [ ! -f "$EPREFIX/.stage3_config_set" ]; then
+#	echo 'export PATH="$PATH:$HOST_PATH"' >> $EPREFIX/etc/profile
+#	echo "export PKG_CONFIG_PATH=\"$EPREFIX/usr/lib/pkgconfig:\$PKG_CONFIG_PATH:/usr/lib64/pkgconfig\"" >> $EPREFIX/etc/profile
+#	echo 'export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$CRAY_PKG_CONFIG_PATH"' >> $EPREFIX/etc/profile
+#	sed -i -e "s|:/usr/bin:/bin||" -e "s|:/usr/sbin:/sbin||" $EPREFIX/etc/profile
+#	touch "$EPREFIX/.stage3_config_set"
+#	#ln -snf /usr/bin/perl $EPREFIX/usr/bin/perl
+#fi
+
+if [ ! -f "$EPREFIX/.stage3_built" ]; then
+	./bootstrap-prefix.sh $EPREFIX stage3 || exit 1
+	touch "$EPREFIX/.stage3_built"
+else
+	echo "Stage 3 already built. Skipping."
+fi
+
 if [ ! -f "$EPREFIX/.stage3_config_set" ]; then
 	echo 'export PATH="$PATH:$HOST_PATH"' >> $EPREFIX/etc/profile
 	echo "export PKG_CONFIG_PATH=\"$EPREFIX/usr/lib/pkgconfig:\$PKG_CONFIG_PATH:/usr/lib64/pkgconfig\"" >> $EPREFIX/etc/profile
@@ -123,23 +139,12 @@ if [ ! -f "$EPREFIX/.stage3_config_set" ]; then
 	#ln -snf /usr/bin/perl $EPREFIX/usr/bin/perl
 fi
 
-if [ ! -f "$EPREFIX/.stage3_built" ]; then
-	./bootstrap-prefix.sh $EPREFIX stage3 || exit 1
-	touch "$EPREFIX/.stage3_built"
-else
-	echo "Stage 3 already built. Skipping."
-fi
-
 cat > $EPREFIX/setup-env.sh <<EOT
 module switch PrgEnv-cray PrgEnv-gnu
-module load cblas
 module unload xalt
-module load cmake
-module load cray-hdf5-parallel
-module load cray-netcdf-hdf5parallel
+module load cray-hdf5
+module load cray-netcdf
 module load cray-tpsl
-#module load cudatoolkit
-module load boost
 
 export EPREFIX="$EPREFIX"
 export HOST_PATH="\$PATH"

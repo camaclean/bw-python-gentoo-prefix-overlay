@@ -4,9 +4,9 @@
 
 EAPI=5
 
-PYTHON_COMPAT=( python{2_7,3_3,3_4} )
+PYTHON_COMPAT=( python{2_7,3_3,3_4})
 
-inherit distutils-r1
+inherit distutils-r1 craymodules
 
 DESCRIPTION="Message Passing Interface for Python"
 HOMEPAGE="https://code.google.com/p/mpi4py/ https://pypi.python.org/pypi/mpi4py"
@@ -14,8 +14,9 @@ SRC_URI="https://${PN}.googlecode.com/files/${P}.tar.gz"
 
 LICENSE="BSD"
 SLOT="0"
-KEYWORDS=""
-IUSE="doc examples cray test"
+KEYWORDS="amd64 amd64-linux x86 x86-linux"
+#KEYWORDS=""
+IUSE="doc examples test cray"
 
 RDEPEND="virtual/mpi"
 DEPEND="${RDEPEND}
@@ -23,18 +24,30 @@ DEPEND="${RDEPEND}
 	virtual/mpi[romio] )"
 DISTUTILS_IN_SOURCE_BUILD=1
 
-PATCHES=( "${FILESDIR}"/${P}-py3-test-backport-1.patch "${FILESDIR}"/${P}-ldshared.patch)
+PATCHES=( "${FILESDIR}"/${P}-py3-test-backport-1.patch "${FILESDIR}"/${P}-ldshared.patch )
+
+if use cray; then
+	module unload acml
+	export CRAYPE_LINK_TYPE=dynamic
+	export CRAY_ADD_RPATH=yes
+fi
 
 python_prepare_all() {
 	# not needed on install
 	rm -r docs/source || die
-	echo "$(pwd)"
+	export FFLAGS="$(echo "$FFLAGS" | sed -e "s/-O2//" -e "s/-march=bdver1//")"
+	export CFLAGS="$(echo "$CFLAGS" | sed -e "s/-O2//" -e "s/-march=bdver1//")"
+	export CXXFLAGS="$(echo "$CXXFLAGS" | sed -e "s/-O2//" -e "s/-march=bdver1//")"
+	export LDFLAGS="$(echo "$LDFLAGS" | sed -e "s/-O2//" -e "s/-march=bdver1//")"
 	cat >> mpi.cfg <<EOT
 # Cray MPI and compiler
 [cray]
 mpicc = $(which cc)
 mpicxx = $(which CC)
-extra_link_args = -shared
+mpif77 = $(which ftn)
+mpif90 = $(which ftn)
+mpif95 = $(which ftn)
+#extra_link_args = -dynamic
 EOT
 	distutils-r1_python_prepare_all
 }
@@ -43,6 +56,10 @@ src_compile() {
 	export FAKEROOTKEY=1
 	if use cray ; then
 		export MPICFG="cray"
+		export FFLAGS="$(echo "$FFLAGS" | sed -e "s/-O2//" -e "s/-march=bdver1//")"
+		export CFLAGS="$(echo "$CFLAGS" | sed -e "s/-O2//" -e "s/-march=bdver1//")"
+		export CXXFLAGS="$(echo "$CXXFLAGS" | sed -e "s/-O2//" -e "s/-march=bdver1//")"
+		export LDFLAGS="$(echo "$LDFLAGS" | sed -e "s/-O2//" -e "s/-march=bdver1//")"
 		distutils-r1_src_compile
 	else
 		distutils-r1_src_compile

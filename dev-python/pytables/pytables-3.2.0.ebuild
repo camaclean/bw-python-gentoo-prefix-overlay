@@ -40,10 +40,10 @@ PATCHES=(
 
 python_prepare_all() {
 	export HDF5_DIR
-        #export CC=cc
-	export CFLAGS="$CRAY_CFLAGS $CFLAGS"
-	export FFLAGS="$CRAY_CFLAGS $FFLAGS"
-	export LDFLAGS="$CRAY_LDFLAGS $LDFLAGS"
+        export CC=cc
+	#export CFLAGS="$CRAY_CFLAGS $CFLAGS"
+	#export FFLAGS="$CRAY_CFLAGS $FFLAGS"
+	#export LDFLAGS="$CRAY_LDFLAGS $LDFLAGS"
 	sed \
 		-e "s:/usr:${EPREFIX}/usr:g" \
 		-e 's:"c-blosc/hdf5/blosc_filter.c"::g' \

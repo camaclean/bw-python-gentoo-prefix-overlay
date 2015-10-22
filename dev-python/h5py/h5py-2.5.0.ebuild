@@ -6,7 +6,7 @@ EAPI=5
 
 PYTHON_COMPAT=( python2_7 python3_{3,4} )
 
-inherit distutils-r1 flag-o-matic
+inherit distutils-r1 flag-o-matic craymodules
 
 DESCRIPTION="Simple Python interface to HDF5 files"
 HOMEPAGE="http://www.h5py.org/"
@@ -15,7 +15,7 @@ SRC_URI="mirror://pypi/${PN:0:1}/${PN}/${P}.tar.gz"
 LICENSE="BSD"
 SLOT="0"
 KEYWORDS="~amd64 ~x86 ~amd64-linux ~x86-linux"
-IUSE="doc test examples mpi"
+IUSE="cray doc test examples mpi"
 
 RDEPEND="
 	sci-libs/hdf5:=[mpi=]
@@ -32,10 +32,18 @@ DEPEND="${RDEPEND}
 	mpi? ( dev-python/mpi4py[${PYTHON_USEDEP}] )"
 
 pkg_setup() {
-	#use mpi && export CC=cc
-	export CFLAGS="$CRAY_CFLAGS $CFLAGS"
-	export FFLAGS="$CRAY_CFLAGS $FFLAGS"
-	export LDFLAGS="$CRAY_LDFLAGS $LDFLAGS"
+	if use mpi; then
+		if use cray; then
+			export CRAY_ADD_RPATH=yes
+			export CRAYPE_LINK_TYPE=dynamic
+			export CC=cc
+		else
+			export CC=mpicc
+		fi
+	fi
+	#export CFLAGS="$CRAY_CFLAGS $CFLAGS"
+	#export FFLAGS="$CRAY_CFLAGS $FFLAGS"
+	#export LDFLAGS="$CRAY_LDFLAGS $LDFLAGS"
 }
 
 python_prepare_all() {

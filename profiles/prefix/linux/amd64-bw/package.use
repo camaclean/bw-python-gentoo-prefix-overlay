@@ -1,2 +1,6 @@
 =dev-python/pypy3-2.4.0 -ncurses
-sci-libs/hdf5 -cxx -threads
+sci-libs/hdf5 -cxx -threads -mpi
+dev-python/h5py -mpi
+dev-python/netcdf4-python -mpi
+media-libs/opencv cuda
+sci-libs/arpack -mpi

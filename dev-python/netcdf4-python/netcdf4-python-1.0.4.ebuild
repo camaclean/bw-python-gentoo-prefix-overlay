@@ -31,10 +31,15 @@ S="${WORKDIR}"/${MY_P}
 src_prepare() {
 	if use cray; then
 		export NETCDF4_DIR="$NETCDF_DIR"
-		#export CC=cc
-		export CFLAGS="$CRAY_CFLAGS $CFLAGS"
-		export FFLAGS="$CRAY_CFLAGS $FFLAGS"
-		export LDFLAGS="$CRAY_LDFLAGS $LDFLAGS"
+		export CC=cc
+		export FC=ftn
+		export F77=ftn
+		export F90=ftn
+		export F95=ftn
+		export F08=ftn
+		#export CFLAGS="$CRAY_CFLAGS $CFLAGS"
+		#export FFLAGS="$CRAY_CFLAGS $FFLAGS"
+		#export LDFLAGS="$CRAY_LDFLAGS $LDFLAGS"
 	fi
 }
 
