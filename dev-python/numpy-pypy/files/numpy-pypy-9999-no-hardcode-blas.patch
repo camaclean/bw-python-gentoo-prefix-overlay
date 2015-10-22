@@ -1,0 +1,45 @@
+ numpy/distutils/system_info.py | 21 +--------------------
+ 1 file changed, 1 insertion(+), 20 deletions(-)
+
+diff --git a/numpy/distutils/system_info.py b/numpy/distutils/system_info.py
+index 48c92c5..496bfc2 100644
+--- a/numpy/distutils/system_info.py
++++ b/numpy/distutils/system_info.py
+@@ -296,20 +296,7 @@ def get_info(name, notfound_action=0):
+       1 - display warning message
+       2 - raise error
+     """
+-    cl = {'atlas': atlas_info,  # use lapack_opt or blas_opt instead
+-          'atlas_threads': atlas_threads_info,                # ditto
+-          'atlas_blas': atlas_blas_info,
+-          'atlas_blas_threads': atlas_blas_threads_info,
+-          'lapack_atlas': lapack_atlas_info,  # use lapack_opt instead
+-          'lapack_atlas_threads': lapack_atlas_threads_info,  # ditto
+-          'mkl': mkl_info,
+-          # openblas which may or may not have embedded lapack
+-          'openblas': openblas_info,          # use blas_opt instead
+-          # openblas with embedded lapack
+-          'openblas_lapack': openblas_lapack_info, # use blas_opt instead
+-          'lapack_mkl': lapack_mkl_info,      # use lapack_opt instead
+-          'blas_mkl': blas_mkl_info,          # use blas_opt instead
+-          'x11': x11_info,
++    cl = {'x11': x11_info,
+           'fft_opt': fft_opt_info,
+           'fftw': fftw_info,
+           'fftw2': fftw2_info,
+           'fftw2': fftw2_info,
+diff --git a/numpy/f2py/setup.py b/numpy/f2py/setup.py
+index 2f1fd6a..586b256 100644
+--- a/numpy/f2py/setup.py
++++ b/numpy/f2py/setup.py
+@@ -43,7 +43,8 @@ def configuration(parent_package='',top_path=None):
+     config.make_svn_version_py()
+ 
+     def generate_f2py_py(build_dir):
+-        f2py_exe = 'f2py'+os.path.basename(sys.executable)[6:]
++        #f2py_exe = 'f2py'+os.path.basename(sys.executable)[6:]
++        f2py_exe = 'f2py-pypy'
+         if f2py_exe[-4:]=='.exe':
+             f2py_exe = f2py_exe[:-4] + '.py'
+         if 'bdist_wininst' in sys.argv and f2py_exe[-3:] != '.py':
+
