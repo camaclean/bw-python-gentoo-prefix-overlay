@@ -1,0 +1,17 @@
+diff --git a/pym/portage/process.py b/pym/portage/process.py
+index 5bcf81b..28461b1 100644
+--- a/pym/portage/process.py
++++ b/pym/portage/process.py
+@@ -114,6 +114,12 @@ def spawn_bash(mycommand, debug=False, opt_name=None, **keywords):
+ 	if debug:
+ 		# Print commands and their arguments as they are executed.
+ 		args.append("-x")
++	#
++	# On Cray, with a minimal prefix, we need to load /etc/profile to get 
++	# all the correct paths, so use a login shell
++	#
++	args.append("-l")
++
+ 	args.append("-c")
+ 	args.append(mycommand)
+ 	return spawn(args, opt_name=opt_name, **keywords)

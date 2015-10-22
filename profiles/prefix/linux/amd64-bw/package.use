@@ -4,3 +4,4 @@ dev-python/h5py -mpi
 dev-python/netcdf4-python -mpi
 media-libs/opencv cuda
 sci-libs/arpack -mpi
+sci-mathematics/petsc superlu -hypre

@@ -1,0 +1,16 @@
+# Copyright 1999-2015 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+# $Id: $
+
+DESCRIPTION="Eselect module for Cray Global Arrays Library"
+MAINTAINER="Colin MacLean"
+SVN_DATE='$Date: $'
+VERSION=$(svn_date_to_version "${SVN_DATE}" )
+
+inherit envmod-multi
+
+module_names=(	"cray-ga"
+				"ga"
+			 )
+
+# vim: ts=4 sw=4 noet fdm=marker

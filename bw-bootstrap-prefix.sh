@@ -198,3 +198,5 @@ fi
 
 emerge -uvDN gentoolkit eix pillow native-mpi mpi4py libsci numpy matplotlib pycuda h5py netcdf4-python pandas statsmodels expose-python
 eselect python set 1
+USE="-smp" emerge -v ipython
+emerge -v ipython

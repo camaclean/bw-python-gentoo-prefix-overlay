@@ -2,6 +2,15 @@
 #echo "Bashrc: $PKG_CONFIG_PATH"
 #export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$CRAY_PKG_CONFIG_PATHS"
 #echo "Bashrc: $PKG_CONFIG_PATH"
+if [[ $USER == "" ]]; then
+	export USER="user"
+fi
+#echo "Ebuild phase in profile.bashrc: ${EBUILD_PHASE}"
+#echo "$PKG_CONFIG_PATH"
+#export PATH=""
+#. $EPREFIX/etc/profile
+#export PATH="$EPREFIX/usr/lib/portage/bin/ebuild-helpers/unprivileged:$EPREFIX/usr/lib/portage/bin/ebuild-helpers/:$PATH"
+#echo "bashrc PATH: $PATH"
 
 Pkgenvs=(
 	 "dev-python/numpy cray"
@@ -161,10 +170,6 @@ do
 done
 fi
 
-#if [[ ${CATEGORY}/${PN} == dev-python/mpi4py && ${EBUILD_PHASE} == unpack ]]; then
-#	export USING_CRAY_ENV="yes"
-#fi
-
 if [ -n "${USING_CRAY_ENV}" ] && [[ ${EBUILD_PHASE} == unpack ]]; then
 	export CC=cc
 	export CXX=CC
@@ -172,14 +177,15 @@ if [ -n "${USING_CRAY_ENV}" ] && [[ ${EBUILD_PHASE} == unpack ]]; then
 	export FC=ftn
 	export F90=ftn
 	#export CFLAGS="$CRAY_CFLAGS $CFLAGS"
-	##export CXXFLAGS="$CRAY_CFLAGS $CXXFLAGS"
+	#export CXXFLAGS="$CRAY_CFLAGS $CXXFLAGS"
 	#export FFLAGS="$CRAY_CFLAGS $FFLAGS"
 	#export LDFLAGS="$CRAY_LDFLAGS $LDFLAGS"
 fi
 
 if [[ ${EBUILD_PHASE} == unpack ]]; then
-	PATHTMP="$(echo $PATH | sed 's|:/usr/bin:/bin||')"
-	export PATH="$PATHTMP:$HOST_PATH"
+	PATHTMP="$(echo $PATH | sed 's|:/usr/bin:/bin||g')"
+	#export PATH="$PATHTMP:$HOST_PATH"
+	export PATH="$PATHTMP:/usr/bin:/bin"
 	export LDFLAGS="$LDFLAGS $LDP_LDFLAGS"
 	export LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
 fi

@@ -7,6 +7,7 @@
 ARCH="amd64"
 CHOST="x86_64-pc-linux-gnu"
 ACCEPT_KEYWORDS="amd64 ~amd64 ~amd64-linux"
+USE="$USE unicode nls jpeg jpeg2k lcms tiff truetype lapack -e2fsprogs lzo lzma python mpi threads hdf hdf5 sqlite"
 
 # We don't have lib64 in prefix so, remove it here.
 SYMLINK_LIB=""

@@ -1,0 +1,60 @@
+inherit envmod
+
+describe_set() {
+	if [[ ${match_type} == fuzzy ]] ; then
+		echo "Set Environment Module ${module}* [priority]"
+	else
+		echo "Set Environment Module ${module} [priority]"
+	fi
+}
+
+do_set() {
+	module_set $*
+}
+
+describe_unset() {
+	if [[ ${match_type} == fuzzy ]] ; then
+		echo "Unload Environment Module ${module}* [priority]"
+	else
+		echo "Unload Environment Module ${module} [priority]"
+	fi
+}
+
+do_unset() {
+	module_unset $*
+}
+
+describe_show() {
+	echo "Display the current Environment Module set by eselect"
+}
+
+do_show() {
+	local i conf
+	local save_IFS=$IFS
+	IFS=$'\n'
+	for i in $( cat "$MODULE_SET_CONFIG" ) ; do
+		IFS=' '
+		conf=( $i )
+		if [[ ${conf[1]} == ${module} ]] ; then
+			if [[ ${conf[4]} == default ]] ; then
+				echo "${conf[3]} (default)"
+			else
+				echo "${conf[3]}/${conf[4]}"
+			fi
+			break
+		fi
+	done
+}
+
+describe_list() {
+	if [[ ${match_type} == fuzzy ]] ; then
+		echo "List Environment Module ${module}* options"
+	else
+		echo "List Environment Module ${module} options"
+	fi
+}
+
+do_list() {
+	module_list $*
+}
+

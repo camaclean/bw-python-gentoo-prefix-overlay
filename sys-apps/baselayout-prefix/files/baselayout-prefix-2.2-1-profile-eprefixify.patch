@@ -1,0 +1,115 @@
+*** etc/profile	Fri Sep 18 16:08:25 2015
+--- etc/profile	Fri Sep 18 16:13:28 2015
+***************
+*** 1,19 ****
+! # /etc/profile: login shell setup
+  #
+  # That this file is used by any Bourne-shell derivative to setup the
+  # environment for login shells.
+  #
+  
+  # Load environment settings from profile.env, which is created by
+! # env-update from the files in /etc/env.d
+! if [ -e /etc/profile.env ] ; then
+! 	. /etc/profile.env
+  fi
+  
+  # You should override these in your ~/.bashrc (or equivalent) for per-user
+! # settings.  For system defaults, you can add a new file in /etc/profile.d/.
+! export EDITOR=${EDITOR:-/bin/nano}
+! export PAGER=${PAGER:-/usr/bin/less}
+  
+  # 077 would be more secure, but 022 is generally quite realistic
+  umask 022
+--- 1,19 ----
+! # "@GENTOO_PORTAGE_EPREFIX@"/etc/profile: login shell setup
+  #
+  # That this file is used by any Bourne-shell derivative to setup the
+  # environment for login shells.
+  #
+  
+  # Load environment settings from profile.env, which is created by
+! # env-update from the files in "@GENTOO_PORTAGE_EPREFIX@"/etc/env.d
+! if [ -e "@GENTOO_PORTAGE_EPREFIX@"/etc/profile.env ] ; then
+! 	. "@GENTOO_PORTAGE_EPREFIX@"/etc/profile.env
+  fi
+  
+  # You should override these in your ~/.bashrc (or equivalent) for per-user
+! # settings.  For system defaults, you can add a new file in "@GENTOO_PORTAGE_EPREFIX@"/etc/profile.d/.
+! export EDITOR=${EDITOR:-"@GENTOO_PORTAGE_EPREFIX@"/bin/nano}
+! export PAGER=${PAGER:-"@GENTOO_PORTAGE_EPREFIX@"/usr/bin/less}
+  
+  # 077 would be more secure, but 022 is generally quite realistic
+  umask 022
+*************** umask 022
+*** 27,52 ****
+  # This way the evaluation can be short-circuited and calling whoami is
+  # avoided.
+  if [ "$EUID" = "0" ] || [ "$USER" = "root" ] ; then
+! 	PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${ROOTPATH}"
+  else
+! 	PATH="/usr/local/bin:/usr/bin:/bin:${PATH}"
+  fi
+  export PATH
+  unset ROOTPATH
+  
+  if [ -n "${BASH_VERSION}" ] ; then
+! 	# Newer bash ebuilds include /etc/bash/bashrc which will setup PS1
+  	# including color.  We leave out color here because not all
+  	# terminals support it.
+! 	if [ -f /etc/bash/bashrc ] ; then
+! 		# Bash login shells run only /etc/profile
+! 		# Bash non-login shells run only /etc/bash/bashrc
+! 		# Since we want to run /etc/bash/bashrc regardless, we source it 
+  		# from here.  It is unfortunate that there is no way to do 
+  		# this *after* the user's .bash_profile runs (without putting 
+  		# it in the user's dot-files), but it shouldn't make any 
+  		# difference.
+! 		. /etc/bash/bashrc
+  	else
+  		PS1='\u@\h \w \$ '
+  	fi
+--- 27,52 ----
+  # This way the evaluation can be short-circuited and calling whoami is
+  # avoided.
+  if [ "$EUID" = "0" ] || [ "$USER" = "root" ] ; then
+! 	PATH="@GENTOO_PORTAGE_EPREFIX@/usr/local/sbin:@GENTOO_PORTAGE_EPREFIX@/usr/local/bin:@GENTOO_PORTAGE_EPREFIX@/usr/sbin:@GENTOO_PORTAGE_EPREFIX@/usr/bin:@GENTOO_PORTAGE_EPREFIX@/sbin:@GENTOO_PORTAGE_EPREFIX@/bin:${ROOTPATH}"
+  else
+! 	PATH="@GENTOO_PORTAGE_EPREFIX@/usr/local/sbin:@GENTOO_PORTAGE_EPREFIX@/usr/local/bin:@GENTOO_PORTAGE_EPREFIX@/usr/sbin:@GENTOO_PORTAGE_EPREFIX@/usr/bin:@GENTOO_PORTAGE_EPREFIX@/sbin:@GENTOO_PORTAGE_EPREFIX@/bin:${PATH}"
+  fi
+  export PATH
+  unset ROOTPATH
+  
+  if [ -n "${BASH_VERSION}" ] ; then
+! 	# Newer bash ebuilds include "@GENTOO_PORTAGE_EPREFIX@"/etc/bash/bashrc which will setup PS1
+  	# including color.  We leave out color here because not all
+  	# terminals support it.
+! 	if [ -f "@GENTOO_PORTAGE_EPREFIX@"/etc/bash/bashrc ] ; then
+! 		# Bash login shells run only "@GENTOO_PORTAGE_EPREFIX@"/etc/profile
+! 		# Bash non-login shells run only "@GENTOO_PORTAGE_EPREFIX@"/etc/bash/bashrc
+! 		# Since we want to run "@GENTOO_PORTAGE_EPREFIX@"/etc/bash/bashrc regardless, we source it 
+  		# from here.  It is unfortunate that there is no way to do 
+  		# this *after* the user's .bash_profile runs (without putting 
+  		# it in the user's dot-files), but it shouldn't make any 
+  		# difference.
+! 		. "@GENTOO_PORTAGE_EPREFIX@"/etc/bash/bashrc
+  	else
+  		PS1='\u@\h \w \$ '
+  	fi
+*************** else
+*** 57,63 ****
+  	PS1="${USER:-$(whoami 2>/dev/null)}@$(uname -n 2>/dev/null) \$ "
+  fi
+  
+! for sh in /etc/profile.d/*.sh ; do
+  	[ -r "$sh" ] && . "$sh"
+  done
+  unset sh
+--- 57,63 ----
+  	PS1="${USER:-$(whoami 2>/dev/null)}@$(uname -n 2>/dev/null) \$ "
+  fi
+  
+! for sh in "@GENTOO_PORTAGE_EPREFIX@"/etc/profile.d/*.sh ; do
+  	[ -r "$sh" ] && . "$sh"
+  done
+  unset sh

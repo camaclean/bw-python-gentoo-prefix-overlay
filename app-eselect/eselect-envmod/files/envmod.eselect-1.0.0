@@ -1,0 +1,25 @@
+# Copyright 1999-2015 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+# $Id: $
+
+inherit envmod
+module="envmod"
+
+DESCRIPTION="List and update Environment Modules settings"
+MAINTAINER="cmaclean"
+SVN_DATE='$Date: $'
+VERSION=$(svn_date_to_version "${SVN_DATE}" )
+
+describe_list() {
+	echo "List Environment Modules settings"
+}
+
+do_list() {
+	{
+		#echo -e "\033[1mPriority Eselect_Module Action Environment_Module Version\033[0m"
+		echo -e "Priority Eselect_Module Action Environment_Module Version"
+		cat $MODULE_SET_CONFIG 
+	} | column -t
+}
+
+# vim: ts=4 sw=4 noet fdm=marker

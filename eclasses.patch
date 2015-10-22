@@ -1,0 +1,205 @@
+diff -pr /u/staff/cmaclean/bwpy/usr/portage/eclass//distutils-r1.eclass /u/staff/cmaclean/py/usr/portage/eclass//distutils-r1.eclass
+*** portage/eclass//distutils-r1.eclass	Fri Feb 20 12:33:49 2015
+--- portage/eclass//distutils-r1.eclass	Mon Sep 28 15:29:05 2015
+*************** distutils-r1_python_install() {
+*** 547,553 ****
+  	local root=${D}/_${EPYTHON}
+  	[[ ${DISTUTILS_SINGLE_IMPL} ]] && root=${D}
+  
+! 	esetup.py install --root="${root}" "${args[@]}"
+  
+  	if [[ -d ${root}$(python_get_sitedir)/tests ]]; then
+  		die "Package installs 'tests' package, file collisions likely."
+--- 547,553 ----
+  	local root=${D}/_${EPYTHON}
+  	[[ ${DISTUTILS_SINGLE_IMPL} ]] && root=${D}
+  
+! 	esetup.py install --root="${root}" --prefix="${EPREFIX}/usr" "${args[@]}"
+  
+  	if [[ -d ${root}$(python_get_sitedir)/tests ]]; then
+  		die "Package installs 'tests' package, file collisions likely."
+diff -pr /u/staff/cmaclean/bwpy/usr/portage/eclass//python-utils-r1.eclass /u/staff/cmaclean/py/usr/portage/eclass//python-utils-r1.eclass
+*** portage/eclass//python-utils-r1.eclass	Sat Mar 21 09:58:20 2015
+--- portage/eclass//python-utils-r1.eclass	Mon Sep 28 14:35:01 2015
+*************** python_export() {
+*** 248,253 ****
+--- 248,272 ----
+  	esac
+  	debug-print "${FUNCNAME}: implementation: ${impl}"
+  
++ 	if [[ -z "${EPREFIX}" ]]; then
++ 		prefixes="$PORTAGE_READONLY_EPREFIXES"
++ 	else
++ 		prefixes="$EPREFIX:$PORTAGE_READONLY_EPREFIXES"
++ 	fi
++ 
++ 	local save_IFS=$IFS
++ 	local prefix=""
++ 	IFS=":"
++ 	local i
++ 	for i in $prefixes; do
++ 		if [ -x $i/usr/bin/${impl} ]; then
++ 			prefix="$i"
++ 			break
++ 		fi
++ 	done
++ 	[ -z "${prefix}" ] && prefix="${EPREFIX}"
++ 	IFS="$save_IFS"
++ 
+  	for var; do
+  		case "${var}" in
+  			EPYTHON)
+*************** python_export() {
+*** 255,261 ****
+  				debug-print "${FUNCNAME}: EPYTHON = ${EPYTHON}"
+  				;;
+  			PYTHON)
+! 				export PYTHON=${EPREFIX}/usr/bin/${impl}
+  				debug-print "${FUNCNAME}: PYTHON = ${PYTHON}"
+  				;;
+  			PYTHON_SITEDIR)
+--- 274,281 ----
+  				debug-print "${FUNCNAME}: EPYTHON = ${EPYTHON}"
+  				;;
+  			PYTHON)
+! 				export PYTHON=${prefix}/usr/bin/${impl}
+! 				#export PYTHON=$(which ${impl}) #${EPREFIX}/usr/bin/${impl}
+  				debug-print "${FUNCNAME}: PYTHON = ${PYTHON}"
+  				;;
+  			PYTHON_SITEDIR)
+*************** python_export() {
+*** 286,292 ****
+  						;;
+  				esac
+  
+! 				export PYTHON_INCLUDEDIR=${EPREFIX}${dir}
+  				debug-print "${FUNCNAME}: PYTHON_INCLUDEDIR = ${PYTHON_INCLUDEDIR}"
+  				;;
+  			PYTHON_LIBPATH)
+--- 306,312 ----
+  						;;
+  				esac
+  
+! 				export PYTHON_INCLUDEDIR=${prefix}${dir}
+  				debug-print "${FUNCNAME}: PYTHON_INCLUDEDIR = ${PYTHON_INCLUDEDIR}"
+  				;;
+  			PYTHON_LIBPATH)
+*************** python_export() {
+*** 300,308 ****
+  						;;
+  				esac
+  
+! 				local path=${EPREFIX}/usr/$(get_libdir)
+  
+! 				export PYTHON_LIBPATH=${path}/${libname}$(get_libname)
+  				debug-print "${FUNCNAME}: PYTHON_LIBPATH = ${PYTHON_LIBPATH}"
+  				;;
+  			PYTHON_CFLAGS)
+--- 320,328 ----
+  						;;
+  				esac
+  
+! 				local path=${prefix}/usr/$(get_libdir)
+  
+! 				export PYTHON_LIBPATH=${EPREFIX}/${libname}$(get_libname)
+  				debug-print "${FUNCNAME}: PYTHON_LIBPATH = ${PYTHON_LIBPATH}"
+  				;;
+  			PYTHON_CFLAGS)
+*************** python_domodule() {
+*** 762,767 ****
+--- 782,805 ----
+  
+  	[[ ${EPYTHON} ]] || die 'No Python implementation set (EPYTHON is null).'
+  
++ 	#if [[ -z "${EPREFIX}" ]]; then
++ 	#	prefixes="$PORTAGE_READONLY_EPREFIXES"
++ 	#else
++ 	#	prefixes="$EPREFIX:$PORTAGE_READONLY_EPREFIXES"
++ 	#fi
++ 
++ 	#local save_IFS=$IFS
++ 	#local prefix=""
++ 	#IFS=":"
++ 	#for i in $prefixes; do
++ 	#	if [ -x $i/usr/bin/${EPYTHON} ]; then
++ 	#		prefix = "$i"
++ 	#		break
++ 	#	fi
++ 	#done
++ 	#[ -z "${prefix}" ] && prefix="${EPREFIX}"
++ 	#IFS="$save_IFS"
++ 
+  	local d
+  	if [[ ${python_moduleroot} == /* ]]; then
+  		# absolute path
+*************** python_doheader() {
+*** 800,805 ****
+--- 838,861 ----
+  
+  	[[ ${EPYTHON} ]] || die 'No Python implementation set (EPYTHON is null).'
+  
++ 	if [[ -z "${EPREFIX}" ]]; then
++ 		prefixes="$PORTAGE_READONLY_EPREFIXES"
++ 	else
++ 		prefixes="$EPREFIX:$PORTAGE_READONLY_EPREFIXES"
++ 	fi
++ 
++ 	#local save_IFS=$IFS
++ 	#local prefix=""
++ 	#IFS=":"
++ 	#for i in $prefixes; do
++ 	#	if [ -x $i/usr/bin/${EPREFIX} ]; then
++ 	#		prefix = "$i"
++ 	#		break
++ 	#	fi
++ 	#done
++ 	#[ -z "${prefix}" ] && prefix="${EPREFIX}"
++ 	#IFS="$save_IFS"
++ 
+  	local d PYTHON_INCLUDEDIR=${PYTHON_INCLUDEDIR}
+  	[[ ${PYTHON_INCLUDEDIR} ]] || python_export PYTHON_INCLUDEDIR
+  
+*************** python_wrapper_setup() {
+*** 854,859 ****
+--- 910,933 ----
+  			pyver=2
+  		fi
+  
++ 		if [[ -z "${EPREFIX}" ]]; then
++ 			prefixes="$PORTAGE_READONLY_EPREFIXES"
++ 		else
++ 			prefixes="$EPREFIX:$PORTAGE_READONLY_EPREFIXES"
++ 		fi
++ 
++ 		local save_IFS=$IFS
++ 		local prefix=""
++ 		IFS=":"
++ 		for i in $prefixes; do
++ 			if [ -x $i/usr/bin/${impl} ]; then
++ 				prefix="$i"
++ 				break
++ 			fi
++ 		done
++ 		[ -z "${prefix}" ] && prefix="${EPREFIX}"
++ 		IFS="$save_IFS"
++ 
+  		# Python interpreter
+  		ln -s "${PYTHON}" "${workdir}"/bin/python || die
+  		ln -s python "${workdir}"/bin/python${pyver} || die
+*************** python_wrapper_setup() {
+*** 868,874 ****
+  			ln -s "${PYTHON/python/2to3-}" "${workdir}"/bin/2to3 || die
+  
+  			# Python 2.7+.
+! 			ln -s "${EPREFIX}"/usr/$(get_libdir)/pkgconfig/${EPYTHON/n/n-}.pc \
+  				"${workdir}"/pkgconfig/python.pc || die
+  			ln -s python.pc "${workdir}"/pkgconfig/python${pyver}.pc || die
+  		else
+--- 942,948 ----
+  			ln -s "${PYTHON/python/2to3-}" "${workdir}"/bin/2to3 || die
+  
+  			# Python 2.7+.
+! 			ln -s "${prefix}"/usr/$(get_libdir)/pkgconfig/${EPYTHON/n/n-}.pc \
+  				"${workdir}"/pkgconfig/python.pc || die
+  			ln -s python.pc "${workdir}"/pkgconfig/python${pyver}.pc || die
+  		else
