@@ -11,7 +11,7 @@ SRC_URI=""
 LICENSE="GPL-3"
 SLOT="0"
 KEYWORDS="~ppc-aix ~ia64-hpux ~x86-interix ~x86-linux ~sparc-solaris ~x86-solaris ~x86-winnt"
-IUSE=""
+IUSE="cray"
 
 DEPEND=""
 RDEPEND="sys-devel/gcc-config"
@@ -31,17 +31,28 @@ src_install() {
 	exeinto $wrapperdir
 	sed -i -e "s,@GENTOO_PORTAGE_CHOST@,${CHOST},g" "${T}"/prefix-chain-wrapper
 	sed -i -e "s,@GENTOO_PORTAGE_BASE_EPREFIX@,$(portageq envvar BASE_EPREFIX),g" "${T}"/prefix-chain-wrapper
+	sed -i -e "s,@GENTOO_PORTAGE_BASE_EPREFIX@,$(portageq envvar BASE_EPREFIX),g" "${T}"/startprefix
 	doexe "${T}"/prefix-chain-wrapper
 
-	dosym $wrapperdir/prefix-chain-wrapper $wrapperdir/${CHOST}-gcc
-	dosym $wrapperdir/prefix-chain-wrapper $wrapperdir/${CHOST}-g++
-	dosym $wrapperdir/prefix-chain-wrapper $wrapperdir/${CHOST}-cpp
-	dosym $wrapperdir/prefix-chain-wrapper $wrapperdir/${CHOST}-c++
+#	if use cray ; then
+#		dosym $wrapperdir/prefix-chain-wrapper $wrapperdir/gcc
+#		dosym $wrapperdir/prefix-chain-wrapper $wrapperdir/g++
+#		dosym $wrapperdir/prefix-chain-wrapper $wrapperdir/cpp
+#		dosym $wrapperdir/prefix-chain-wrapper $wrapperdir/c++
+#		dosym $wrapperdir/prefix-chain-wrapper $wrapperdir/gfortran
+#	else
+		dosym $wrapperdir/prefix-chain-wrapper $wrapperdir/${CHOST}-gcc
+		dosym $wrapperdir/prefix-chain-wrapper $wrapperdir/${CHOST}-g++
+		dosym $wrapperdir/prefix-chain-wrapper $wrapperdir/${CHOST}-cpp
+		dosym $wrapperdir/prefix-chain-wrapper $wrapperdir/${CHOST}-c++
+		dosym $wrapperdir/prefix-chain-wrapper $wrapperdir/${CHOST}-gfortran
 
-	dosym $wrapperdir/${CHOST}-gcc $wrapperdir/gcc
-	dosym $wrapperdir/${CHOST}-g++ $wrapperdir/g++
-	dosym $wrapperdir/${CHOST}-cpp $wrapperdir/cpp
-	dosym $wrapperdir/${CHOST}-c++ $wrapperdir/c++
+		dosym $wrapperdir/${CHOST}-gcc $wrapperdir/gcc
+		dosym $wrapperdir/${CHOST}-g++ $wrapperdir/g++
+		dosym $wrapperdir/${CHOST}-cpp $wrapperdir/cpp
+		dosym $wrapperdir/${CHOST}-c++ $wrapperdir/c++
+		dosym $wrapperdir/${CHOST}-gfortran $wrapperdir/gfortran
+#	fi
 
 	# LDPATH is required to keep gcc-config happy :(
 	cat > "${T}"/$wrappercfg <<EOF

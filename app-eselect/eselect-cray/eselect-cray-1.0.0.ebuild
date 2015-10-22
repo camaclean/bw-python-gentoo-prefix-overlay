@@ -20,6 +20,8 @@ DEPEND="${RDEPEND}"
 S=${WORKDIR}
 
 src_install() {
+	insinto /etc/env.d/env-mod/
+	newins "${FILESDIR}"/selected.default-${PV} selected
 	insinto /usr/share/eselect/modules/
 	newins "${FILESDIR}"/envmod-craype-arch.eselect-${PV} envmod-craype-arch.eselect
 	newins "${FILESDIR}"/envmod-mpich.eselect-${PV} envmod-mpich.eselect
@@ -161,4 +163,13 @@ src_install() {
 		dosym ../libs/envmod-exact.bash /usr/share/eselect/modules/envmod-ntk.eselect
 		dosym ../libs/envmod-exact.bash /usr/share/eselect/modules/envmod-ncsa-ca.eselect
 	fi
+}
+
+pkg_postinst() {
+	elog "Generating environment..."
+	eselect envmod update
+	env-update
+	elog "Environment written to $EPREFIX/etc/env.d/01modules."
+	elog "Source $EPREFIX/etc/profile to update shell environment."
+	elog "\`. $EPREFIX/etc/profile\`"
 }

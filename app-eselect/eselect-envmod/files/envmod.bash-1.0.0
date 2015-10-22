@@ -187,7 +187,12 @@ generate_env() {
 	if [[ ${#loads} > 0 ]] ; then
 		module_script+="module load ${loads[@]}; "
 	fi
-	env -i HOME=$HOME MODULEPATH=$MODULEPATH PATH="/usr/bin:/bin" bash -c "$module_script export | /usr/bin/sed 's/declare -[xriaf]\+ //g' | /usr/bin/perl -ne 'print if m/^[a-z0-9_]+=[^\$\(]/i' | /usr/bin/sed '/^\(_\|BASH_EXECUTION_STRING\|EUID\|HOME\|HOSTNAME\|IFS\|PPID\|PWD\|SHELL\|SHELLOPTS\|SHLVL\|TERM\|UID\|BASHOPTS\)=/d'" > "${ENVIRONMENT_FILE}"
+	env -i HOME=$HOME USING_ESELECT_ENVMOD="yes" MODULEPATH=$MODULEPATH PATH="/usr/bin:/bin" bash -c "$module_script export | /usr/bin/sed 's/declare -[xriaf]\+ //g' | /usr/bin/perl -ne 'print if m/^[a-z0-9_]+=[^\$\(]/i' | /usr/bin/sed '/^\(_\|BASH_EXECUTION_STRING\|EUID\|HOME\|HOSTNAME\|IFS\|PPID\|PWD\|SHELL\|SHELLOPTS\|SHLVL\|TERM\|UID\|BASHOPTS\)=/d'" > "${ENVIRONMENT_FILE}"
+ 	LD_LIB_PATHS=( $(echo $LD_LIBRARY_PATH | tr ':' ' ') )
+ 	for path in ${LD_LIB_PATHS[@]} ; do
+ 		LDP_LDFLAGS="$LDP_LDFLAGS -Wl,--rpath=$path"
+ 	done
+	echo "LDP_LDFLAGS=\"$LDP_LDFLAGS\"" >> "${ENVIRONMENT_FILE}"
 	rm ${ENVIRONMENT_TEMP}
 	IFS=$save_IFS
 }
