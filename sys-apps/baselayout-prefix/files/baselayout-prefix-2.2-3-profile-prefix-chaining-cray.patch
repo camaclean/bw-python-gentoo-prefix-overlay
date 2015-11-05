@@ -1,12 +1,28 @@
-*** etc/profile	Tue Sep 15 14:54:13 2015
---- etc/profile	Thu Sep 17 15:44:15 2015
+*** etc/profile	2015-11-02 15:42:37.112597028 -0600
+--- etc/profile	2015-11-03 09:25:40.030529936 -0600
 *************** if [[ -n "${_ro_root}" ]]; then
-*** 58,69 ****
---- 58,84 ----
+*** 62,77 ****
   	done
   fi
-
-+ if [[ -z "$USING_ESELECT_ENVMOD" ]]
+  
+  # Load environment settings from profile.env, which is created by
+  # env-update from the files in "@GENTOO_PORTAGE_EPREFIX@"/etc/env.d
+  if [ -e "@GENTOO_PORTAGE_EPREFIX@"/etc/profile.env ] ; then
+  	. "@GENTOO_PORTAGE_EPREFIX@"/etc/profile.env
+  fi
+  
+! # You should override these in your ~/.bashrc (or equivalent) for per-user
+! # settings.  For system defaults, you can add a new file in "@GENTOO_PORTAGE_EPREFIX@"/etc/profile.d/.
+! export EDITOR=${EDITOR:-"@GENTOO_PORTAGE_EPREFIX@"/bin/nano}
+! export PAGER=${PAGER:-"@GENTOO_PORTAGE_EPREFIX@"/usr/bin/less}
+  
+  # 077 would be more secure, but 022 is generally quite realistic
+  umask 022
+--- 62,89 ----
+  	done
+  fi
+  
++ if [[ -z "$USING_ESELECT_ENVMOD" ]]; then
 + 	export INFOPATH_BAK="$INFOPATH"
 + 	export MANPATH_BAK="$MANPATH"
 + 	export PATH_BAK="$PATH"
@@ -19,22 +35,23 @@
   	. "@GENTOO_PORTAGE_EPREFIX@"/etc/profile.env
   fi
   
-+ if [[ -z "$USING_ESELECT_ENVMOD" ]]
-+ 	export INFOPATH="$INFOPATH:$INFOPATH_BAK"
-+ 	export MANPATH="$MANPATH:$MANPATH_BAK"
-+ 	export PATH="$PATH:$PATH_BAK"
-+ 	[[ -f /etc/profile ]] && . /etc/profile >/dev/null 2>&1
-+ fi
-+ unset INFOPATH_BAK MANPATH_BAK PATH_BAK
-+ 
-  # You should override these in your ~/.bashrc (or equivalent) for per-user
-  # settings.  For system defaults, you can add a new file in "@GENTOO_PORTAGE_EPREFIX@"/etc/profile.d/.
-  export EDITOR=${EDITOR:-"@GENTOO_PORTAGE_EPREFIX@"/bin/nano}
-*************** elif [[ "${EPREFIX}" != "@GENTOO_PORTAGE
-*** 171,176 ****
---- 186,219 ----
-  	echo "         Having EPREFIX set this way will probably render this environment unusable."
-  fi
+! if [[ -z "$USING_ESELECT_ENVMOD" ]]; then
+! 	export INFOPATH="$INFOPATH:$INFOPATH_BAK"
+! 	export MANPATH="$MANPATH:$MANPATH_BAK"
+! 	export PATH="$PATH:$PATH_BAK"
+! 	[[ -f /etc/profile ]] && . /etc/profile >/dev/null 2>&1
+! fi
+! unset INFOPATH_BAK MANPATH_BAK PATH_BAK
+! 
+! CHAINED_PKG_CONFIG_PATH="${_ro_root}/usr/lib/pkgconfig:$CHAINED_PKG_CONFIG_PATH"
+  
+  # 077 would be more secure, but 022 is generally quite realistic
+  umask 022
+*************** fi
+*** 176,181 ****
+--- 188,228 ----
+  
+  mkdir -p $(. "@GENTOO_PORTAGE_EPREFIX@"/etc/portage/make.conf && portageq envvar PORTAGE_TMPDIR) 2>/dev/null || true
   
 + if [[ ${_ro_recursion_level} == 0 ]]
 + then
@@ -50,19 +67,25 @@
 + 		eval "$(modulecmd bash load cmake cray-hdf5 cray-netcdf cray-tpsl fftw)"
 + 		eval "$(modulecmd bash unload xalt)"
 + 
-+ 		LD_LIB_PATHS=( $(echo $LD_LIBRARY_PATH | tr ':' ' ') )
-+ 		for path in ${LD_LIB_PATHS[@]} ; do
-+ 			LDP_LDFLAGS="$LDP_LDFLAGS -Wl,--rpath=$path"
++ 		save_IFS=$IFS
++ 		IFS=":"
++ 		LDP_LDFLAGS=""
++ 		for path in $LD_LIBRARY_PATH ; do
++ 		LDP_LDFLAGS="$LDP_LDFLAGS -Wl,--rpath=$path"
 + 		done
-+
++ 		IFS=$save_IFS
++ 		unset save_IFS
++ 
 + 		export LDP_LDFLAGS
++ 	else
++ 		. /opt/modules/default/init/bash
 + 	fi
 + 
 + 	PATH="$(echo $PATH | sed 's|:/usr/bin:/bin||g'):/usr/bin:/bin"
 + 
 + 	export CRAY_PKG_CONFIG_PATH="$(cc --cray-print-opts=pkg_config_path)"
 + 
-+ 	export PKG_CONFIG_PATH="@GENTOO_PORTAGE_EPREFIX@/usr/lib/pkgconfig:$CRAY_PKG_CONFIG_PATH:$PKG_CONFIG_PATH:/usr/lib64/pkgconfig"
++ 	export PKG_CONFIG_PATH="@GENTOO_PORTAGE_EPREFIX@/usr/lib/pkgconfig:${CHAINED_PKG_CONFIG_PATH%:}:$CRAY_PKG_CONFIG_PATH:/usr/lib64/pkgconfig"
 + fi
 + 
   unset _ro_root

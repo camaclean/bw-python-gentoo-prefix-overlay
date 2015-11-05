@@ -6,7 +6,7 @@ EAPI=5
 
 PYTHON_COMPAT=( python2_7 python3_{3,4} )
 
-inherit distutils-r1 multilib
+inherit eutils distutils-r1 multilib craymodules
 
 DESCRIPTION="Python wrapper for NVIDIA CUDA"
 HOMEPAGE="http://mathema.tician.de/software/pycuda/ http://pypi.python.org/pypi/pycuda"
@@ -77,6 +77,8 @@ python_configure() {
 	use opengl && myopts+=( --cuda-enable-gl )
 
         export LDFLAGS="$LDFLAGS -L/opt/cray/nvidia/default/lib64 -Wl,--rpath=/opt/cray/nvidia/default/lib64"
+	export CFLAGS="$(echo "$CFLAGS" | sed "s|-I$EPREFIX/usr/include||")"
+	export CXXFLAGS="$(echo "$CXXFLAGS" | sed "s|-I$EPREFIX/usr/include||")"
 	mkdir "${BUILD_DIR}" || die
 	cd "${BUILD_DIR}" || die
 	[[ -e ./siteconf.py ]] && rm -f ./siteconf.py
@@ -91,6 +93,9 @@ python_configure() {
 		--cuda-inc-dir="$CRAY_CUDATOOLKIT_DIR/include" \
 		--no-use-shipped-boost \
 		"${myopts[@]}"
+	#if [ -d "${EPREFIX}/usr/include/boost" ] ; then
+	#	ln -snf "${EPREFIX}/usr/include/boost" "${S}"/bpl-subset/bpl_subset/pycudaboost
+	#fi
 }
 
 src_test() {

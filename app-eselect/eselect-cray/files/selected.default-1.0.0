@@ -1,10 +1,8 @@
 10 PrgEnv load PrgEnv-gnu default
-50 Base-opts load Base-opts default
 50 alps load alps default
 50 atp load atp default
 50 cmake load cmake default
 50 cray-hdf5 load cray-hdf5 default
-50 cray-mpich load cray-mpich default
 50 cray-netcdf load cray-netcdf default
 50 cray-tpsl load cray-tpsl default
 50 craype load craype default
@@ -15,8 +13,6 @@
 50 fftw load fftw default
 50 gcc load gcc default
 50 gni-headers load gni-headers default
-50 hss-llm load hss-llm default
-50 lustre-cray_gem_s load lustre-cray_gem_s default
 50 moab load moab default
 50 modules load modules default
 50 nodestat load nodestat default
@@ -27,4 +23,5 @@
 50 ugni load ugni default
 50 user-paths load user-paths default
 50 xpmem load xpmem default
+60 cray-mpich load cray-mpich default
 60 xalt unload xalt

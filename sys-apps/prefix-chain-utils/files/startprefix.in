@@ -33,6 +33,7 @@ if [[ ! -x "${PAGER}" ]]; then
 	unset PAGER
 fi
 
+mkdir -p $(. @GENTOO_PORTAGE_EPREFIX@/etc/portage/make.conf && echo $PORTAGE_TMPDIR)
 "@GENTOO_PORTAGE_BASE_EPREFIX@"/bin/bash --init-file "@GENTOO_PORTAGE_EPREFIX@"/etc/profile
 einfo "leaving chained prefix @GENTOO_PORTAGE_EPREFIX@ ..."
 

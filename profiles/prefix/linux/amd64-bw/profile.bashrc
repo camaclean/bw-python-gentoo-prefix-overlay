@@ -11,6 +11,7 @@ fi
 #. $EPREFIX/etc/profile
 #export PATH="$EPREFIX/usr/lib/portage/bin/ebuild-helpers/unprivileged:$EPREFIX/usr/lib/portage/bin/ebuild-helpers/:$PATH"
 #echo "bashrc PATH: $PATH"
+#echo "$PYTHONPATH"
 
 Pkgenvs=(
 	 "dev-python/numpy cray"
@@ -26,7 +27,9 @@ Pkgenvs=(
 	 "dev-libs/openssl nolibdirs"
 	 "sys-libs/ncurses nolibdirs"
 	 "media-libs/libpng nodirs"
-	 "dev-lang/python ncurses"
+	# "dev-lang/python ncurses"
+	 "sci-physics/harminv pthread"
+	 "sci-libs/gsl pthread"
 	 "dev-lang/python:2.7 rt"
 	 "sci-libs/superlu cray"
          "dev-python/pysparse cray"
@@ -104,11 +107,12 @@ do
 				;;
 
 			crayshared)
-				export CC="cc -shared"
-				export CXX="CC -shared"
-				export F77="ftn -shared"
-				export FC="ftn -shared"
-				export F90="ftn -shared"
+				export CRAYPE_LINK_TYPE="dynamic"
+				export CC="cc"
+				export CXX="CC"
+				export F77="ftn"
+				export FC="ftn"
+				export F90="ftn"
 				;;
 
 			crayrpath)
@@ -116,6 +120,10 @@ do
 				export CFLAGS="$CRAY_CFLAGS_NOLIBS $CFLAGS"
 				export CXXFLAGS="$CRAY_CFLAGS_NOLIBS $CXXFLAGS"
 				export LDFLAGS="$CRAY_RPATH_LDFLAGS $LDFLAGS"
+				;;
+
+			pthread)
+				export LDFLAGS="-pthread ${LDFLAGS}"
 				;;
 
 			includelocal)
@@ -152,6 +160,12 @@ do
 				export LDFLAGS=$(echo "$LDFLAGS" | perl -pe 's/-L[\S]+//g and s/-l[\S]+//g and s/-I[\S]+//g and s/[\s]+/ /g')
 				;;
 
+			nohostinc)
+				export CFLAGS=$(echo "$CFLAGS" | perl -pe 's|-I/usr/include||g')
+				export CXXFLAGS=$(echo "$CXXFLAGS" | perl -pe 's|-I/usr/include||g')
+				export LDFLAGS=$(echo "$LDFLAGS" | perl -pe 's|-I/usr/include||g')
+				;;
+
 			craycc)
 				export CC=cc
 				export CXX=CC
@@ -184,8 +198,9 @@ fi
 
 if [[ ${EBUILD_PHASE} == unpack ]]; then
 	PATHTMP="$(echo $PATH | sed 's|:/usr/bin:/bin||g')"
+	ORIG_PATH2="$(echo $ORIG_PATH | sed 's|:/usr/bin:/bin||g')"
 	#export PATH="$PATHTMP:$HOST_PATH"
-	export PATH="$PATHTMP:/usr/bin:/bin"
+	export PATH="$ORIG_PATH2:$PATHTMP:/usr/bin:/bin"
 	export LDFLAGS="$LDFLAGS $LDP_LDFLAGS"
 	export LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
 fi

@@ -15,7 +15,7 @@ sys-apps/man-1.6g
 dev-util/gtk-doc-am-1.24
 sys-devel/libtool-2.4.6
 dev-libs/expat-2.1.0-r5
-sys-devel/gettext-0.19.4
+#sys-devel/gettext-0.19.4 #gettext tools not installed
 net-misc/wget-1.16
 sys-kernel/linux-headers-3.18
 #app-crypt/mhash-0.9.9.9-r1
@@ -41,7 +41,7 @@ dev-libs/libgpg-error-1.13
 dev-libs/elfutils-0.158
 sys-libs/db-4.8.30-r2
 dev-libs/libxslt-1.1.28-r4
-dev-util/intltool-0.50.2-r1
+#dev-util/intltool-0.50.2-r1
 dev-libs/iniparser-3.1-r1
 app-text/docbook-xsl-stylesheets-1.78.0-r1
 dev-libs/libassuan-2.1.1
@@ -62,7 +62,7 @@ virtual/lapack-3.5-r2
 sci-libs/cblas-reference-20110218-r1
 sci-libs/blas-reference-20070226-r2
 sci-libs/lapack-reference-3.5.0
-media-libs/freetype-2.6
+#media-libs/freetype-2.6
 x11-libs/libSM-1.1.0
 x11-libs/libX11-1.1.5
 x11-libs/libXft-2.1.13
@@ -85,7 +85,7 @@ x11-libs/libICE-1.0.4
 media-libs/lcms-1.17
 sys-libs/e2fsprogs-libs-1.42.9-r1
 sys-fs/e2fsprogs-1.42.9-r1
-media-libs/fontconfig-2.6.0
+#media-libs/fontconfig-2.6.0
 virtual/os-headers-0
 virtual/ttf-fonts-1
 #x11-libs/cairo-1.8.8
@@ -98,6 +98,7 @@ x11-drivers/nvidia-drivers-352.09
 dev-util/nvidia-cuda-toolkit-6.5.14
 #dev-libs/boost-1.53.0
 #dev-util/boost-build-1.53.0
+#media-libs/fontconfig-2.11.94
 virtual/blas-2.1-r3
 virtual/blas-1.0
 sci-libs/hdf5-1.8.14-r1
@@ -137,5 +138,6 @@ virtual/ssh-0
 virtual/man-0-r1
 sys-apps/coreutils-9999
 app-arch/bzip2-9999
-sys-devel/make-9999
+#sys-devel/make-9999 make is not gnu make
+#dev-libs/glib-2.44.1
 sys-devel/patch-9999

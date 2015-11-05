@@ -1,1 +1,2 @@
 sci-libs/hdf5 -cxx -threads
+dev-lang/python-exec python_targets_python2_7 python_targets_python3_2 python_targets_python3_3 python_targets_python3_4 python_targets_python3_5 python_targets_jython2_5 python_targets_jython2_7 python_targets_pypy python_targets_pypy3

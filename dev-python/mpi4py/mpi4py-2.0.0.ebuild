@@ -26,6 +26,7 @@ DISTUTILS_IN_SOURCE_BUILD=1
 
 if use cray; then
 	module unload acml
+	module load mpich
 	export CRAYPE_LINK_TYPE=dynamic
 	export CRAY_ADD_RPATH=yes
 fi

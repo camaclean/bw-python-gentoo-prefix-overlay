@@ -10,6 +10,6 @@
 if [[ -z ${_CRAYMOD_ECLASS} ]]; then
 _CRAYMOD_ECLASS=1 
 
-. /etc/bash.bashrc.local
+[ -f /opt/modules/default/init/bash ] && . /opt/modules/default/init/bash
 
 fi

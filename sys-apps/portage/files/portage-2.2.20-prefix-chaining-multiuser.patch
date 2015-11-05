@@ -1,0 +1,21 @@
+diff --git a/pym/portage/package/ebuild/config.py b/pym/portage/package/ebuild/config.py
+index 867bdfc..7ebe98d 100644
+--- a/pym/portage/package/ebuild/config.py
++++ b/pym/portage/package/ebuild/config.py
+@@ -895,6 +895,16 @@ class config(object):
+ #						else:
+ #							self["PORTAGE_GRPNAME"] = grp_struct.gr_name
+ #							self.backup_changes("PORTAGE_GRPNAME")
++			# Above is silly. There is no need to do everything completely automatically
++			# Simply allow overrides from make.conf and set the best guesses when creating
++			# prefix chain. Then, the user can adjust.
++			for confs in [make_globals, make_conf, self.configdict["env"]]:
++				v = confs.get("PORTAGE_GROUP")
++				if v is not None:
++					self["PORTAGE_GRPNAME"] = v
++				v = confs.get("PORTAGE_USER")
++				if v is not None:
++					self["PORTAGE_USERNAME"] = v
+ 			# END PREFIX LOCAL
+ 
+ 			for var, default_val in default_inst_ids.items():

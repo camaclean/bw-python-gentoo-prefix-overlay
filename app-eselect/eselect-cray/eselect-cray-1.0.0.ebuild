@@ -167,7 +167,8 @@ src_install() {
 
 pkg_postinst() {
 	elog "Generating environment..."
-	eselect envmod update
+	echo `which eselect`
+	$EPREFIX/usr/bin/eselect envmod update
 	env-update
 	elog "Environment written to $EPREFIX/etc/env.d/01modules."
 	elog "Source $EPREFIX/etc/profile to update shell environment."

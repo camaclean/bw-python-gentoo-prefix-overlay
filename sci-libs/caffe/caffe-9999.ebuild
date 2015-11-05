@@ -70,23 +70,18 @@ pkg_setup() {
 	use python && python-single-r1_pkg_setup
 }
 
-pc_libdi blas
-pc_incdir lapack
-
 src_configure() {
 	if use cray ; then
 		module load cudatoolkit
 		CC="/opt/gcc/4.8.2/snos/bin/gcc"
 		CXX="/opt/gcc/4.8.2/snos/bin/g++"
 		local mycmakeargs=(
-			"-DAtlas_CBLAS_INCLUDE_DIR=\"$(pc_incdir cblas)\""
-			"-DAtlas_CLAPACK_INCLUDE_DIR=\"$(pc_incdir lapack)\""
-			"-DAtlas_CBLAS_LIBRARY=\"$(pc_libdir cblas)/lib$(pc_libs cblas).so\""
-			"-DAtlas_BLAS_LIBRARY=\"$(pc_libdir blas)/lib$(pc_libs blas).so\""
-			"-DAtlas_LAPACK_LIBRARY=\"$(pc_libdir lapack)/lib$(pc_libs lapack).so\"" 
-			"-DCMAKE_C_COMPILER=\"$(which gcc)\"" 
-			"-DCMAKE_CXX_COMPILER=\"$(which g++)\"" 
-			"-DCMAKE_CXX_FLAGS=\"$(portageq envvar CXXFLAGS)\""
+			"-DAtlas_CBLAS_INCLUDE_DIR=$(pc_incdir cblas)"
+			"-DAtlas_CLAPACK_INCLUDE_DIR=$(pc_incdir lapack)"
+			"-DAtlas_CBLAS_LIBRARY=$(pc_libdir cblas)/lib$(pc_libs cblas).so"
+			"-DAtlas_BLAS_LIBRARY=$(pc_libdir blas)/lib$(pc_libs blas).so"
+			"-DAtlas_LAPACK_LIBRARY=$(pc_libdir lapack)/lib$(pc_libs lapack).so" 
+			"-DCMAKE_CXX_FLAGS=$(portageq envvar CXXFLAGS)"
 		)
 	fi
 	if use python ; then
@@ -109,8 +104,8 @@ src_configure() {
 		mycmakeargs+=( "-DCPU_ONLY=OFF" )
 		if use cray ; then
 			mycmakeargs+=(
-				"-DCUDA_TOOLKIT_ROOT_DIR=\"$CUDATOOLKIT_HOME\""
-				"-DCUDA_HOST_COMPILER=\"$(which gcc)\""
+				"-DCUDA_TOOLKIT_ROOT_DIR=$CUDATOOLKIT_HOME"
+				"-DCUDA_HOST_COMPILER=$(which gcc)"
 			)
 		fi
 	else

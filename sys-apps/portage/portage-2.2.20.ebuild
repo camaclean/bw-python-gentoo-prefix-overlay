@@ -264,6 +264,7 @@ src_prepare() {
 
 	epatch "${FILESDIR}"/${PN}-2.2.8-ebuildshell.patch # 155161
 	use prefix-chaining && epatch "${FILESDIR}"/${PN}-2.2.20-prefix-chaining.patch
+	use prefix-chaining && epatch "${FILESDIR}"/${PN}-2.2.20-prefix-chaining-multiuser.patch
 
 	if ! use ipc ; then
 		einfo "Disabling ipc..."
