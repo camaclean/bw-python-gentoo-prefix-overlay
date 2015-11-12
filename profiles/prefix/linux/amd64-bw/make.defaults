@@ -21,4 +21,5 @@ IUSE_IMPLICIT="abi_x86_64"
 LIBDIR_amd64="lib"
 
 PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:$EPREFIX/usr/lib/pkgconfig"
-ACLOCAL_PATH="$EPREFIX/user/share/aclocal:/usr/share/aclocal"
+ACLOCAL_PATH="$EPREFIX/usr/share/aclocal:/usr/share/aclocal"
+CPU_FLAGS_X86="sse2 sse mmx avx -avx2 fma4 sse4_1 sse4_2"

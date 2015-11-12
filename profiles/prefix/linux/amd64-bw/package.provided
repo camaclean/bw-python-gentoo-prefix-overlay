@@ -3,15 +3,17 @@ sys-devel/gcc-4.7.3
 #sys-libs/ncurses-5.9-r3
 sys-devel/binutils-config-4-r2
 #sys-libs/zlib-1.2.8-r1
-dev-libs/gmp-5.1.3-r1
-dev-libs/mpfr-3.1.2_p10
-dev-libs/mpc-1.0.2-r1
+#dev-libs/gmp-5.1.3-r1 need a newer version for gmpy
+#dev-libs/mpfr-3.1.2_p10 need a newer version for gmpy
+#dev-libs/mpc-1.0.2-r1 does not have headers for gmpy
 #sys-devel/gcc-config-1.7.3
 #dev-libs/popt-1.16-r2
 #dev-libs/libffi-3.0.13-r1
 #app-misc/pax-utils-1.0.3
+virtual/libudev-215-r1
 sys-apps/help2man-1.46.6
 sys-apps/man-1.6g
+virtual/opengl-7.0-r1
 dev-util/gtk-doc-am-1.24
 sys-devel/libtool-2.4.6
 dev-libs/expat-2.1.0-r5
@@ -19,7 +21,7 @@ dev-libs/expat-2.1.0-r5
 net-misc/wget-1.16
 sys-kernel/linux-headers-3.18
 #app-crypt/mhash-0.9.9.9-r1
-sys-devel/bison-3.0.4-r1
+#sys-devel/bison-3.0.4-r1 Need a newer version for gstreamer
 sys-devel/gnuconfig-20150308
 app-arch/gzip-1.6
 sys-apps/diffutils-3.3
@@ -63,25 +65,33 @@ sci-libs/cblas-reference-20110218-r1
 sci-libs/blas-reference-20070226-r2
 sci-libs/lapack-reference-3.5.0
 #media-libs/freetype-2.6
-x11-libs/libSM-1.1.0
-x11-libs/libX11-1.1.5
+sys-libs/libcap-2.24-r2
+x11-libs/libSM-1.2.1-r1
+x11-libs/libX11-1.5.0-r1
 x11-libs/libXft-2.1.13
 x11-libs/libXt-1.0.5
-x11-libs/libxcb-1.1
+x11-libs/libxcb-1.9
 x11-proto/xcb-proto-1.1
-x11-libs/libXrender-0.9.4
+#x11-proto/xcb-proto-1.11
+x11-libs/libXrender-0.9.7-r1
+x11-libs/xcb-util-renderutil-0.3.8
 x11-proto/xproto-7.0.13
-x11-libs/libXext-1.0.4
+x11-libs/libXext-1.3.1-r1
 x11-proto/xextproto-7.0.3
-x11-libs/libXdmcp-1.0.2
+x11-libs/libXdmcp-1.1.1
 x11-proto/renderproto-0.9.3
+x11-libs/libXrandr-1.4.0-r1
+x11-libs/libXi-1.7.1
 x11-libs/xtrans-1.2.4
 virtual/jpeg-0-r2
 x11-proto/kbproto-1.0.3
 x11-proto/inputproto-1.5.1
 x11-proto/xf86bigfontproto-1.1.2
-x11-libs/libXau-1.0.4
-x11-libs/libICE-1.0.4
+x11-libs/libXau-1.0.7
+x11-libs/libICE-1.0.8-r1
+x11-libs/libXfixes-5.0-r1
+x11-libs/libXcursor-1.1.13-r1
+x11-libs/libXv-1.0.7-r1
 media-libs/lcms-1.17
 sys-libs/e2fsprogs-libs-1.42.9-r1
 sys-fs/e2fsprogs-1.42.9-r1
@@ -140,4 +150,4 @@ sys-apps/coreutils-9999
 app-arch/bzip2-9999
 #sys-devel/make-9999 make is not gnu make
 #dev-libs/glib-2.44.1
-sys-devel/patch-9999
+#sys-devel/patch-9999 Need a newer patch for bison

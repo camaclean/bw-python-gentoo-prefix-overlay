@@ -5,3 +5,4 @@ dev-python/netcdf4-python -mpi
 media-libs/opencv cuda
 sci-libs/arpack -mpi
 sci-mathematics/petsc superlu -hypre
+virtual/pypy3 -ncurses

@@ -9,3 +9,5 @@ sys-apps/man-db
 =dev-lang/tk-8.5.17-r100
 #=sys-apps/util-linux-2.26.2
 #=sys-apps/util-linux-2.26.1-r1
+=sys-devel/patch-9999
+=sys-devel/m4-9999

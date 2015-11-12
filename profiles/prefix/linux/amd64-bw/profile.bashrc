@@ -11,7 +11,9 @@ fi
 #. $EPREFIX/etc/profile
 #export PATH="$EPREFIX/usr/lib/portage/bin/ebuild-helpers/unprivileged:$EPREFIX/usr/lib/portage/bin/ebuild-helpers/:$PATH"
 #echo "bashrc PATH: $PATH"
+#which aclocal
 #echo "$PYTHONPATH"
+echo $CFLAGS
 
 Pkgenvs=(
 	 "dev-python/numpy cray"
@@ -33,6 +35,16 @@ Pkgenvs=(
 	 "dev-lang/python:2.7 rt"
 	 "sci-libs/superlu cray"
          "dev-python/pysparse cray"
+	 "dev-qt/qtcore nohostdirs"
+	 "dev-qt/qtscript simple nohostdirs" 
+	 "dev-qt/qtsql nohostdirs"
+	 "dev-qt/qtxmlpatterns nohostdirs"
+	 "dev-qt/qtgui nohostdirs x11"
+	 "dev-qt/qtsvg nohostdirs"
+	 "dev-qt/qtopengl nohostdirs"
+	 "dev-qt/qtwebkit nohostdirs"
+	 "dev-qt/qtdeclarative nohostdirs x11"
+	 "dev-python/PyQt4 nohostdirs"
 );
 	 #"dev-python/mpi4py cray" 
 
@@ -140,9 +152,9 @@ do
 				export LDFLAGS="${LDFLAGS} -lncurses"
 				;;
 
-			nodirs)
-				export CFLAGS="-O2 -pipe -march=$MARCH"
-				export FFLAGS="-O2 -pipe -march=$MARCH"
+			simple)
+				export CFLAGS="-O3 -pipe -march=$MARCH"
+				export FFLAGS="-O3 -pipe -march=$MARCH"
 				export CXXFLAGS="${CFLAGS}"
 				;;
 
@@ -155,15 +167,29 @@ do
 
 			nodirs)
 				export CFLAGS=$(echo "$CFLAGS" | perl -pe 's/-L[\S]+//g and s/-l[\S]+//g and s/-I[\S]+//g and s/[\s]+/ /g')
-				export FFLAGS=$(echo "$CFLAGS" | perl -pe 's/-L[\S]+//g and s/-l[\S]+//g and s/-I[\S]+//g and s/[\s]+/ /g')
+				export FFLAGS=$(echo "$FFLAGS" | perl -pe 's/-L[\S]+//g and s/-l[\S]+//g and s/-I[\S]+//g and s/[\s]+/ /g')
 				export CXXFLAGS=$(echo "$CXXFLAGS" | perl -pe 's/-L[\S]+//g and s/-l[\S]+//g and s/-I[\S]+//g and s/[\s]+/ /g')
 				export LDFLAGS=$(echo "$LDFLAGS" | perl -pe 's/-L[\S]+//g and s/-l[\S]+//g and s/-I[\S]+//g and s/[\s]+/ /g')
+				;;
+
+			nohostdirs)
+				export CFLAGS="$(echo "$CFLAGS" | perl -pe 's|-L/usr/lib64||g and s|-L/lib64||g')"
+				export CXXFLAGS="$(echo "$CXXFLAGS" | perl -pe 's|-L/usr/lib64||g and s|-L/lib64||g')"
+				export FFLAGS="$(echo "$FFLAGS" | perl -pe 's|-L/usr/lib64||g and s|-L/lib64||g')"
+				export LDFLAGS="$(echo "$LDFLAGS" | perl -pe 's|-L/usr/lib64||g and s|-L/lib64||g')"
 				;;
 
 			nohostinc)
 				export CFLAGS=$(echo "$CFLAGS" | perl -pe 's|-I/usr/include||g')
 				export CXXFLAGS=$(echo "$CXXFLAGS" | perl -pe 's|-I/usr/include||g')
 				export LDFLAGS=$(echo "$LDFLAGS" | perl -pe 's|-I/usr/include||g')
+				;;
+
+			x11)
+				export CFLAGS="$CFLAGS -I/usr/local/X11R7.7/include/"
+				export CXXFLAGS="$CXXFLAGS -I/usr/local/X11R7.7/include/"
+				export FFLAGS="$FFLAGS -I/usr/local/X11R7.7/include/"
+				export LDFLAGS="$LDFLAGS -L/usr/local/X11R7.7/lib/ -Wl,--rpath=/usr/local/X11R7.7/lib/"
 				;;
 
 			craycc)
@@ -201,6 +227,9 @@ if [[ ${EBUILD_PHASE} == unpack ]]; then
 	ORIG_PATH2="$(echo $ORIG_PATH | sed 's|:/usr/bin:/bin||g')"
 	#export PATH="$PATHTMP:$HOST_PATH"
 	export PATH="$ORIG_PATH2:$PATHTMP:/usr/bin:/bin"
+	PATH2="$(echo $PATH | sed -e "s|:@sbindir@:|:|" -e "s|:@bindir@:|:|"| perl -pe 's|:[a-zA-Z0-9./_-]+sbin:|:|g')"
+	export PATH="$PATH2"
+	echo "$PATH"
 	export LDFLAGS="$LDFLAGS $LDP_LDFLAGS"
 	export LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
 fi
