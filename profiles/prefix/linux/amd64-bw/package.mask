@@ -12,3 +12,16 @@ sys-apps/man-db
 =sys-devel/patch-9999
 =sys-devel/m4-9999
 =sys-libs/ncurses-6* #header file priorities are higher for system ncurses in configure, but uses newer panel.h, breaking things
+# Michael Górny <mgorny@gentoo.org> (11 Nov 2015)
+# Cleaned up Python versions masked for testing:
+# - python-config-X.Y compatibility removed,
+# - ABIFLAGS reintroduced for 3.3+.
+# Resulting API/ABI change can break reverse dependencies, especially
+# if upstream hardcodes paths or library names.
+=dev-lang/python-2.7.10-r3
+=dev-lang/python-3.3.5-r3
+=dev-lang/python-3.4.3-r3
+=dev-lang/python-3.5.0-r2
+=dev-lang/tcl-8.6.4
+# RDEPs not compatable with new api
+#=sci-libs/parmetis-4*

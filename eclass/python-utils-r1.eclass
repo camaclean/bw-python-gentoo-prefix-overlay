@@ -274,9 +274,10 @@ python_export() {
 				debug-print "${FUNCNAME}: EPYTHON = ${EPYTHON}"
 				;;
 			PYTHON)
-				export PYTHON=${prefix}/usr/bin/${impl}
-				#export PYTHON=$(which ${impl}) #${EPREFIX}/usr/bin/${impl}
+				#export PYTHON=${prefix}/usr/bin/${impl}
+				export PYTHON=$(which ${impl}) #${EPREFIX}/usr/bin/${impl}
 				debug-print "${FUNCNAME}: PYTHON = ${PYTHON}"
+				echo "${FUNCNAME}: PYTHON = ${PYTHON}"
 				;;
 			PYTHON_SITEDIR)
 				local dir
@@ -290,7 +291,7 @@ python_export() {
 				esac
 
 				export PYTHON_SITEDIR=${EPREFIX}${dir}/site-packages
-				echo "${FUNCNAME}: PYTHON_SITEDIR = ${PYTHON_SITEDIR}" >> /dev/stderr
+				#echo "${FUNCNAME}: PYTHON_SITEDIR = ${PYTHON_SITEDIR}" >> /dev/stderr
 				debug-print "${FUNCNAME}: PYTHON_SITEDIR = ${PYTHON_SITEDIR}"
 				;;
 			PYTHON_INCLUDEDIR)
@@ -309,6 +310,7 @@ python_export() {
 
 				export PYTHON_INCLUDEDIR=${prefix}${dir}
 				debug-print "${FUNCNAME}: PYTHON_INCLUDEDIR = ${PYTHON_INCLUDEDIR}"
+				echo "${FUNCNAME}: PYTHON_INCLUDEDIR = ${PYTHON_INCLUDEDIR}"
 				;;
 			PYTHON_LIBPATH)
 				local libname
@@ -1008,12 +1010,14 @@ python_is_installed() {
 			fi
 
 			# be happy with just the interpeter, no need for the virtual
+			echo "dev-python/${impl}${append}"
 			has_version "dev-python/${impl}${append}" \
 				|| has_version "dev-python/${impl}-bin${append}"
 			;;
 		*)
 			local PYTHON_PKG_DEP
 			python_export "${impl}" PYTHON_PKG_DEP
+			echo "${PYTHON_PKG_DEP}"
 			has_version "${PYTHON_PKG_DEP}"
 			;;
 	esac

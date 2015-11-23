@@ -45,6 +45,8 @@ Pkgenvs=(
 	 "dev-qt/qtwebkit nohostdirs"
 	 "dev-qt/qtdeclarative nohostdirs x11"
 	 "dev-python/PyQt4 nohostdirs"
+	 "dev-python/cvxopt cray"
+	 "net-dns/c-ares nocinc"
 );
 	 #"dev-python/mpi4py cray" 
 
@@ -170,6 +172,10 @@ do
 				export FFLAGS=$(echo "$FFLAGS" | perl -pe 's/-L[\S]+//g; s/-l[\S]+//g; s/-I[\S]+//g; s/[\s]+/ /g')
 				export CXXFLAGS=$(echo "$CXXFLAGS" | perl -pe 's/-L[\S]+//g; s/-l[\S]+//g; s/-I[\S]+//g; s/[\s]+/ /g')
 				export LDFLAGS=$(echo "$LDFLAGS" | perl -pe 's/-L[\S]+//g; s/-l[\S]+//g; s/-I[\S]+//g; s/[\s]+/ /g')
+				;;
+
+			nocinc)
+				export CFLAGS=$(echo "$CFLAGS" | perl -pe 's/-L[\S]+//g; s/-l[\S]+//g; s/-I[\S]+//g; s/[\s]+/ /g')
 				;;
 
 			nohostdirs)

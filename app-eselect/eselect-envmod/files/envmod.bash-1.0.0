@@ -18,7 +18,7 @@
 ENV_D_PATH="${EROOT%/}/etc/env.d"
 MAN_PATH="${EROOT%/}/usr/share/man/man1/"
 
-MODULE_SET_CONFIG="$ENV_D_PATH/env-mod/selected"
+MODULE_SET_CONFIG="${EROOT%/}/etc/env-mod.conf"
 ENVIRONMENT_FILE="${ENV_D_PATH}/01modules"
 
 for mod in ${BASH_SOURCE[@]##*/} ; do

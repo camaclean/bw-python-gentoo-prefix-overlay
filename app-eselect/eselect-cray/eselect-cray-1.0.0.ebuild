@@ -20,8 +20,8 @@ DEPEND="${RDEPEND}"
 S=${WORKDIR}
 
 src_install() {
-	insinto /etc/env.d/env-mod/
-	newins "${FILESDIR}"/selected.default-${PV} selected
+	insinto /etc/
+	newins "${FILESDIR}"/selected.default-${PV} env-mod.conf
 	insinto /usr/share/eselect/modules/
 	newins "${FILESDIR}"/envmod-craype-arch.eselect-${PV} envmod-craype-arch.eselect
 	newins "${FILESDIR}"/envmod-mpich.eselect-${PV} envmod-mpich.eselect

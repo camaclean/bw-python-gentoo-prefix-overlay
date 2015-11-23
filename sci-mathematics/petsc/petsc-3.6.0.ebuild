@@ -18,7 +18,7 @@ LICENSE="petsc"
 SLOT="0"
 KEYWORDS="~x86 ~amd64"
 IUSE="afterimage boost complex-scalars cray cxx debug doc fftw
-	fortran hdf5 hypre mpi mumps scotch sparse superlu threads X"
+	fortran hdf5 hypre mpi mumps parmetis python scotch sparse superlu threads X"
 # Failed: imagemagick metis
 
 # hypre and superlu curretly exclude each other due to missing linking to hypre
@@ -46,6 +46,7 @@ RDEPEND="
 	scotch? ( sci-libs/scotch[mpi?] )
 	sparse? ( sci-libs/suitesparse >=sci-libs/cholmod-1.7.0 )
 	superlu? ( sci-libs/superlu )
+	parmetis? ( sci-libs/parmetis )
 	X? ( x11-libs/libX11 )
 "
 #	metis? ( sci-libs/parmetis )
@@ -166,14 +167,16 @@ src_configure() {
 		#MPICXX=g++
 		#MPIF77=gfortran
 		
-		MPICC=mpicc
-		MPICXX=mpicxx
-		MPIF77=mpif77
+		
+		export CRAYPE_LINK_TYPE=dynamic
+		export CRAY_ADD_RPATH=yes
+		MPICC=cc
+		MPICXX=CC
+		MPIF77=ftn
+		CC=cc
+		CXX=CC
+		F77=ftn
 
-		#CFLAGS="${CFLAGS} ${CRAY_CFLAGS}"
-		#CXXFLAGS="${CXXFLAGS} ${CRAY_CFLAGS}"
-		#FFLAGS="${FFLAGS} ${CRAY_CFLAGS}"
-		#LDFLAGS="${LDFLAGS} ${CRAY_LDFLAGS}"
 		scalapack_inc="/opt/cray/libsci/13.1.0/GNU/4.8/x86_64/include"
 		scalapack_lib="-lsci_gnu_mpi"
 	else
@@ -183,6 +186,15 @@ src_configure() {
 		scalapack_inc="/usr/include/scalapack"
 		scalapack_lib="-lscalapack"
 	fi
+	parmetis_inc="$(pkg-config --cflags-only-I parmetis | perl -ne '/-I([\S]+)/ && print $1')"
+	parmetis_lib="[$(pkg-config --libs parmetis | tr ' ' ',')]"
+	metis_inc="$(pkg-config --cflags-only-I metis | perl -ne '/-I([\S]+)/ && print $1')"
+	metis_lib="[$(pkg-config --libs metis | tr ' ' ',')]"
+	suitesparse_inc="$(pkg-config --cflags-only-I colamd | perl -ne '/-I([\S]+)/ && print $1')"
+	suitesparse_lib="[$(pkg-config --libs colamd | tr ' ' ',')]"
+
+	echo "$CFLAGS"
+
 	econf \
 		scrollOutput=1 \
 		CFLAGS="${CFLAGS}" \
@@ -197,6 +209,7 @@ src_configure() {
 		--with-petsc-arch=${PETSC_ARCH} \
 		--with-precision=double \
 		--with-gnu-compilers \
+		$(petsc_with parmetis metis ${metis_inc} ${metis_lib}) \
 		--with-blas-lapack-lib="$($(tc-getPKG_CONFIG) --libs lapack)" \
 		$(petsc_enable debug debugging) \
 		$(petsc_enable mpi) \
@@ -218,6 +231,7 @@ src_configure() {
 		$(petsc_with sparse suitesparse) \
 		$(petsc_with superlu superlu \
 			/usr/include/superlu -lsuperlu) \
+		$(petsc_with parmetis parmetis ${parmetis_inc} $parmetis_lib) \
 		$(petsc_with X x) \
 		$(petsc_with X x11) \
 		$(petsc_with scotch ptscotch \
@@ -229,9 +243,9 @@ src_configure() {
 			/usr/include \
 			[-lcmumps,-ldmumps,-lsmumps,-lzmumps,-lmumps_common,-lpord]) \
 		--with-imagemagick=0 \
-		--with-python=0 \
+		$(petsc_with python) \
 		$(petsc_with boost) \
-		$(petsc_with fftw)
+		$(petsc_with fftw ${FFTW_DIR})
 
 # not yet tested:
 #		python bindings, netcdf, fftw
