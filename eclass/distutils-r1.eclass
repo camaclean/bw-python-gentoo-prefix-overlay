@@ -547,7 +547,12 @@ distutils-r1_python_install() {
 	local root=${D}/_${EPYTHON}
 	[[ ${DISTUTILS_SINGLE_IMPL} ]] && root=${D}
 
-	esetup.py install --root="${root}" --prefix="${EPREFIX}/usr" "${args[@]}"
+	local install_prefix="${EPREFIX}/usr"
+	if [[ ${EPYTHON} == pypy* ]]; then
+		install_prefix="${install_prefix}/lib/${EPYTHON}"
+	fi
+
+	esetup.py install --root="${root}" --prefix="${install_prefix}" "${args[@]}" # 
 
 	if [[ -d ${root}$(python_get_sitedir)/tests ]]; then
 		die "Package installs 'tests' package, file collisions likely."

@@ -1,3 +1,5 @@
+virtual/jdk-1.8.0
+virtual/jdk-1.7.0
 sys-devel/gcc-4.9.3
 sys-devel/gcc-4.7.3
 #sys-libs/ncurses-5.9-r3
@@ -91,6 +93,7 @@ x11-libs/libXau-1.0.7
 x11-libs/libICE-1.0.8-r1
 x11-libs/libXfixes-5.0-r1
 x11-libs/libXcursor-1.1.13-r1
+sys-libs/binutils-libs-2.25.1-r1
 x11-libs/libXv-1.0.7-r1
 media-libs/lcms-1.17
 sys-libs/e2fsprogs-libs-1.42.9-r1

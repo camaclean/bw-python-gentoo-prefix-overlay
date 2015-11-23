@@ -1,7 +1,9 @@
 10 PrgEnv load PrgEnv-gnu default
+20 gcc load gcc default
 50 alps load alps default
 50 atp load atp default
 50 cmake load cmake default
+50 cudatoolkit load cudatoolkit default
 50 cray-hdf5 load cray-hdf5 default
 50 cray-netcdf load cray-netcdf default
 50 cray-tpsl load cray-tpsl default
@@ -11,8 +13,8 @@
 50 darshan load darshan default
 50 dmapp load dmapp default
 50 fftw load fftw default
-50 gcc load gcc default
 50 gni-headers load gni-headers default
+50 java load java jdk1.8.0_51
 50 moab load moab default
 50 modules load modules default
 50 nodestat load nodestat default
