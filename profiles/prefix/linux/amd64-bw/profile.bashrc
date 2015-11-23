@@ -13,7 +13,7 @@ fi
 #echo "bashrc PATH: $PATH"
 #which aclocal
 #echo "$PYTHONPATH"
-echo $CFLAGS
+#echo $CFLAGS
 
 Pkgenvs=(
 	 "dev-python/numpy cray"
@@ -29,7 +29,7 @@ Pkgenvs=(
 	 "dev-libs/openssl nolibdirs"
 	 "sys-libs/ncurses nolibdirs"
 	 "media-libs/libpng nodirs"
-	# "dev-lang/python ncurses"
+	 "dev-lang/python ncurses"
 	 "sci-physics/harminv pthread"
 	 "sci-libs/gsl pthread"
 	 "dev-lang/python:2.7 rt"
@@ -166,17 +166,17 @@ do
 				;;
 
 			nodirs)
-				export CFLAGS=$(echo "$CFLAGS" | perl -pe 's/-L[\S]+//g and s/-l[\S]+//g and s/-I[\S]+//g and s/[\s]+/ /g')
-				export FFLAGS=$(echo "$FFLAGS" | perl -pe 's/-L[\S]+//g and s/-l[\S]+//g and s/-I[\S]+//g and s/[\s]+/ /g')
-				export CXXFLAGS=$(echo "$CXXFLAGS" | perl -pe 's/-L[\S]+//g and s/-l[\S]+//g and s/-I[\S]+//g and s/[\s]+/ /g')
-				export LDFLAGS=$(echo "$LDFLAGS" | perl -pe 's/-L[\S]+//g and s/-l[\S]+//g and s/-I[\S]+//g and s/[\s]+/ /g')
+				export CFLAGS=$(echo "$CFLAGS" | perl -pe 's/-L[\S]+//g; s/-l[\S]+//g; s/-I[\S]+//g; s/[\s]+/ /g')
+				export FFLAGS=$(echo "$FFLAGS" | perl -pe 's/-L[\S]+//g; s/-l[\S]+//g; s/-I[\S]+//g; s/[\s]+/ /g')
+				export CXXFLAGS=$(echo "$CXXFLAGS" | perl -pe 's/-L[\S]+//g; s/-l[\S]+//g; s/-I[\S]+//g; s/[\s]+/ /g')
+				export LDFLAGS=$(echo "$LDFLAGS" | perl -pe 's/-L[\S]+//g; s/-l[\S]+//g; s/-I[\S]+//g; s/[\s]+/ /g')
 				;;
 
 			nohostdirs)
-				export CFLAGS="$(echo "$CFLAGS" | perl -pe 's|-L/usr/lib64||g and s|-L/lib64||g')"
-				export CXXFLAGS="$(echo "$CXXFLAGS" | perl -pe 's|-L/usr/lib64||g and s|-L/lib64||g')"
-				export FFLAGS="$(echo "$FFLAGS" | perl -pe 's|-L/usr/lib64||g and s|-L/lib64||g')"
-				export LDFLAGS="$(echo "$LDFLAGS" | perl -pe 's|-L/usr/lib64||g and s|-L/lib64||g')"
+				export CFLAGS="$(echo "$CFLAGS" | perl -pe 's|-L/usr/lib64||g; s|-L/lib64||g')"
+				export CXXFLAGS="$(echo "$CXXFLAGS" | perl -pe 's|-L/usr/lib64||g; s|-L/lib64||g')"
+				export FFLAGS="$(echo "$FFLAGS" | perl -pe 's|-L/usr/lib64||g; s|-L/lib64||g')"
+				export LDFLAGS="$(echo "$LDFLAGS" | perl -pe 's|-L/usr/lib64||g; s|-L/lib64||g')"
 				;;
 
 			nohostinc)
@@ -229,7 +229,7 @@ if [[ ${EBUILD_PHASE} == unpack ]]; then
 	export PATH="$ORIG_PATH2:$PATHTMP:/usr/bin:/bin"
 	PATH2="$(echo $PATH | sed -e "s|:@sbindir@:|:|" -e "s|:@bindir@:|:|"| perl -pe 's|:[a-zA-Z0-9./_-]+sbin:|:|g')"
 	export PATH="$PATH2"
-	echo "$PATH"
+	#echo "$PATH"
 	export LDFLAGS="$LDFLAGS $LDP_LDFLAGS"
 	export LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
 fi

@@ -11,3 +11,4 @@ sys-apps/man-db
 #=sys-apps/util-linux-2.26.1-r1
 =sys-devel/patch-9999
 =sys-devel/m4-9999
+=sys-libs/ncurses-6* #header file priorities are higher for system ncurses in configure, but uses newer panel.h, breaking things

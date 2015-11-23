@@ -4,9 +4,9 @@
 
 EAPI=5
 
-PYTHON_COMPAT=( python2_7 python3_{3,4} )
+PYTHON_COMPAT=( python2_7 python3_{3,4,5} )
 
-inherit distutils-r1 flag-o-matic craymodules
+inherit distutils-r1 flag-o-matic
 
 DESCRIPTION="Simple Python interface to HDF5 files"
 HOMEPAGE="http://www.h5py.org/"
@@ -31,6 +31,8 @@ DEPEND="${RDEPEND}
 		)
 	mpi? ( dev-python/mpi4py[${PYTHON_USEDEP}] )"
 
+PATCHES=( "${FILESDIR}/${PN}-2.5.0-new-mpi4py.patch" )
+
 pkg_setup() {
 	if use mpi; then
 		if use cray; then
@@ -41,9 +43,6 @@ pkg_setup() {
 			export CC=mpicc
 		fi
 	fi
-	#export CFLAGS="$CRAY_CFLAGS $CFLAGS"
-	#export FFLAGS="$CRAY_CFLAGS $FFLAGS"
-	#export LDFLAGS="$CRAY_LDFLAGS $LDFLAGS"
 }
 
 python_prepare_all() {
