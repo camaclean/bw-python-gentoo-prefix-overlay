@@ -6,3 +6,4 @@ media-libs/opencv cuda
 sci-libs/arpack -mpi
 sci-mathematics/petsc superlu -hypre
 virtual/pypy3 -ncurses
+x11-drivers/nvidia-drivers -tools uvm

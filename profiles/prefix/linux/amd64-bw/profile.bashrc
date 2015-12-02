@@ -46,6 +46,8 @@ Pkgenvs=(
 	 "dev-qt/qtdeclarative nohostdirs x11"
 	 "dev-python/PyQt4 nohostdirs"
 	 "dev-python/cvxopt cray"
+	# "dev-python/pycuda noinc nvidiadrivers"
+	 "dev-python/pyopencl nvidiadrivers"
 	 "net-dns/c-ares nocinc"
 );
 	 #"dev-python/mpi4py cray" 
@@ -165,6 +167,7 @@ do
 				export FFLAGS=$(echo "$CFLAGS" | perl -pe 's/-L[\S]+//g and s/-l[\S]+//g and s/[\s]+/ /g')
 				export CXXFLAGS=$(echo "$CXXFLAGS" | perl -pe 's/-L[\S]+ //g and s/-l[\S]+//g and s/[\s]+/ /g')
 				export LDFLAGS=$(echo "$LDFLAGS" | perl -pe 's/-L[\S]+//g and s/-l[\S]+//g and s/[\s]+/ /g')
+				unset LIBRARY_PATH
 				;;
 
 			nodirs)
@@ -172,10 +175,23 @@ do
 				export FFLAGS=$(echo "$FFLAGS" | perl -pe 's/-L[\S]+//g; s/-l[\S]+//g; s/-I[\S]+//g; s/[\s]+/ /g')
 				export CXXFLAGS=$(echo "$CXXFLAGS" | perl -pe 's/-L[\S]+//g; s/-l[\S]+//g; s/-I[\S]+//g; s/[\s]+/ /g')
 				export LDFLAGS=$(echo "$LDFLAGS" | perl -pe 's/-L[\S]+//g; s/-l[\S]+//g; s/-I[\S]+//g; s/[\s]+/ /g')
+				unset LIBRARY_PATH
 				;;
 
 			nocinc)
 				export CFLAGS=$(echo "$CFLAGS" | perl -pe 's/-L[\S]+//g; s/-l[\S]+//g; s/-I[\S]+//g; s/[\s]+/ /g')
+				unset CPATH
+				;;
+
+			noinc)
+				export CFLAGS=$(echo "$CFLAGS" | perl -pe 's/-L[\S]+//g; s/-l[\S]+//g; s/-I[\S]+//g; s/[\s]+/ /g')
+				export CXXFLAGS=$(echo "$CFLAGS" | perl -pe 's/-L[\S]+//g; s/-l[\S]+//g; s/-I[\S]+//g; s/[\s]+/ /g')
+				unset CPATH
+				;;
+
+			nvidiadrivers)
+				export CPATH="/opt/cray/nvidia/default/include:/opt/nvidia/cudatoolkit6.5/default/include:$CPATH"
+        			export LDFLAGS="$LDFLAGS -L/opt/cray/nvidia/default/lib64 -Wl,--rpath=/opt/cray/nvidia/default/lib64"
 				;;
 
 			nohostdirs)

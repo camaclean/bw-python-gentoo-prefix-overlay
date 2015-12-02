@@ -1,4 +1,5 @@
 sys-apps/man-db
+=sys-apps/sed-9999
 =app-arch/xz-utils-9999
 =sys-devel/automake-wrapper-9999
 =sys-devel/autoconf-wrapper-9999
