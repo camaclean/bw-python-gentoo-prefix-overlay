@@ -12,7 +12,8 @@ sys-apps/man-db
 #=sys-apps/util-linux-2.26.1-r1
 =sys-devel/patch-9999
 =sys-devel/m4-9999
-# Michał Górny <mgorny@gentoo.org> (11 Nov 2015)
+=sys-libs/ncurses-6* #header file priorities are higher for system ncurses in configure, but uses newer panel.h, breaking things
+# Michael Górny <mgorny@gentoo.org> (11 Nov 2015)
 # Cleaned up Python versions masked for testing:
 # - python-config-X.Y compatibility removed,
 # - ABIFLAGS reintroduced for 3.3+.

@@ -195,10 +195,10 @@ do
 				;;
 
 			nohostdirs)
-				export CFLAGS="$(echo "$CFLAGS" | perl -pe 's|-L/usr/lib64||g and s|-L/lib64||g')"
-				export CXXFLAGS="$(echo "$CXXFLAGS" | perl -pe 's|-L/usr/lib64||g and s|-L/lib64||g')"
-				export FFLAGS="$(echo "$FFLAGS" | perl -pe 's|-L/usr/lib64||g and s|-L/lib64||g')"
-				export LDFLAGS="$(echo "$LDFLAGS" | perl -pe 's|-L/usr/lib64||g and s|-L/lib64||g')"
+				export CFLAGS="$(echo "$CFLAGS" | perl -pe 's|-L/usr/lib64||g; s|-L/lib64||g')"
+				export CXXFLAGS="$(echo "$CXXFLAGS" | perl -pe 's|-L/usr/lib64||g; s|-L/lib64||g')"
+				export FFLAGS="$(echo "$FFLAGS" | perl -pe 's|-L/usr/lib64||g; s|-L/lib64||g')"
+				export LDFLAGS="$(echo "$LDFLAGS" | perl -pe 's|-L/usr/lib64||g; s|-L/lib64||g')"
 				;;
 
 			nohostinc)

@@ -14,6 +14,7 @@ sys-devel/binutils-config-4-r2
 #dev-libs/libffi-3.0.13-r1
 #app-misc/pax-utils-1.0.3
 virtual/libudev-215-r1
+sys-libs/binutils-libs-2.25.1-r1
 sys-apps/help2man-1.46.6
 sys-apps/man-1.6g
 virtual/opengl-7.0-r1

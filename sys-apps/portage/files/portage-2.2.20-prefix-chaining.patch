@@ -129,7 +129,7 @@ diff --git a/bin/phase-helpers.sh b/bin/phase-helpers.sh
 index f53c8fa..4958d06 100644
 --- a/bin/phase-helpers.sh
 +++ b/bin/phase-helpers.sh
-@@ -851,19 +851,45 @@ has_version() {
+@@ -851,19 +851,42 @@ has_version() {
  		# since both prefixes can share root=/ while
  		# having different EPREFIX offsets.
  		if ${host_root} ; then
@@ -161,20 +161,17 @@ index f53c8fa..4958d06 100644
 +	
 +	local retval save_IFS=$IFS
 +	IFS=":"
-+	for i in $prefixes; do
++	for i in ${prefixes%:}; do
++		IFS=$save_IFS
 +		if ___eapi_has_prefix_variables; then
 +			eroot=${root%/}${i}/
 +		else
 +			eroot=${root}
 +		fi
 +		if [[ -n $PORTAGE_IPC_DAEMON ]] ; then
-+			IFS=$save_IFS
 +			"$PORTAGE_BIN_PATH"/ebuild-ipc has_version "${eroot}" "${atom}"
-+			IFS=":"
 +		else
-+			IFS=$save_IFS
 +			"${PORTAGE_BIN_PATH}/ebuild-helpers/portageq" has_version "${eroot}" "${atom}"
-+			IFS=":"
 +		fi
 +		retval=$?
 +		[[ retval == 0 ]] && break
