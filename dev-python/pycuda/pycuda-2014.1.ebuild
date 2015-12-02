@@ -42,7 +42,7 @@ cuda_sanitize() {
 	[[ "${CUDA_VERBOSE}" == true ]] && NVCCFLAGS+=" -v"
 
 	# Tell nvcc where to find a compatible compiler
-	NVCCFLAGS+=" --compiler-bindir=$CRAY_CUDATOOLKIT_DIR/bin"
+	NVCCFLAGS+=" --compiler-bindir=$GCC_PATH/snos/bin"
 
 	# Tell nvcc which flags should be used for underlying C compiler
 	NVCCFLAGS+=" --compiler-options=\"${CXXFLAGS}\" --linker-options=\"${rawldflags// /,},-L/opt/cray/nvidia/default/lib64,--rpath=/opt/cray/nvidia/default/lib64\""
@@ -62,8 +62,8 @@ pkg_install() {
 python_prepare_all() {
 	cuda_sanitize
 	sed \
-		-e "s:'--preprocess':\'--preprocess\', \'--compiler-bindir=$CRAY_CUDATOOLKIT_DIR/bin\':g" \
-		-e "s:\"--cubin\":\'--cubin\', \'--compiler-bindir=$CRAY_CUDATOOLKIT_DIR/bin\':g" \
+		-e "s:'--preprocess':\'--preprocess\', \'--compiler-bindir=$GCC_PATH/snos/bin\':g" \
+		-e "s:\"--cubin\":\'--cubin\', \'--compiler-bindir=$GCC_PATH/snos/bin\':g" \
 		-e "s:/usr/include/pycuda:${S}/src/cuda:g" \
 		-i pycuda/compiler.py || die
 
