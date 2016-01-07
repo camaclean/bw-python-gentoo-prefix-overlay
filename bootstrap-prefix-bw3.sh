@@ -178,7 +178,8 @@ bootstrap_setup() {
                         echo 'eclass-overrides = BWGentooPrefix'
                         echo ''
                         echo '[gentoo_prefix]'
-                        echo "location = ${ROOT}/usr/portage"
+                        #echo "location = ${ROOT}/usr/portage"
+                        echo "location = ${PORTDIR}"
                         echo 'sync-type = rsync'
                         echo 'sync-uri = rsync://rsync.prefix.bitzolder.nl/gentoo-portage-prefix'
                 } > ${ROOT}/etc/portage/repos.conf/gentoo_prefix.conf
