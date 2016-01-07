@@ -1,0 +1,15 @@
+diff -Naur a/Python/getplatform.c b/Python/getplatform.c
+--- a/Python/getplatform.c	2014-10-08 11:45:01.000000000 -0500
++++ b/Python/getplatform.c	2014-10-08 11:58:49.000000000 -0500
+@@ -1,9 +1,8 @@
+ 
+ #include "Python.h"
+ 
+-#ifndef PLATFORM
+-#define PLATFORM "unknown"
+-#endif
++#undef PLATFORM
++#define PLATFORM "Cray Gentoo Prefix"
+ 
+ const char *
+ Py_GetPlatform(void)

@@ -11,7 +11,7 @@ SRC_URI=""
 LICENSE="GPL-3"
 SLOT="0"
 KEYWORDS="~ppc-aix ~ia64-hpux ~x86-interix ~x86-linux ~sparc-solaris ~x86-solaris"
-IUSE=""
+IUSE="cray"
 
 DEPEND=""
 RDEPEND=""
@@ -19,6 +19,11 @@ RDEPEND=""
 src_install() {
 	cp "${FILESDIR}"/prefix-chain-setup.in "${T}"/prefix-chain-setup
 	eprefixify "${T}"/prefix-chain-setup
-	sed -i "s/@GENTOO_PORTAGE_CHOST@/$CHOST/" "${T}"/prefix-chain-setup
+	if use cray; then
+		DOMODULE="yes"
+	fi
+	sed -i -e "s/@GENTOO_PORTAGE_CHOST@/${CHOST}/" -e "s/@DOMODULE@/${DOMODULE}/" "${T}"/prefix-chain-setup
 	dobin "${T}"/prefix-chain-setup
+	insinto /usr/share/prefix-chaining
+	doins "${FILESDIR}"/modulefile.in
 }

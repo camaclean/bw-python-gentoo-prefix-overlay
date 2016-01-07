@@ -814,3 +814,39 @@ index b7c969d..80d7d09 100644
  		repoconfigpaths.append(os.path.join(settings["PORTAGE_CONFIGROOT"], USER_CONFIG_PATH, "repos.conf"))
  	if extra_files:
  		repoconfigpaths.extend(extra_files)
+diff --git a/bin/portageq b/bin/portageq
+index be35dc6..10f9f12 100755
+--- a/bin/portageq
++++ b/bin/portageq
+@@ -129,7 +129,12 @@ def has_version(argv):
+ 		if mylist:
+ 			return 0
+ 		else:
+-			return 1
++			from portage.dep.dep_check import dep_match_readonly_roots
++			mylist = dep_match_readonly_roots(portage.db[argv[0]]["vartree"].settings, atom, "DEPEND")
++			if len(mylist) > 0:
++				return 0
++			else:
++				return 1
+ 	except KeyError:
+ 		return 1
+ 	except portage.exception.InvalidAtom:
+diff --git a/pym/portage/package/ebuild/_ipc/QueryCommand.py b/pym/portage/package/ebuild/_ipc/QueryCommand.py
+index 351c956..1fc6c7f 100644
+--- a/pym/portage/package/ebuild/_ipc/QueryCommand.py
++++ b/pym/portage/package/ebuild/_ipc/QueryCommand.py
+@@ -82,7 +82,12 @@ class QueryCommand(IpcCommand):
+ 			if vardb.match(atom):
+ 				returncode = 0
+ 			else:
+-				returncode = 1
++				from portage.dep.dep_check import dep_match_readonly_roots
++				mylist = dep_match_readonly_roots(db[root]["vartree"].settings, atom, "DEPEND")
++				if len(mylist) > 0:
++					returncode = 0
++				else:
++					returncode = 1
+ 			return ('', warnings_str, returncode)
+ 		elif cmd == 'best_version':
+ 			m = best(vardb.match(atom))

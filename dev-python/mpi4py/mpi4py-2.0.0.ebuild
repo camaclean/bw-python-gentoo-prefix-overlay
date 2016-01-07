@@ -60,8 +60,10 @@ src_compile() {
 		export CXXFLAGS="$(echo "$CXXFLAGS" | sed -e "s/-O2//" -e "s/-march=bdver1//")"
 		export LDFLAGS="$(echo "$LDFLAGS" | sed -e "s/-O2//" -e "s/-march=bdver1//")"
 		distutils-r1_src_compile
+		esetup.py build_exe
 	else
 		distutils-r1_src_compile
+		esetup.py build_exe
 	fi
 }
 
@@ -70,6 +72,11 @@ python_test() {
 	pushd "${BUILD_DIR}"/../ &> /dev/null
 	mpiexec -n 2 "${PYTHON}" ./test/runtests.py -v || die "Testsuite failed under ${EPYTHON}"
 	popd &> /dev/null
+}
+
+python_install() {
+	distutils-r1_python_install
+	esetup.py install_exe
 }
 
 python_install_all() {

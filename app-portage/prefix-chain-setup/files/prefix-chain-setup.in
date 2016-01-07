@@ -202,6 +202,23 @@ ebegin "installing required basic packages"
 )
 eend_exit $?
 
+domodule="@DOMODULE@"
+if [ ! -z "$domodule" ]; then
+	ebegin "Setting up module file"
+	(
+		echo -n "Enter the name for this module:"
+		read PACKAGE
+		echo -n "Enter the version of this module:"
+		read VERSION
+		echo -n "Enter the prefix for environment variables:"
+		read ENVVAR_PREFIX
+		cp "${PARENT_EPREFIX}"/usr/share/prefix-chaining/modulefile.in "${CHILD_EPREFIX}"/usr/share/modulefile
+		sed -i -e "s/@CHILD_EPREFIX@/${CHILD_EPREFIX}/" -e "s/@ENVVAR_PREFIX@/${ENVVAR_PREFIX}/" -e "s/@PACKAGE@/${PACKAGE}/" -e "s/@VERSION@/${VERSION}/" "${CHILD_EPREFIX}"/usr/share/modulefile
+		einfo "A environment module file for this prefix has been installed into ${CHILD_EPREFIX}/usr/share/modulefile"
+	)
+	eend_exit $?
+fi
+
 #
 # wow, all ok :)
 #

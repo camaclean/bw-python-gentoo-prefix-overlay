@@ -26,3 +26,7 @@ sys-apps/man-db
 =dev-lang/tcl-8.6.4
 # RDEPs not compatable with new api
 #=sci-libs/parmetis-4*
+=sci-libs/rdkit-9999
+#Glib not yet at 1.46 in prefix tree
+=dev-libs/gobject-introspection-1.46.0
+=dev-libs/gobject-introspection-common-1.46.0
