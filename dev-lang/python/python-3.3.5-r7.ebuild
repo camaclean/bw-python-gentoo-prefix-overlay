@@ -209,6 +209,7 @@ src_configure() {
 
 	ECONF_SOURCE="${S}" OPT="" \
 	econf \
+		$(use aqua && echo --config-cache) \
 		--with-fpectl \
 		--enable-shared \
 		$(use_enable ipv6) \
@@ -220,7 +221,8 @@ src_configure() {
 		--with-libc="" \
 		--enable-loadable-sqlite-extensions \
 		--with-system-expat \
-		--with-system-ffi
+		--with-system-ffi \
+		--without-pymalloc
 
 	if use threads && grep -q "#define POSIX_SEMAPHORES_NOT_ENABLED 1" pyconfig.h; then
 		eerror "configure has detected that the sem_open function is broken."
