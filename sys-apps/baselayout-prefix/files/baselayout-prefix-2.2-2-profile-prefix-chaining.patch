@@ -2,11 +2,12 @@
 --- etc/profile	Tue Sep 15 08:33:54 2015
 ***************
 *** 4,9 ****
---- 4,67 ----
+--- 4,68 ----
   # environment for login shells.
   #
   
 + [[ -z "$PORTAGE_OVERRIDE_EPREFIX" ]] && export PORTAGE_OVERRIDE_EPREFIX="@GENTOO_PORTAGE_EPREFIX@"
++ export ORIG_PATH="${PATH}"
 + 
 + #
 + # for prefix-chaining, the very first thing to do is to load
@@ -69,7 +70,7 @@
   if [ -e "@GENTOO_PORTAGE_EPREFIX@"/etc/profile.env ] ; then
 *************** if [ -n "${BASH_VERSION}" ] ; then
 *** 47,55 ****
---- 105,138 ----
+--- 106,139 ----
   		# it in the user's dot-files), but it shouldn't make any 
   		# difference.
   		. "@GENTOO_PORTAGE_EPREFIX@"/etc/bash/bashrc
@@ -106,7 +107,7 @@
   	# on color and non-color terminals, as well as shells that don't
 *************** else
 *** 57,63 ****
---- 140,181 ----
+--- 141,182 ----
   	PS1="${USER:-$(whoami 2>/dev/null)}@$(uname -n 2>/dev/null) \$ "
   fi
   

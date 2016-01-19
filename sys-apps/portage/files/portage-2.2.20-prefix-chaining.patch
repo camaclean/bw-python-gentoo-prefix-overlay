@@ -6,7 +6,7 @@ index 8a815ab..da40746 100755
  PORTAGE_BIN_PATH="${PORTAGE_BIN_PATH:-@PORTAGE_BASE@/bin}"
  PORTAGE_PYM_PATH="${PORTAGE_PYM_PATH:-@PORTAGE_BASE@/pym}"
  
-+. $EPREFIX/etc/profile >/dev/null 2>&1
++. ${PORTAGE_CONFIGROOT}/etc/profile >/dev/null 2>&1
 +
  # Prevent aliases from causing portage to act inappropriately.
  # Make sure it's before everything so we don't mess aliases that follow.
