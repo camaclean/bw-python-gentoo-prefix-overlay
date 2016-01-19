@@ -30,3 +30,4 @@ sys-apps/man-db
 #Glib not yet at 1.46 in prefix tree
 =dev-libs/gobject-introspection-1.46.0
 =dev-libs/gobject-introspection-common-1.46.0
+=app-arch/bzip2-9999

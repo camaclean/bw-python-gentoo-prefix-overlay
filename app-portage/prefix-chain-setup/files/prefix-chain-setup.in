@@ -23,6 +23,7 @@ for arg in "$@"; do
 	--eprefix=*)	CHILD_EPREFIX="${arg#--eprefix=}"	;;
 	--profile=*)	CHILD_PROFILE="${arg#--profile=}"	;;
 	--sources)		DO_SOURCES=yes						;;
+	--user)		INSTALL_MODULEFILE=no ;;
 #	--portage-tmpdir=*)	PORT_TMPDIR="${arg#--portage-tmpdir=}" ;;
 
 	--help)
@@ -125,6 +126,11 @@ ebegin "creating make.conf"
 	echo "EPREFIX=\"${CHILD_EPREFIX}\""
 	echo "BASE_EPREFIX=\"${PARENT_EPREFIX}\""
 	echo "DISTDIR=\"${CHILD_EPREFIX}/usr/portage/distfiles\""
+	echo "PORTAGE_USER='$USER'"
+	echo "PORTAGE_GROUP='$(id -g -n $USER)'"
+	echo "PORTAGE_ROOT_USER='$USER'"
+	echo "PORTAGE_INST_UID=\"$(id -u $USER)\""
+	echo "PORTAGE_INST_GID=\"$(id -g $USER)\""
 	_ro_name="${CHILD_EPREFIX}"
 	_ro_name="${_ro_name##*/}"
 	echo "PORTAGE_TMPDIR=\"/dev/shm/$USER/$_ro_name\""
@@ -155,6 +161,12 @@ ebegin "copying portage config files"
 	mkdir -p $(. ${CHILD_EPREFIX}/etc/portage/make.conf && echo $PORTAGE_TMPDIR)
 	cp "${PARENT_EPREFIX}"/etc/init.d/functions.sh "${CHILD_EPREFIX}"/etc/init.d/functions.sh
 	cp "${PARENT_EPREFIX}"/usr/share/portage/config/make.globals "${CHILD_EPREFIX}"/usr/share/portage/config/make.globals
+	sed -i -e "s/PORTAGE_USER='.*'/PORTAGE_USER='$USER'/" \
+	       -e "s/PORTAGE_GROUP='.*'/PORTAGE_GROUP='$(id -g -n $USER)'/" \
+	       -e "s/PORTAGE_ROOT_USER='.*'/PORTAGE_ROOT_USER='$USER'/" \
+	       -e "s/PORTAGE_INST_UID=\".*\"/PORTAGE_INST_UID=\"$(id -u $USER)\"/" \
+	       -e "s/PORTAGE_INST_GID=\".*\"/PORTAGE_INST_GID=\"$(id -g $USER)\"/" \
+	    ${CHILD_EPREFIX}/usr/share/portage/config/make.globals
 	cp "${PARENT_EPREFIX}"/usr/share/portage/config/sets/portage.conf "${CHILD_EPREFIX}"/usr/share/portage/config/sets/portage.conf
 	sed -i -e 's/@profile @selected @system/@profile @selected/' ${CHILD_EPREFIX}/usr/share/portage/config/sets/portage.conf
 	cp -r ${PARENT_EPREFIX}/etc/portage/package.use ${CHILD_EPREFIX}/etc/portage/package.use
@@ -178,9 +190,9 @@ ebegin "installing required basic packages"
 (
 	# this -pv is there to avoid the global update output, which is
 	# there on the first emerge run. (thus, just cosmetics).
-	EPREFIX="${CHILD_EPREFIX}" $PARENT_EPREFIX/usr/bin/emerge -p1qO baselayout-prefix > /dev/null 2>&1 || exit 1
+	PORTAGE_OVERRIDE_EPREFIX="${CHILD_EPREFIX}" EPREFIX="${CHILD_EPREFIX}" PORTAGE_TMPDIR="/dev/shm/$USER/chainsetup" $PARENT_EPREFIX/usr/bin/emerge -p1qO baselayout-prefix > /dev/null 2>&1 || exit 1
 
-	EPREFIX="${CHILD_EPREFIX}" $PARENT_EPREFIX/usr/bin/emerge -1qO baselayout-prefix prefix-chain-utils || exit 1
+	PORTAGE_OVERRIDE_EPREFIX="${CHILD_EPREFIX}" EPREFIX="${CHILD_EPREFIX}" PORTAGE_TMPDIR="/dev/shm/$USER/chainsetup" $PARENT_EPREFIX/usr/bin/emerge -1qO baselayout-prefix prefix-chain-utils || exit 1
 
 	# merge with the parent's chost. this forces the use of the parent
 	# compiler, which generally would be illegal - this is an exception.
@@ -196,9 +208,10 @@ ebegin "installing required basic packages"
 	#EPREFIX="${CHILD_EPREFIX}" $PARENT_EPREFIX/usr/bin/emerge -1qO libtool
 
 	# These will be found in the parent, so make sure emerged in order
-	EPREFIX="${CHILD_EPREFIX}" $PARENT_EPREFIX/usr/bin/emerge -qO eselect || exit 1
-	EPREFIX="${CHILD_EPREFIX}" $PARENT_EPREFIX/usr/bin/emerge -qO eselect-envmod || exit 1
-	EPREFIX="${CHILD_EPREFIX}" $PARENT_EPREFIX/usr/bin/emerge -qO eselect-cray || exit 1
+	PORTAGE_OVERRIDE_EPREFIX="${CHILD_EPREFIX}" EPREFIX="${CHILD_EPREFIX}" PORTAGE_TMPDIR="/dev/shm/$USER/chainsetup" $PARENT_EPREFIX/usr/bin/emerge -qO eselect || exit 1
+	PORTAGE_OVERRIDE_EPREFIX="${CHILD_EPREFIX}" EPREFIX="${CHILD_EPREFIX}" PORTAGE_TMPDIR="/dev/shm/$USER/chainsetup" $PARENT_EPREFIX/usr/bin/emerge -qO eselect-envmod || exit 1
+	PORTAGE_OVERRIDE_EPREFIX="${CHILD_EPREFIX}" EPREFIX="${CHILD_EPREFIX}" PORTAGE_TMPDIR="/dev/shm/$USER/chainsetup" $PARENT_EPREFIX/usr/bin/emerge -qO eselect-cray || exit 1
+	PORTAGE_OVERRIDE_EPREFIX="${CHILD_EPREFIX}" EPREFIX="${CHILD_EPREFIX}" PORTAGE_TMPDIR="$(. ${CHILD_EPREFIX}/etc/portage/make.conf && echo PORTAGE_TMPDIR)" $PARENT_EPREFIX/usr/bin/emerge -p1qO baselayout-prefix > /dev/null 2>&1 || exit 1
 )
 eend_exit $?
 
@@ -215,6 +228,10 @@ if [ ! -z "$domodule" ]; then
 		cp "${PARENT_EPREFIX}"/usr/share/prefix-chaining/modulefile.in "${CHILD_EPREFIX}"/usr/share/modulefile
 		sed -i -e "s/@CHILD_EPREFIX@/${CHILD_EPREFIX}/" -e "s/@ENVVAR_PREFIX@/${ENVVAR_PREFIX}/" -e "s/@PACKAGE@/${PACKAGE}/" -e "s/@VERSION@/${VERSION}/" "${CHILD_EPREFIX}"/usr/share/modulefile
 		einfo "A environment module file for this prefix has been installed into ${CHILD_EPREFIX}/usr/share/modulefile"
+		if [ -z "${INSTALL_MODULEFILE_IN_PARENT}" ]; then
+			mkdir -p "${PARENT_EPREFIX}"/usr/share/modulefiles/${PACKAGE}
+			ln -s "${CHILD_EPREFIX}"/usr/share/modulefile "${PARENT_EPREFIX}"/usr/share/modulefiles/${PACKAGE}/${VERSION}
+		fi
 	)
 	eend_exit $?
 fi

@@ -26,7 +26,7 @@ IUSE="doc examples test cray"
 RDEPEND="virtual/mpi"
 DEPEND="${RDEPEND}
 	test? ( dev-python/nose[${PYTHON_USEDEP}]
-	virtual/mpi[romio] )"
+	virtual/mpi )"
 DISTUTILS_IN_SOURCE_BUILD=1
 
 python_prepare_all() {

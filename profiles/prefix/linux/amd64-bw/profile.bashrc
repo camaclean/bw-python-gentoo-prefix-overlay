@@ -53,7 +53,7 @@ Pkgenvs=(
 	 #"dev-python/mpi4py cray" 
 
 
-. $EPREFIX/etc/portage/make.profile/versionator.sh
+. $PORTAGE_CONFIGROOT/etc/portage/make.profile/versionator.sh
 
 get_version() {
 	IFS="-" read -ra comp <<<"$2"
@@ -255,3 +255,25 @@ if [[ ${EBUILD_PHASE} == unpack ]]; then
 	export LDFLAGS="$LDFLAGS $LDP_LDFLAGS"
 	export LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
 fi
+
+pre_src_prepare() {
+	if ! type epatch_user > /dev/null 2>&1; then
+		local names="EPATCH_USER_SOURCE epatch_user epatch evar_push evar_push_set evar_pop estack_push estack_pop"
+		source <(awk "/^# @(FUNCTION|VARIABLE): / { p = 0 } /^# @(FUNCTION|VARIABLE): (${names// /|})\$/ { p = 1 } p { print }" ${PORTDIR}/eclass/eutils.eclass)
+	fi
+
+	epatch_user
+
+	for name in $names; do
+		unset $name
+	done
+}
+
+post_src_test() {
+	if has savetests ${FEATURES}; then
+		einfo "Saving build data for package retesting..."
+		STORAGEDIR=${PORTAGE_TESTSTORAGE:-${EPREFIX}/var/lib/portage-tests}/${CATEGORY}/${PF}
+		mkdir -p ${STORAGEDIR}
+		cp -r ${PORTAGE_BUILDDIR}/* ${STORAGEDIR}
+	fi
+}

@@ -77,10 +77,13 @@ python_test() {
 python_install() {
 	distutils-r1_python_install
 	esetup.py install_exe
+	mkdir -p "${ED}"/usr/bin
+	cp "${ED}"/usr/lib/python-exec/${EPYTHON}/${EPYTHON}-mpi "${ED}"/usr/bin/${EPYTHON}-mpi
 }
 
 python_install_all() {
 	use doc && local HTML_DOCS=( docs/. )
 	use examples && local EXAMPLES=( demo/. )
 	distutils-r1_python_install_all
+	ln -s "${ED}"/usr/bin/$(eselect python show)-mpi ${ED}/usr/bin/python-mpi
 }

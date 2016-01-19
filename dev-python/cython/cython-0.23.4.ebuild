@@ -26,7 +26,7 @@ RDEPEND=""
 DEPEND="${RDEPEND}
 	>=dev-python/setuptools-9.1[${PYTHON_USEDEP}]
 	doc? ( dev-python/sphinx[${PYTHON_USEDEP}] )
-	test? ( dev-python/numpy[${PYTHON_USEDEP}] )"
+	test? ( dev-python/numpy[$(python_gen_usedep 'python*')] )"
 
 S="${WORKDIR}/${MY_PN}-${PV%_*}"
 
@@ -49,6 +49,7 @@ python_compile_all() {
 }
 
 python_test() {
+	[[ ${EPYTHON} == pypy || ${EPYTHON} == pypy3 ]] && return
 	tc-export CC
 	"${PYTHON}" runtests.py -vv --work-dir "${BUILD_DIR}"/tests \
 		|| die "Tests fail with ${EPYTHON}"
