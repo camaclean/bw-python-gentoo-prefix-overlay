@@ -2,16 +2,21 @@ diff --git a/bin/ebuild.sh b/bin/ebuild.sh
 index 8a815ab..da40746 100755
 --- a/bin/ebuild.sh
 +++ b/bin/ebuild.sh
-@@ -5,6 +5,8 @@
+@@ -5,6 +5,13 @@
  PORTAGE_BIN_PATH="${PORTAGE_BIN_PATH:-@PORTAGE_BASE@/bin}"
  PORTAGE_PYM_PATH="${PORTAGE_PYM_PATH:-@PORTAGE_BASE@/pym}"
  
-+. ${PORTAGE_CONFIGROOT}/etc/profile >/dev/null 2>&1
++if [ ! -z "${EPREFIX}" ] && [ -f "${EPREFIX}"/etc/profile ]; then
++	. ${EPREFIX}/etc/profile >/dev/null 2>&1
++else
++	. ${PORTAGE_CONFIGROOT}/etc/profile >/dev/null 2>&1
++fi
++export PATH="${PORTAGE_BIN_PATH}/ebuild-helpers/unprivileged:${PORTAGE_BIN_PATH}/ebuild-helpers:${PORTAGE_BIN_PATH}:${PATH}"
 +
  # Prevent aliases from causing portage to act inappropriately.
  # Make sure it's before everything so we don't mess aliases that follow.
  unalias -a
-@@ -107,6 +109,83 @@ shift $#
+@@ -107,6 +114,88 @@ shift $#
  # Unset some variables that break things.
  unset GZIP BZIP BZIP2 CDPATH GREP_OPTIONS GREP_COLOR GLOBIGNORE
  

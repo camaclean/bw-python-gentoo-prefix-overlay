@@ -2,7 +2,7 @@
 --- etc/profile	Tue Sep 15 08:33:54 2015
 ***************
 *** 4,9 ****
---- 4,68 ----
+--- 4,67 ----
   # environment for login shells.
   #
   
@@ -70,7 +70,7 @@
   if [ -e "@GENTOO_PORTAGE_EPREFIX@"/etc/profile.env ] ; then
 *************** if [ -n "${BASH_VERSION}" ] ; then
 *** 47,55 ****
---- 106,139 ----
+--- 105,138 ----
   		# it in the user's dot-files), but it shouldn't make any 
   		# difference.
   		. "@GENTOO_PORTAGE_EPREFIX@"/etc/bash/bashrc
@@ -107,7 +107,7 @@
   	# on color and non-color terminals, as well as shells that don't
 *************** else
 *** 57,63 ****
---- 141,182 ----
+--- 140,181 ----
   	PS1="${USER:-$(whoami 2>/dev/null)}@$(uname -n 2>/dev/null) \$ "
   fi
   
