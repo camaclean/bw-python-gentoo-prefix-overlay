@@ -345,7 +345,9 @@ python_export() {
 				debug-print "${FUNCNAME}: EPYTHON = ${EPYTHON}"
 				;;
 			PYTHON)
-				export PYTHON=${prefix}/usr/bin/${impl}
+				PYTHON=${prefix}/usr/bin/${impl}
+				[ ! -x ${PYTHON} ] && PYTHON="$(command -v ${impl} 2>/dev/null)"
+				export PYTHON
 				#export PYTHON=$(which ${impl}) #${EPREFIX}/usr/bin/${impl}
 				debug-print "${FUNCNAME}: PYTHON = ${PYTHON}"
 				#echo "${FUNCNAME}: PYTHON = ${PYTHON}"
