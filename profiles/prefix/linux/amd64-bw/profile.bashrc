@@ -13,6 +13,7 @@ fi
 #echo "bashrc PATH: $PATH"
 #which aclocal
 #echo "$PYTHONPATH"
+#echo "${LDP_LDFLAGS}"
 #echo $CFLAGS
 
 Pkgenvs=(

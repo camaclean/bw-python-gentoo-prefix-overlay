@@ -7,7 +7,6 @@
   #
   
 + [[ -z "$PORTAGE_OVERRIDE_EPREFIX" ]] && export PORTAGE_OVERRIDE_EPREFIX="@GENTOO_PORTAGE_EPREFIX@"
-+ export ORIG_PATH="${PATH}"
 + 
 + #
 + # for prefix-chaining, the very first thing to do is to load
@@ -70,7 +69,7 @@
   if [ -e "@GENTOO_PORTAGE_EPREFIX@"/etc/profile.env ] ; then
 *************** if [ -n "${BASH_VERSION}" ] ; then
 *** 47,55 ****
---- 105,138 ----
+--- 105,142 ----
   		# it in the user's dot-files), but it shouldn't make any 
   		# difference.
   		. "@GENTOO_PORTAGE_EPREFIX@"/etc/bash/bashrc
@@ -94,7 +93,11 @@
 + 	if [ ${_ro_recursion_level} == 0 ]; then
 + 		# we're in the last prefix of the chain here.
 + 		_ro_name="@GENTOO_PORTAGE_EPREFIX@"
++ 		if [[ $_ro_name =~ ([^/]+)/+([0-9\.]+)/*$ ]]; then
++ 			ro_name="${BASH_REMATCH[1]}-${BASH_REMATCH[2]}"
++ 		else
 + 		_ro_name="${_ro_name##*/}"
++ 		fi
 + 
 + 		# use color only if the prompt already contains color escapes
 + 		case "${PS1}" in
@@ -107,7 +110,7 @@
   	# on color and non-color terminals, as well as shells that don't
 *************** else
 *** 57,63 ****
---- 140,181 ----
+--- 144,184 ----
   	PS1="${USER:-$(whoami 2>/dev/null)}@$(uname -n 2>/dev/null) \$ "
   fi
   
