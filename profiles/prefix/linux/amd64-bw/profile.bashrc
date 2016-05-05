@@ -15,9 +15,10 @@ fi
 #echo "$PYTHONPATH"
 #echo "${LDP_LDFLAGS}"
 #echo $CFLAGS
+#echo "bashrc LIBRARY_PATH: $LIBRARY_PATH"
 
 Pkgenvs=(
-	 "dev-python/numpy cray"
+	 #"dev-python/numpy cray"
 	 "dev-python/numpy-pypy cray"
 	 "dev-python/pypy ncurses"
 	 "dev-python/pypy3 ncurses"
@@ -47,6 +48,7 @@ Pkgenvs=(
 	 "dev-qt/qtdeclarative nohostdirs x11"
 	 "dev-python/PyQt4 nohostdirs"
 	 "dev-python/cvxopt cray"
+	 "app-text/openjade addL"
 	# "dev-python/pycuda noinc nvidiadrivers"
 	 "dev-python/pyopencl nvidiadrivers"
 	 "net-dns/c-ares nocinc"
@@ -190,6 +192,18 @@ do
 				unset CPATH
 				;;
 
+			addL)
+				save_IFS=$IFS
+				IFS=":"
+				for l in ${LIBRARY_PATH}; do
+					CFLAGS="${CFLAGS} -L$l"
+					CXXFLAGS="${CXXFLAGS} -L$l"
+					LDFLAGS="${LDFLAGS} -L$l"
+				done
+				IFS=$save_IFS
+				export CFLAGS CXXFLAGS LDFLAGS
+				;;
+
 			nvidiadrivers)
 				export CPATH="/opt/cray/nvidia/default/include:/opt/nvidia/cudatoolkit6.5/default/include:$CPATH"
         			export LDFLAGS="$LDFLAGS -L/opt/cray/nvidia/default/lib64 -Wl,--rpath=/opt/cray/nvidia/default/lib64"
@@ -278,3 +292,6 @@ post_src_test() {
 		cp -r ${PORTAGE_BUILDDIR}/* ${STORAGEDIR}
 	fi
 }
+
+unset PERL5LIB
+
