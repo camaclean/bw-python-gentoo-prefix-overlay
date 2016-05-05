@@ -5,7 +5,7 @@
 EAPI=5
 PYTHON_COMPAT=( python{2_7,3_2,3_3,3_4} )
 
-inherit base toolchain-funcs cmake-utils python-single-r1 java-pkg-opt-2 java-ant-2 craymodules
+inherit base toolchain-funcs cmake-utils python-single-r1 java-pkg-opt-2 java-ant-2
 
 DESCRIPTION="A collection of algorithms and sample code for various computer vision problems"
 HOMEPAGE="http://opencv.org"
@@ -108,9 +108,10 @@ src_prepare() {
 
 src_configure() {
 	if use cray ; then
-		module load cudatoolkit
-		CC=/opt/gcc/4.8.2/snos/bin/gcc
-		CXX=/opt/gcc/4.8.2/snos/bin/g++
+		#module load cudatoolkit
+		#Cray has the gcc in path as a symlink to a redirect script. This confuses cuda
+		CC=/opt/gcc/${GCC_VERSION}/snos/bin/gcc
+		CXX=/opt/gcc/${GCC_VERSION}/snos/bin/g++
 	fi
 	if use openmp; then
 		tc-has-openmp || die "Please switch to an openmp compatible compiler"
@@ -184,8 +185,8 @@ src_configure() {
 	fi
 
 	if use cuda; then
-		if [[ "$(gcc-version)" > "4.8" ]]; then
-			ewarn "CUDA and >=sys-devel/gcc-4.9 do not play well together. Disabling CUDA support."
+		if [[ "$(gcc-version)" > "4.9" ]]; then
+			ewarn "CUDA and >=sys-devel/gcc-5 do not play well together. Disabling CUDA support."
 			mycmakeargs+=( "-DWITH_CUDA=OFF" )
 			mycmakeargs+=( "-DWITH_CUBLAS=OFF" )
 			mycmakeargs+=( "-DWITH_CUFFT=OFF" )
@@ -223,7 +224,7 @@ src_configure() {
 	if use cray ; then
 		mycmakeargs+=(
 			"-DCMAKE_SKIP_RPATH=OFF"
-			"/opt/nvidia/cudatoolkit6.5/6.5.14-1.0502.9613.6.1"
+			"-DCUDA_NPP_LIBRARY_ROOT_DIR=$CUDATOOLKIT_HOME"
 		)
 	else
 		mycmakeargs+=(
