@@ -16,7 +16,7 @@ index 8a815ab..da40746 100755
  # Prevent aliases from causing portage to act inappropriately.
  # Make sure it's before everything so we don't mess aliases that follow.
  unalias -a
-@@ -107,6 +114,88 @@ shift $#
+@@ -107,6 +114,83 @@ shift $#
  # Unset some variables that break things.
  unset GZIP BZIP BZIP2 CDPATH GREP_OPTIONS GREP_COLOR GLOBIGNORE
  
