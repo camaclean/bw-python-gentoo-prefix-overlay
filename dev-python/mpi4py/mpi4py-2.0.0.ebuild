@@ -6,7 +6,7 @@ EAPI=5
 
 PYTHON_COMPAT=( python2_7 python3_{3,4,5} )
 
-inherit distutils-r1 craymodules
+inherit distutils-r1
 
 DESCRIPTION="Message Passing Interface for Python"
 HOMEPAGE="https://code.google.com/p/mpi4py/ https://pypi.python.org/pypi/mpi4py"
@@ -25,8 +25,7 @@ DEPEND="${RDEPEND}
 DISTUTILS_IN_SOURCE_BUILD=1
 
 if use cray; then
-	module unload acml
-	module load mpich
+	ENVMOD="-acml"
 	export CRAYPE_LINK_TYPE=dynamic
 	export CRAY_ADD_RPATH=yes
 fi
