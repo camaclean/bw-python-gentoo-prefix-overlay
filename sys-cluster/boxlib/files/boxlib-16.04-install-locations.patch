@@ -1,0 +1,90 @@
+diff --git a/Src/CMakeLists.txt b/Src/CMakeLists.txt
+index 2472438..6270046 100644
+--- a/Src/CMakeLists.txt
++++ b/Src/CMakeLists.txt
+@@ -11,7 +11,7 @@ set(CAMRDATADIR Extern/amrdata)
+ 
+ # Pick one place to put modules so everyone can see them
+ set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/mod_files CACHE PATH "Folder for fortran module files")
+-install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/ DESTINATION include)
++install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/ DESTINATION include/ccse/boxlib)
+ 
+ set(CBOXLIB_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/${CBOXDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CBNDRYDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CAMRDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CMGDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CTMGDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CFMGDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CAMRDATADIR} ${BOXLIB_EXTRA_CXX_INCLUDE_PATH})
+ 
+diff --git a/Tools/CMake/CCSEConfig-install.cmake.in b/Tools/CMake/CCSEConfig-install.cmake.in
+index d7b4c02..cf4976b 100644
+--- a/Tools/CMake/CCSEConfig-install.cmake.in
++++ b/Tools/CMake/CCSEConfig-install.cmake.in
+@@ -12,7 +12,7 @@ set(CCSE_BUILD_DIR  @CCSE_BINARY_DIR@)
+ set(CCSE_SOURCE_DIR @CCSE_SOURCE_DIR@)
+ 
+ set(CCSE_INSTALL_PREFIX @CMAKE_INSTALL_PREFIX@)
+-set(CCSE_INCLUDE_DIR    @CMAKE_INSTALL_PREFIX@/include)
++set(CCSE_INCLUDE_DIR    @CMAKE_INSTALL_PREFIX@/include/ccse/boxlib)
+ set(CCSE_LIB_DIR        @CMAKE_INSTALL_PREFIX@/lib)
+ set(CCSE_BINARY_DIR     @CMAKE_INSTALL_PREFIX@/bin)
+ 
+@@ -49,4 +49,4 @@ set(CCSE_DEFINES           @BL_DEFINES@)
+ # 
+ # Exported Targets
+ # File that defines the CCSE exported targets
+-include("@CMAKE_INSTALL_PREFIX@/lib/CCSETargets.cmake")
++include("@CMAKE_INSTALL_PREFIX@/lib/cmake/BoxLib/CCSETargets.cmake")
+diff --git a/Tools/CMake/InstallManager.cmake b/Tools/CMake/InstallManager.cmake
+index 6ce9648..131d817 100644
+--- a/Tools/CMake/InstallManager.cmake
++++ b/Tools/CMake/InstallManager.cmake
+@@ -22,7 +22,7 @@ function ( ADD_INSTALL_INCLUDE_FILE )
+   foreach(_inc_file ${ARGV})
+     install(
+       FILES ${_inc_file}
+-      DESTINATION include
++      DESTINATION include/ccse/boxlib
+       )
+   endforeach()
+ 
+@@ -103,7 +103,7 @@ function ( ADD_INSTALL_CMAKE_FILES )
+ foreach(_cmake_file ${ARGV})
+   install(
+     FILES ${_cmake_file}
+-    DESTINATION cmake
++    DESTINATION lib/cmake/BoxLib
+     )
+ endforeach()
+ 
+@@ -200,7 +200,7 @@ function (CREATE_EXPORTS)
+ get_property(LINK_LINE GLOBAL PROPERTY CCSE_LINK_LINE)
+ 
+ # Define CCSE_INCLUDE_DIRS and CCSE_LIBRARY_DIRS
+-set(CCSE_INCLUDE_DIRS "${CMAKE_INSTALL_PREFIX}/include")
++set(CCSE_INCLUDE_DIRS "${CMAKE_INSTALL_PREFIX}/include/ccse/boxlib")
+ set(CCSE_LIBRARY_DIRS "${CMAKE_INSTALL_PREFIX}/lib")
+ 
+ list(REMOVE_DUPLICATES CCSE_INCLUDE_DIRS)
+@@ -214,23 +214,23 @@ makefile_library_dirs(CMAKE_LIB_LIST ${CCSE_LIBRARY_DIRS}
+ set(in_makefile  "${CCSE_MODULE_PATH}/MakefileConfig.export.in")
+ set(out_makefile "${CCSE_BINARY_DIR}/Makefile.export")
+ configure_file("${in_makefile}" "${out_makefile}")
+-install(FILES "${out_makefile}" DESTINATION lib)
++install(FILES "${out_makefile}" DESTINATION share/ccse/boxlib)
+ 
+ set(in_config   "${CCSE_MODULE_PATH}/CCSEConfig-install.cmake.in")
+ set(out_config   "${CCSE_BINARY_DIR}/CCSEConfig.cmake")
+ configure_file(${in_config} ${out_config})
+-install(FILES ${out_config} DESTINATION lib)
++install(FILES ${out_config} DESTINATION lib/cmake/BoxLib)
+ 
+ # Write the CCSEConfigVersion.cmake file
+ set(in_config   "${CCSE_MODULE_PATH}/CCSEConfigVersion-install.cmake.in")
+ set(out_config   "${CCSE_BINARY_DIR}/CCSEConfigVersion.cmake")
+ configure_file(${in_config} ${out_config} @ONLY)
+-install(FILES ${out_config} DESTINATION lib)
++install(FILES ${out_config} DESTINATION lib/cmake/BoxLib)
+ 
+ # Write the CMake configuration target file
+ message(STATUS "Writing target file")
+ install(EXPORT CCSETargets
+-        DESTINATION lib
++        DESTINATION lib/cmake/BoxLib
+ 	NAMESPACE ccse_
+ 	FILE CCSETargets.cmake)
