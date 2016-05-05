@@ -1,0 +1,118 @@
+diff -r fa88cf9c3827 lib/python/snakefood/fallback/pkgutil.py
+--- a/lib/python/snakefood/fallback/pkgutil.py	Sat Oct 17 16:11:41 2015 -0400
++++ b/lib/python/snakefood/fallback/pkgutil.py	Sat Jan 09 03:53:18 2016 -0600
+@@ -532,7 +532,7 @@
+         if os.path.isfile(pkgfile):
+             try:
+                 f = open(pkgfile)
+-            except IOError, msg:
++            except IOError as msg:
+                 sys.stderr.write("Can't open %s: %s\n" %
+                                  (pkgfile, msg))
+             else:
+diff -r fa88cf9c3827 lib/python/snakefood/filter.py
+--- a/lib/python/snakefood/filter.py	Sat Oct 17 16:11:41 2015 -0400
++++ b/lib/python/snakefood/filter.py	Sat Jan 09 03:53:18 2016 -0600
+@@ -24,6 +24,6 @@
+         for line in f.xreadlines():
+             try:
+                 yield eval(line)
+-            except Exception, e:
++            except Exception as e:
+                 print_(e, sys.stderr)
+                 raise SystemExit
+diff -r fa88cf9c3827 lib/python/snakefood/find.py
+--- a/lib/python/snakefood/find.py	Sat Oct 17 16:11:41 2015 -0400
++++ b/lib/python/snakefood/find.py	Sat Jan 09 03:53:18 2016 -0600
+@@ -264,19 +264,19 @@
+     try:
+         contents = open(fn, 'rU').read()
+         lines = contents.splitlines()
+-    except (IOError, OSError), e:
++    except (IOError, OSError) as e:
+         logging.error("Could not read file '%s'." % fn)
+         return None, None
+ 
+     # Convert the file to an AST.
+     try:
+         ast = compiler.parse(contents)
+-    except SyntaxError, e:
++    except SyntaxError as e:
+         err = '%s:%s: %s' % (fn, e.lineno or '--', e.msg)
+         logging.error("Error processing file '%s':\n%s" %
+                       (fn, err))
+         return None, lines
+-    except TypeError, e:
++    except TypeError as e:
+         # Note: this branch untested, applied from a user-submitted patch.
+         err = '%s: %s' % (fn, str(e))
+         logging.error("Error processing file '%s':\n%s" %
+diff -r fa88cf9c3827 old/pydeps-gen2
+--- a/old/pydeps-gen2	Sat Oct 17 16:11:41 2015 -0400
++++ b/old/pydeps-gen2	Sat Jan 09 03:53:18 2016 -0600
+@@ -40,7 +40,7 @@
+ 
+     try:
+         lines = map(lambda x: x.strip(), open(fn, 'r').readlines())
+-    except IOError, e:
++    except IOError as e:
+         raise SystemExit("Error: reading file (%s)" % str(e))
+ 
+     modules = {}
+@@ -159,4 +159,4 @@
+     graph(pairs)
+     
+ if __name__ == '__main__':
+-    main()
+\ No newline at end of file
++    main()
+diff -r fa88cf9c3827 old/pydeps-gen3
+--- a/old/pydeps-gen3	Sat Oct 17 16:11:41 2015 -0400
++++ b/old/pydeps-gen3	Sat Jan 09 03:53:18 2016 -0600
+@@ -37,7 +37,7 @@
+     """Opens a file and extracts the imported modules."""
+     try:
+         lines = map(lambda x: x.strip(), open(fn, 'r').readlines())
+-    except IOError, e:
++    except IOError as e:
+         raise SystemExit("Error: reading file '%s' (%s)" % (fn, str(e)))
+ 
+     modules = []
+diff -r fa88cf9c3827 old/pydeps-path
+--- a/old/pydeps-path	Sat Oct 17 16:11:41 2015 -0400
++++ b/old/pydeps-path	Sat Jan 09 03:53:18 2016 -0600
+@@ -34,7 +34,7 @@
+ 
+     try:
+         lines = map(lambda x: x.strip(), open(fn, 'r').readlines())
+-    except IOError, e:
++    except IOError as e:
+         raise SystemExit("Error: reading file (%s)" % str(e))
+ 
+     modules = {}
+@@ -136,4 +136,4 @@
+             print p
+     
+ if __name__ == '__main__':
+-    main()
+\ No newline at end of file
++    main()
+diff -r fa88cf9c3827 old/pydeps-resolve
+--- a/old/pydeps-resolve	Sat Oct 17 16:11:41 2015 -0400
++++ b/old/pydeps-resolve	Sat Jan 09 03:53:18 2016 -0600
+@@ -44,7 +44,7 @@
+         for fn in args:
+             try:
+                 deps += open(fn, 'r').readlines()
+-            except IOError, e:
++            except IOError as e:
+                 raise SystemExit("Error: cannot read depfile. (%s)" % str(e))
+ 
+     #
+@@ -76,4 +76,4 @@
+             print name, ' '.join(fdepends)
+ 
+ if __name__ == '__main__':
+-    main()
+\ No newline at end of file
++    main()
