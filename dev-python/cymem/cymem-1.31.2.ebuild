@@ -9,7 +9,7 @@ inherit distutils-r1
 
 DESCRIPTION="Gate Cython calls to malloc/free behind Python ref-counted objects"
 HOMEPAGE="https://pypi.python.org/pypi/cymem"
-SRC_URI="https://pypi.python.org/packages/source/c/cymem/cymem-${PV}.tar.gz -> ${P}.tar.gz"
+SRC_URI="https://github.com/spacy-io/cymem/archive/${PV}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="MIT"
 SLOT="0"
