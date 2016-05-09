@@ -33,8 +33,8 @@ src_prepare() {
 	# Please note!  Opts are disabled.  If you know what you're doing
 	# feel free to remove this line.  It may cause problems with
 	# docbook-sgml-utils among other things.
-	#ALLOWED_FLAGS="-O -O1 -O2 -pipe -g -march"
-	strip-flags
+	#ALLOWED_FLAGS="-O -O1 -O2 -pipe -g -march -L -I"
+	#strip-flags
 
 	# Default CFLAGS and CXXFLAGS is -O2 but this make openjade segfault
 	# on hppa. Using -O1 works fine. So I force it here.
@@ -52,7 +52,6 @@ src_prepare() {
 
 src_configure() {
 	# We need Prefix env, bug #287358
-	export CONFIG_SHELL="${CONFIG_SHELL:-${BASH}}"
 	econf \
 		--enable-http \
 		--enable-default-catalog="${EPREFIX}"/etc/sgml/catalog \

@@ -6,7 +6,7 @@ EAPI=5
 
 PYTHON_COMPAT=( python2_7 python3_{3,4} )
 
-inherit eutils distutils-r1 multilib craymodules
+inherit cuda distutils-r1 multilib
 
 DESCRIPTION="Python wrapper for NVIDIA CUDA"
 HOMEPAGE="http://mathema.tician.de/software/pycuda/ http://pypi.python.org/pypi/pycuda"
@@ -15,7 +15,7 @@ SRC_URI="mirror://pypi/${PN:0:1}/${PN}/${P}.tar.gz"
 LICENSE="GPL-2"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
-IUSE="examples opengl test"
+IUSE="cray examples opengl test"
 
 RDEPEND="
 	dev-libs/boost[python,${PYTHON_USEDEP}]
@@ -35,35 +35,21 @@ DEPEND="${RDEPEND}
 # user is (usually) not in the video group
 RESTRICT="userpriv"
 
-cuda_sanitize() {
-	echo "$PATH"
-	local rawldflags=$(raw-ldflags)
-	# Be verbose if wanted
-	[[ "${CUDA_VERBOSE}" == true ]] && NVCCFLAGS+=" -v"
-
-	# Tell nvcc where to find a compatible compiler
-	NVCCFLAGS+=" --compiler-bindir=$GCC_PATH/snos/bin"
-
-	# Tell nvcc which flags should be used for underlying C compiler
-	NVCCFLAGS+=" --compiler-options=\"${CXXFLAGS}\" --linker-options=\"${rawldflags// /,},-L/opt/cray/nvidia/default/lib64,--rpath=/opt/cray/nvidia/default/lib64\""
-
-	debug-print "Using ${NVCCFLAGS} for cuda"
-	export NVCCFLAGS
-}
-
-pkg_setup() {
-	module load cudatoolkit
-}
-
-pkg_install() {
-	module unload cudatoolkit
-}
+ENVMOD_REQUIRE="cudatoolkit"
 
 python_prepare_all() {
 	cuda_sanitize
+	local compiler
+	if use cray; then
+		export CC=cc
+		export CXX=CC
+		compiler="CC"
+	else
+		compiler="g++"
+	fi
 	sed \
-		-e "s:'--preprocess':\'--preprocess\', \'--compiler-bindir=$GCC_PATH/snos/bin\':g" \
-		-e "s:\"--cubin\":\'--cubin\', \'--compiler-bindir=$GCC_PATH/snos/bin\':g" \
+		-e "s:'--preprocess':\'--preprocess\', \'--compiler-bindir=$(cuda_gccdir)\':g" \
+		-e "s:\"--cubin\":\'--cubin\', \'--ccbin=${compiler}\':g" \
 		-e "s:/usr/include/pycuda:${S}/src/cuda:g" \
 		-i pycuda/compiler.py || die
 
@@ -76,32 +62,43 @@ python_configure() {
 	local myopts=()
 	use opengl && myopts+=( --cuda-enable-gl )
 
-        export LDFLAGS="$LDFLAGS -L/opt/cray/nvidia/default/lib64 -Wl,--rpath=/opt/cray/nvidia/default/lib64"
-	export CFLAGS="$(echo "$CFLAGS" | sed "s|-I$EPREFIX/usr/include||")"
-	export CXXFLAGS="$(echo "$CXXFLAGS" | sed "s|-I$EPREFIX/usr/include||")"
-	mkdir "${BUILD_DIR}" || die
+	use cray && export LDFLAGS="$LDFLAGS -L/opt/cray/nvidia/default/lib64 -Wl,--rpath=/opt/cray/nvidia/default/lib64"
+	[[ -d "${BUILD_DIR}" ]] || mkdir "${BUILD_DIR}" || die
 	cd "${BUILD_DIR}" || die
 	[[ -e ./siteconf.py ]] && rm -f ./siteconf.py
-	"${EPYTHON}" "${S}"/configure.py \
-		--boost-inc-dir="${EPREFIX}/usr/include" \
-		--boost-lib-dir="${EPREFIX}/usr/$(get_libdir)" \
-		--boost-python-libname=boost_python-$(echo ${EPYTHON} | sed 's/python//')-mt \
-		--boost-thread-libname=boost_thread-mt \
-		--cuda-root="$CRAY_CUDATOOLKIT_DIR" \
-		--cudadrv-lib-dir="${EPREFIX}/usr/$(get_libdir)" \
-		--cudart-lib-dir="$CRAY_CUDATOOLKIT_DIR/lib64" \
-		--cuda-inc-dir="$CRAY_CUDATOOLKIT_DIR/include" \
-		--no-use-shipped-boost \
-		"${myopts[@]}"
-	#if [ -d "${EPREFIX}/usr/include/boost" ] ; then
-	#	ln -snf "${EPREFIX}/usr/include/boost" "${S}"/bpl-subset/bpl_subset/pycudaboost
-	#fi
+	if use cray; then
+		"${EPYTHON}" "${S}"/configure.py \
+			--boost-inc-dir="${EPREFIX}/usr/include" \
+			--boost-lib-dir="${EPREFIX}/usr/$(get_libdir)" \
+			--boost-python-libname=boost_python-$(echo ${EPYTHON} | sed 's/python//')-mt \
+			--boost-thread-libname=boost_thread-mt \
+			--cuda-root="$CRAY_CUDATOOLKIT_DIR" \
+			--cudadrv-lib-dir="${EPREFIX}/usr/$(get_libdir)" \
+			--cudart-lib-dir="$CRAY_CUDATOOLKIT_DIR/lib64" \
+			--cuda-inc-dir="$CRAY_CUDATOOLKIT_DIR/include" \
+			--no-use-shipped-boost \
+			"${myopts[@]}"
+	else
+		"${EPYTHON}" "${S}"/configure.py \
+			--boost-inc-dir="${EPREFIX}/usr/include" \
+			--boost-lib-dir="${EPREFIX}/usr/$(get_libdir)" \
+			--boost-python-libname=boost_python-$(echo ${EPYTHON} | sed 's/python//')-mt \
+			--boost-thread-libname=boost_thread-mt \
+			--cuda-root="${EPREFIX}/opt/cuda" \
+			--cudadrv-lib-dir="${EPREFIX}/usr/$(get_libdir)" \
+			--cudart-lib-dir="${EPREFIX}/opt/cuda/$(get_libdir)" \
+			--cuda-inc-dir="${EPREFIX}/opt/cuda/include" \
+			--no-use-shipped-boost \
+			"${myopts[@]}"
+	fi
 }
 
 src_test() {
 	# we need write access to this to run the tests
-	addwrite /dev/nvidia0
-	addwrite /dev/nvidiactl
+	if !use cray; then
+		addwrite /dev/nvidia0
+		addwrite /dev/nvidiactl
+	fi
 	python_test() {
 			py.test --debug -v -v -v || die "Tests fail with ${EPYTHON}"
 	}

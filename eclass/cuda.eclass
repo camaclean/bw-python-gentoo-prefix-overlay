@@ -2,9 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Id$
 
-inherit flag-o-matic toolchain-funcs versionator craymodules
-
-module load cudatoolkit
+inherit flag-o-matic toolchain-funcs versionator
 
 # @ECLASS: cuda.eclass
 # @MAINTAINER:
@@ -80,9 +78,15 @@ cuda_gccdir() {
 	#done
 
 	# https://bluewaters.ncsa.illinois.edu/cuda uses `which CC` for compiler bindir
-	local cc_tmp=$(which CC)
+	local cc_tmp
+	if use cray; then
+		cc_tmp=$(which CC)
+		gcc_bindir="${cc_tmp%/CC}"
+	else
+		cc_tmp=$(which g++)
+		gcc_bindir="${cc_tmp%/g++}"
+	fi
 	# Clean up gcc_bindir to actually be the directory, not the executable itself
-	gcc_bindir=${cc_tmp%/CC}
 
 	if [[ -n ${gcc_bindir} ]]; then
 		if [[ -n ${flag} ]]; then
@@ -113,7 +117,11 @@ cuda_sanitize() {
 	NVCCFLAGS+=" $(cuda_gccdir -f)"
 
 	# Tell nvcc which flags should be used for underlying C compiler
-	NVCCFLAGS+=" --compiler-options=\"${CXXFLAGS}\" --linker-options=\"${rawldflags// /,}\""
+	if use cray; then
+		NVCCFLAGS+=" -ccbin=CC --compiler-options=\"${CXXFLAGS}\" --linker-options=\"${rawldflags// /,},-L/opt/cray/nvidia/default/lib64,--rpath=/opt/cray/nvidia/default/lib64\""
+	else
+		NVCCFLAGS+=" --compiler-options=\"${CXXFLAGS}\" --linker-options=\"${rawldflags// /,}\""
+	fi
 
 	debug-print "Using ${NVCCFLAGS} for cuda"
 	export NVCCFLAGS

@@ -8,7 +8,7 @@ EAPI=5
 EGIT_REPO_URI="git://github.com/NVIDIA/caffe"
 PYTHON_COMPAT=( python2_7 )
 
-inherit toolchain-funcs multilib git-r3 python-single-r1 cmake-utils craymodules
+inherit toolchain-funcs multilib git-r3 python-single-r1 cmake-utils cuda
 # Can't use cuda.eclass as nvcc does not like --compiler-bindir set there for some reason
 
 DESCRIPTION="Deep learning framework by the BVLC"
@@ -49,6 +49,8 @@ RDEPEND="
 
 REQUIRED_USE="python? ( ${PYTHON_REQUIRED_USE} )"
 
+ENVMOD_REQUIRE="cudatoolkit"
+
 pc_incdir() {
 	$(tc-getPKG_CONFIG) --cflags-only-I $@ | \
 		sed -e 's/^-I//' -e 's/[ ]*-I/:/g' -e 's/[ ]*$//' -e 's|^:||'
@@ -71,10 +73,10 @@ pkg_setup() {
 }
 
 src_configure() {
+	cuda_sanitize
 	if use cray ; then
-		module load cudatoolkit
-		CC="/opt/gcc/4.8.2/snos/bin/gcc"
-		CXX="/opt/gcc/4.8.2/snos/bin/g++"
+		CC="${GCC_PATH}/snos/bin/gcc"
+		CXX="${GCC_PATH}/snos/bin/g++"
 		local mycmakeargs=(
 			"-DAtlas_CBLAS_INCLUDE_DIR=$(pc_incdir cblas)"
 			"-DAtlas_CLAPACK_INCLUDE_DIR=$(pc_incdir lapack)"
@@ -105,7 +107,7 @@ src_configure() {
 		if use cray ; then
 			mycmakeargs+=(
 				"-DCUDA_TOOLKIT_ROOT_DIR=$CUDATOOLKIT_HOME"
-				"-DCUDA_HOST_COMPILER=$(which gcc)"
+			#	"-DCUDA_HOST_COMPILER=$(which gcc)"
 			)
 		fi
 	else

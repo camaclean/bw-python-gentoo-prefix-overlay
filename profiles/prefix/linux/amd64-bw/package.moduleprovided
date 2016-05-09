@@ -1,0 +1,14 @@
+sci-libs/hdf5-1.8.16[fortran,zlib,-mpi,-threads] cray-hdf5/1.8.16
+sci-libs/hdf5-1.8.14-r1[fortran,zlib,-mpi,-threads] cray-hdf5/1.8.14
+sci-libs/hdf5-1.8.13[fortran,zlib,-mpi,-threads] cray-hdf5/1.8.13
+sci-libs/hdf5-1.8.12[fortran,zlib,-mpi,-threads] cray-hdf5/1.8.12
+sci-libs/hdf5-1.8.11[fortran,zlib,-mpi,-threads] cray-hdf5/1.8.11
+sci-libs/hdf5-1.8.16[fortran,zlib,mpi,-threads] cray-hdf5-parallel/1.8.16
+sci-libs/hdf5-1.8.14-r1[fortran,zlib,mpi,-threads] cray-hdf5-parallel/1.8.14
+sci-libs/hdf5-1.8.13[fortran,zlib,mpi,-threads] cray-hdf5-parallel/1.8.13
+sci-libs/hdf5-1.8.12[fortran,zlib,mpi,-threads] cray-hdf5-parallel/1.8.12
+sci-libs/hdf5-1.8.11[fortran,zlib,mpi,-threads] cray-hdf5-parallel/1.8.11
+sci-libs/acml-4.4.0[doc,examples,cpu_flags_x86_fma4,gfortran,ifort,int64,open64,openmp,pgi,static-libs] acml/4.4.0
+sci-libs/acml-5.3.1[doc,examples,cpu_flags_x86_fma4,gfortran,ifort,int64,open64,openmp,pgi,static-libs] acml/5.3.1
+dev-libs/boost-1.53.0 boost/1.53.0
+dev-libs/boost-build-1.53.0 boost/1.53.0

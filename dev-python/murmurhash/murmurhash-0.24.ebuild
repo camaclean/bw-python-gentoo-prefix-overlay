@@ -19,12 +19,3 @@ DEPEND=""
 RDEPEND="${DEPEND}"
 
 PYTHON_MODULES="murmurhash"
-
-src_prepare() {
-	distutils-r1_src_prepare
-}
-
-src_install() {
-	distutils-r1_src_install
-}
-

@@ -20,11 +20,3 @@ RDEPEND="${DEPEND}"
 
 PYTHON_MODULES="headers_workaround"
 
-src_prepare() {
-	distutils-r1_src_prepare
-}
-
-src_install() {
-	distutils-r1_src_install
-}
-

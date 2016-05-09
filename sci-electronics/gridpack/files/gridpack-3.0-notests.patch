@@ -1,0 +1,982 @@
+diff --git a/src/applications/modules/dynamic_simulation/CMakeLists.txt b/src/applications/modules/dynamic_simulation/CMakeLists.txt
+index e2ea18a..76f1813 100644
+--- a/src/applications/modules/dynamic_simulation/CMakeLists.txt
++++ b/src/applications/modules/dynamic_simulation/CMakeLists.txt
+@@ -62,30 +62,30 @@ install(TARGETS
+ # -------------------------------------------------------------
+ # Create simple test that runs state estimation code
+ # -------------------------------------------------------------
+-add_executable(ds_test test/ds_test.cpp)
+-target_link_libraries (ds_test gridpack_dynamic_simulation_module
+-${target_libraries})
++#add_executable(ds_test test/ds_test.cpp)
++#target_link_libraries (ds_test gridpack_dynamic_simulation_module
++#${target_libraries})
+ 
+-add_custom_target(ds_test_input
+-
+-  COMMAND ${CMAKE_COMMAND} -E copy 
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test/input.xml
+-  ${CMAKE_CURRENT_BINARY_DIR}
+-
+-  COMMAND ${CMAKE_COMMAND} -E copy 
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test/IEEE_145bus_v23_PSLF.raw
+-  ${CMAKE_CURRENT_BINARY_DIR}
+-
+-  COMMAND ${CMAKE_COMMAND} -E copy 
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test/IEEE_145b_classical_model.dyr
+-  ${CMAKE_CURRENT_BINARY_DIR}
+-
+-  DEPENDS
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test/input.xml
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test/IEEE_145bus_v23_PSLF.raw
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test/IEEE_145b_classical_model.dyr
+-)
++#add_custom_target(ds_test_input
++#
++#  COMMAND ${CMAKE_COMMAND} -E copy 
++#  ${CMAKE_CURRENT_SOURCE_DIR}/test/input.xml
++#  ${CMAKE_CURRENT_BINARY_DIR}
++#
++#  COMMAND ${CMAKE_COMMAND} -E copy 
++#  ${CMAKE_CURRENT_SOURCE_DIR}/test/IEEE_145bus_v23_PSLF.raw
++#  ${CMAKE_CURRENT_BINARY_DIR}
++#
++#  COMMAND ${CMAKE_COMMAND} -E copy 
++#  ${CMAKE_CURRENT_SOURCE_DIR}/test/IEEE_145b_classical_model.dyr
++#  ${CMAKE_CURRENT_BINARY_DIR}
++#
++#  DEPENDS
++#  ${CMAKE_CURRENT_SOURCE_DIR}/test/input.xml
++#  ${CMAKE_CURRENT_SOURCE_DIR}/test/IEEE_145bus_v23_PSLF.raw
++#  ${CMAKE_CURRENT_SOURCE_DIR}/test/IEEE_145b_classical_model.dyr
++#)
+ 
+-add_dependencies (ds_test ds_test_input)
++#add_dependencies (ds_test ds_test_input)
+ 
+-gridpack_add_run_test(ds_test ds_test "input.xml")
++#gridpack_add_run_test(ds_test ds_test "input.xml")
+diff --git a/src/applications/modules/powerflow/CMakeLists.txt b/src/applications/modules/powerflow/CMakeLists.txt
+index 0eec473..cd915ad 100644
+--- a/src/applications/modules/powerflow/CMakeLists.txt
++++ b/src/applications/modules/powerflow/CMakeLists.txt
+@@ -61,24 +61,24 @@ install(TARGETS
+ # -------------------------------------------------------------
+ # Create simple test that runs powerflow code
+ # -------------------------------------------------------------
+-add_executable(pf_test test/pf_test.cpp)
+-target_link_libraries (pf_test gridpack_powerflow_module ${target_libraries})
++#add_executable(pf_test test/pf_test.cpp)
++#target_link_libraries (pf_test gridpack_powerflow_module ${target_libraries})
+ 
+-add_custom_target(pf_test_input
+-
+-  COMMAND ${CMAKE_COMMAND} -E copy 
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test/input.xml
+-  ${CMAKE_CURRENT_BINARY_DIR}
++#add_custom_target(pf_test_input
++#
++#  COMMAND ${CMAKE_COMMAND} -E copy 
++#  ${CMAKE_CURRENT_SOURCE_DIR}/test/input.xml
++#  ${CMAKE_CURRENT_BINARY_DIR}
+ 
+-  COMMAND ${CMAKE_COMMAND} -E copy 
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test/IEEE14.raw
+-  ${CMAKE_CURRENT_BINARY_DIR}
++#  COMMAND ${CMAKE_COMMAND} -E copy 
++#  ${CMAKE_CURRENT_SOURCE_DIR}/test/IEEE14.raw
++#  ${CMAKE_CURRENT_BINARY_DIR}
+ 
+-  DEPENDS
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test/input.xml
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test/IEEE14.raw
+-)
++#  DEPENDS
++#  ${CMAKE_CURRENT_SOURCE_DIR}/test/input.xml
++#  ${CMAKE_CURRENT_SOURCE_DIR}/test/IEEE14.raw
++#)
+ 
+-add_dependencies (pf_test pf_test_input)
++#add_dependencies (pf_test pf_test_input)
+ 
+-gridpack_add_run_test(pf_test pf_test "input.xml")
++#gridpack_add_run_test(pf_test pf_test "input.xml")
+diff --git a/src/applications/modules/state_estimation/CMakeLists.txt b/src/applications/modules/state_estimation/CMakeLists.txt
+index 64b6a39..e840abd 100644
+--- a/src/applications/modules/state_estimation/CMakeLists.txt
++++ b/src/applications/modules/state_estimation/CMakeLists.txt
+@@ -60,29 +60,29 @@ install(TARGETS
+ # -------------------------------------------------------------
+ # Create simple test that runs state estimation code
+ # -------------------------------------------------------------
+-add_executable(se_test test/se_test.cpp)
+-target_link_libraries (se_test gridpack_state_estimation_module ${target_libraries})
++#add_executable(se_test test/se_test.cpp)
++#target_link_libraries (se_test gridpack_state_estimation_module ${target_libraries})
+ 
+-add_custom_target(se_test_input
++#add_custom_target(se_test_input
+ 
+-  COMMAND ${CMAKE_COMMAND} -E copy 
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test/input.xml
+-  ${CMAKE_CURRENT_BINARY_DIR}
++#  COMMAND ${CMAKE_COMMAND} -E copy 
++#  ${CMAKE_CURRENT_SOURCE_DIR}/test/input.xml
++#  ${CMAKE_CURRENT_BINARY_DIR}
+ 
+-  COMMAND ${CMAKE_COMMAND} -E copy 
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test/IEEE14.raw
+-  ${CMAKE_CURRENT_BINARY_DIR}
++#  COMMAND ${CMAKE_COMMAND} -E copy 
++#  ${CMAKE_CURRENT_SOURCE_DIR}/test/IEEE14.raw
++#  ${CMAKE_CURRENT_BINARY_DIR}
+ 
+-  COMMAND ${CMAKE_COMMAND} -E copy 
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test/IEEE14_meas.xml
+-  ${CMAKE_CURRENT_BINARY_DIR}
++#  COMMAND ${CMAKE_COMMAND} -E copy 
++#  ${CMAKE_CURRENT_SOURCE_DIR}/test/IEEE14_meas.xml
++#  ${CMAKE_CURRENT_BINARY_DIR}
+ 
+-  DEPENDS
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test/input.xml
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test/IEEE14.raw
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test/IEEE14_meas.xml
+-)
++#  DEPENDS
++#  ${CMAKE_CURRENT_SOURCE_DIR}/test/input.xml
++#  ${CMAKE_CURRENT_SOURCE_DIR}/test/IEEE14.raw
++#  ${CMAKE_CURRENT_SOURCE_DIR}/test/IEEE14_meas.xml
++#)
+ 
+-add_dependencies (se_test se_test_input)
++#add_dependencies (se_test se_test_input)
+ 
+-add_test(se_test se_test)
++#add_test(se_test se_test)
+diff --git a/src/component/CMakeLists.txt b/src/component/CMakeLists.txt
+index 6bd0ed0..0f5f0a0 100644
+--- a/src/component/CMakeLists.txt
++++ b/src/component/CMakeLists.txt
+@@ -33,9 +33,9 @@ add_library(gridpack_components
+ # -------------------------------------------------------------
+ # component serialization tests
+ # -------------------------------------------------------------
+-add_executable(component_serialization_test test/component_serialization.cpp)
+-target_link_libraries(component_serialization_test gridpack_components ${target_libraries})
+-gridpack_add_unit_test(component_serialization component_serialization_test)
++#add_executable(component_serialization_test test/component_serialization.cpp)
++#target_link_libraries(component_serialization_test gridpack_components ${target_libraries})
++#gridpack_add_unit_test(component_serialization component_serialization_test)
+ 
+ # -------------------------------------------------------------
+ # installation
+diff --git a/src/configuration/CMakeLists.txt b/src/configuration/CMakeLists.txt
+index fe568dc..d5563d4 100644
+--- a/src/configuration/CMakeLists.txt
++++ b/src/configuration/CMakeLists.txt
+@@ -25,22 +25,22 @@ include_directories(AFTER ${GA_INCLUDE_DIRS})
+ # -------------------------------------------------------------
+ # put unit test configuration file in build directory so it can be
+ # read there
+-add_custom_target(configuration_test_input
+-  COMMAND ${CMAKE_COMMAND} -E copy 
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test/configuration_test.xml
+-  ${CMAKE_CURRENT_BINARY_DIR}
+-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/test/configuration_test.xml
+-)
++#add_custom_target(configuration_test_input
++#  COMMAND ${CMAKE_COMMAND} -E copy 
++#  ${CMAKE_CURRENT_SOURCE_DIR}/test/configuration_test.xml
++#  ${CMAKE_CURRENT_BINARY_DIR}
++#  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/test/configuration_test.xml
++#)
+ 
+-add_executable(configuration_test test/configuration_test.cpp)
+-target_link_libraries(configuration_test 
+-  gridpack_configuration
+-  gridpack_parallel
+-  ${GA_LIBRARIES}
+-  ${Boost_LIBRARIES} ${MPI_CXX_LIBRARIES})
+-gridpack_add_unit_test(configuration_test configuration_test)
++#add_executable(configuration_test test/configuration_test.cpp)
++#target_link_libraries(configuration_test 
++#  gridpack_configuration
++#  gridpack_parallel
++#  ${GA_LIBRARIES}
++#  ${Boost_LIBRARIES} ${MPI_CXX_LIBRARIES})
++#gridpack_add_unit_test(configuration_test configuration_test)
+ 
+-add_dependencies(configuration_test configuration_test_input)
++#add_dependencies(configuration_test configuration_test_input)
+ 
+ # -------------------------------------------------------------
+ # installation
+diff --git a/src/mapper/CMakeLists.txt b/src/mapper/CMakeLists.txt
+index 348928a..bd315dd 100644
+--- a/src/mapper/CMakeLists.txt
++++ b/src/mapper/CMakeLists.txt
+@@ -35,8 +35,8 @@ endif()
+ # TEST: greetings
+ # A simple MPI program
+ # -------------------------------------------------------------
+-add_executable(test_mapper test/test_mapper.cpp)
+-target_link_libraries(test_mapper ${target_libraries})
++#add_executable(test_mapper test/test_mapper.cpp)
++#target_link_libraries(test_mapper ${target_libraries})
+ 
+ #!!target_link_libraries(greetings ${Boost_LIBRARIES} ${MPI_CXX_LIBRARIES})
+ 
+diff --git a/src/math/CMakeLists.txt b/src/math/CMakeLists.txt
+index b3a337c..5ef922e 100644
+--- a/src/math/CMakeLists.txt
++++ b/src/math/CMakeLists.txt
+@@ -168,125 +168,125 @@ add_dependencies(matrix_inverse matrix_inverse_input)
+ # -------------------------------------------------------------
+ # numeric test suite
+ # -------------------------------------------------------------
+-add_executable(numeric_test test/numeric_test.cpp)
+-gridpack_add_serial_unit_test(numeric numeric_test)
++#add_executable(numeric_test test/numeric_test.cpp)
++#gridpack_add_serial_unit_test(numeric numeric_test)
+ 
+ 
+ # -------------------------------------------------------------
+ # vector test suite
+ # -------------------------------------------------------------
+-add_executable(complex_vector_test test/vector_test.cpp)
+-target_link_libraries(complex_vector_test gridpack_math ${target_libraries})
+-gridpack_add_unit_test(complex_vector complex_vector_test)
+-
+-add_executable(real_vector_test test/vector_test.cpp)
+-set_target_properties(real_vector_test
+-  PROPERTIES
+-  COMPILE_DEFINITIONS "TEST_REAL=YES"
+-)
+-target_link_libraries(real_vector_test gridpack_math ${target_libraries})
+-gridpack_add_unit_test(real_vector real_vector_test)
++#add_executable(complex_vector_test test/vector_test.cpp)
++#target_link_libraries(complex_vector_test gridpack_math ${target_libraries})
++#gridpack_add_unit_test(complex_vector complex_vector_test)
++
++#add_executable(real_vector_test test/vector_test.cpp)
++#set_target_properties(real_vector_test
++#  PROPERTIES
++#  COMPILE_DEFINITIONS "TEST_REAL=YES"
++#)
++#target_link_libraries(real_vector_test gridpack_math ${target_libraries})
++#gridpack_add_unit_test(real_vector real_vector_test)
+ 
+ 
+ # -------------------------------------------------------------
+ # matrix test suite (one each for dense and sparse)
+ # -------------------------------------------------------------
+-add_executable(complex_sparse_matrix_test test/matrix_test.cpp)
+-target_link_libraries(complex_sparse_matrix_test gridpack_math ${target_libraries})
+-gridpack_add_unit_test(complex_sparse_matrix complex_sparse_matrix_test)
+-
+-add_executable(real_sparse_matrix_test test/matrix_test.cpp)
+-set_target_properties(real_sparse_matrix_test
+-  PROPERTIES
+-  COMPILE_DEFINITIONS "TEST_REAL=YES"
+-)
+-target_link_libraries(real_sparse_matrix_test gridpack_math ${target_libraries})
+-gridpack_add_unit_test(real_sparse_matrix real_sparse_matrix_test)
+-
+-add_executable(complex_dense_matrix_test test/matrix_test.cpp)
+-set_target_properties(complex_dense_matrix_test
+-  PROPERTIES
+-  COMPILE_DEFINITIONS "TEST_DENSE=YES"
+-)
+-target_link_libraries(complex_dense_matrix_test gridpack_math ${target_libraries})
+-gridpack_add_unit_test(complex_dense_matrix complex_dense_matrix_test)
+-
+-add_executable(real_dense_matrix_test test/matrix_test.cpp)
+-set_target_properties(real_dense_matrix_test
+-  PROPERTIES
+-  COMPILE_DEFINITIONS "TEST_DENSE=YES;TEST_REAL=YES"
+-)
+-target_link_libraries(real_dense_matrix_test gridpack_math ${target_libraries})
+-gridpack_add_unit_test(real_dense_matrix real_dense_matrix_test)
++#add_executable(complex_sparse_matrix_test test/matrix_test.cpp)
++#target_link_libraries(complex_sparse_matrix_test gridpack_math ${target_libraries})
++#gridpack_add_unit_test(complex_sparse_matrix complex_sparse_matrix_test)
++
++#add_executable(real_sparse_matrix_test test/matrix_test.cpp)
++#set_target_properties(real_sparse_matrix_test
++#  PROPERTIES
++#  COMPILE_DEFINITIONS "TEST_REAL=YES"
++#)
++#target_link_libraries(real_sparse_matrix_test gridpack_math ${target_libraries})
++#gridpack_add_unit_test(real_sparse_matrix real_sparse_matrix_test)
++
++#add_executable(complex_dense_matrix_test test/matrix_test.cpp)
++#set_target_properties(complex_dense_matrix_test
++#  PROPERTIES
++#  COMPILE_DEFINITIONS "TEST_DENSE=YES"
++#)
++#target_link_libraries(complex_dense_matrix_test gridpack_math ${target_libraries})
++#gridpack_add_unit_test(complex_dense_matrix complex_dense_matrix_test)
++
++#add_executable(real_dense_matrix_test test/matrix_test.cpp)
++#set_target_properties(real_dense_matrix_test
++#  PROPERTIES
++#  COMPILE_DEFINITIONS "TEST_DENSE=YES;TEST_REAL=YES"
++#)
++#target_link_libraries(real_dense_matrix_test gridpack_math ${target_libraries})
++#gridpack_add_unit_test(real_dense_matrix real_dense_matrix_test)
+ 
+ # -------------------------------------------------------------
+ # linear solver test suite
+ # -------------------------------------------------------------
+-add_executable(real_linear_solver_test test/linear_solver_test.cpp)
+-target_link_libraries(real_linear_solver_test gridpack_math ${target_libraries})
+-gridpack_add_unit_test(real_linear_solver real_linear_solver_test)
+-if (PETSC_FOUND)
+-   add_dependencies(real_linear_solver_test math_test_input)
+-endif()
+-
+-add_executable(complex_linear_solver_test test/complex_linear_solver_test.cpp)
+-target_link_libraries(complex_linear_solver_test gridpack_math ${target_libraries})
+-gridpack_add_unit_test(complex_linear_solver complex_linear_solver_test)
+-if (PETSC_FOUND)
+-   add_dependencies(complex_linear_solver_test math_test_input)
+-endif()
++#add_executable(real_linear_solver_test test/linear_solver_test.cpp)
++#target_link_libraries(real_linear_solver_test gridpack_math ${target_libraries})
++#gridpack_add_unit_test(real_linear_solver real_linear_solver_test)
++#if (PETSC_FOUND)
++#   add_dependencies(real_linear_solver_test math_test_input)
++#endif()
++
++#add_executable(complex_linear_solver_test test/complex_linear_solver_test.cpp)
++#target_link_libraries(complex_linear_solver_test gridpack_math ${target_libraries})
++#gridpack_add_unit_test(complex_linear_solver complex_linear_solver_test)
++#if (PETSC_FOUND)
++#   add_dependencies(complex_linear_solver_test math_test_input)
++#endif()
+ 
+ # -------------------------------------------------------------
+ # nonlinear solver test suite
+ # -------------------------------------------------------------
+-add_executable(complex_nonlinear_solver_test test/nonlinear_solver_test.cpp)
+-target_link_libraries(complex_nonlinear_solver_test gridpack_math ${target_libraries})
+-gridpack_add_unit_test(complex_nonlinear_solver complex_nonlinear_solver_test)
+-if (PETSC_FOUND)
+-   add_dependencies(complex_nonlinear_solver_test math_test_input)
+-endif()
+-
+-add_executable(real_nonlinear_solver_test test/nonlinear_solver_test.cpp)
+-set_target_properties(real_nonlinear_solver_test
+-  PROPERTIES
+-  COMPILE_DEFINITIONS "TEST_REAL=YES"
+-)
+-target_link_libraries(real_nonlinear_solver_test gridpack_math ${target_libraries})
+-gridpack_add_unit_test(real_nonlinear_solver real_nonlinear_solver_test)
+-if (PETSC_FOUND)
+-   add_dependencies(real_nonlinear_solver_test math_test_input)
+-endif()
++#add_executable(complex_nonlinear_solver_test test/nonlinear_solver_test.cpp)
++#target_link_libraries(complex_nonlinear_solver_test gridpack_math ${target_libraries})
++#gridpack_add_unit_test(complex_nonlinear_solver complex_nonlinear_solver_test)
++#if (PETSC_FOUND)
++#   add_dependencies(complex_nonlinear_solver_test math_test_input)
++#endif()
++
++#add_executable(real_nonlinear_solver_test test/nonlinear_solver_test.cpp)
++#set_target_properties(real_nonlinear_solver_test
++#  PROPERTIES
++#  COMPILE_DEFINITIONS "TEST_REAL=YES"
++#)
++#target_link_libraries(real_nonlinear_solver_test gridpack_math ${target_libraries})
++#gridpack_add_unit_test(real_nonlinear_solver real_nonlinear_solver_test)
++#if (PETSC_FOUND)
++#   add_dependencies(real_nonlinear_solver_test math_test_input)
++#endif()
+ 
+ 
+ # -------------------------------------------------------------
+ # DAE solver test suite
+ # -------------------------------------------------------------
+-add_executable(complex_dae_solver_test test/dae_solver_test.cpp)
+-target_link_libraries(complex_dae_solver_test gridpack_math ${target_libraries})
+-gridpack_add_unit_test(complex_dae_solver complex_dae_solver_test)
+-if (PETSC_FOUND)
+-   add_dependencies(complex_dae_solver_test math_test_input)
+-endif()
+-
+-add_executable(real_dae_solver_test test/dae_solver_test.cpp)
+-set_target_properties(real_dae_solver_test
+-  PROPERTIES
+-  COMPILE_DEFINITIONS "TEST_REAL=YES"
+-)
+-target_link_libraries(real_dae_solver_test gridpack_math ${target_libraries})
+-gridpack_add_unit_test(real_dae_solver real_dae_solver_test)
+-if (PETSC_FOUND)
+-   add_dependencies(real_dae_solver_test math_test_input)
+-endif()
++#add_executable(complex_dae_solver_test test/dae_solver_test.cpp)
++#target_link_libraries(complex_dae_solver_test gridpack_math ${target_libraries})
++#gridpack_add_unit_test(complex_dae_solver complex_dae_solver_test)
++#if (PETSC_FOUND)
++#   add_dependencies(complex_dae_solver_test math_test_input)
++#endif()
++
++#add_executable(real_dae_solver_test test/dae_solver_test.cpp)
++#set_target_properties(real_dae_solver_test
++#  PROPERTIES
++#  COMPILE_DEFINITIONS "TEST_REAL=YES"
++#)
++#target_link_libraries(real_dae_solver_test gridpack_math ${target_libraries})
++#gridpack_add_unit_test(real_dae_solver real_dae_solver_test)
++#if (PETSC_FOUND)
++#   add_dependencies(real_dae_solver_test math_test_input)
++#endif()
+ 
+ # -------------------------------------------------------------
+ # Test GA-based Dense Matrix
+ # -------------------------------------------------------------
+-if (PETSC_FOUND)
+-  add_executable(petsc_ga_matrix_test test/petsc_ga_matrix.cpp) 
+-  target_link_libraries(petsc_ga_matrix_test gridpack_math ${target_libraries})
+-  gridpack_add_unit_test(petsc_ga_matrix petsc_ga_matrix_test)
+-endif()
++#if (PETSC_FOUND)
++#  add_executable(petsc_ga_matrix_test test/petsc_ga_matrix.cpp) 
++#  target_link_libraries(petsc_ga_matrix_test gridpack_math ${target_libraries})
++#  gridpack_add_unit_test(petsc_ga_matrix petsc_ga_matrix_test)
++#endif()
+ 
+ # -------------------------------------------------------------
+ # installation
+diff --git a/src/network/CMakeLists.txt b/src/network/CMakeLists.txt
+index bf11f02..e230819 100644
+--- a/src/network/CMakeLists.txt
++++ b/src/network/CMakeLists.txt
+@@ -47,16 +47,16 @@ endif()
+ # -------------------------------------------------------------
+ # TEST: test_network
+ # -------------------------------------------------------------
+-add_executable(test_network test/test_network.cpp)
+-target_link_libraries(test_network ${target_libraries})
+-gridpack_add_unit_test(test_network test_network)
++#add_executable(test_network test/test_network.cpp)
++#target_link_libraries(test_network ${target_libraries})
++#gridpack_add_unit_test(test_network test_network)
+ 
+ # -------------------------------------------------------------
+ # TEST: network_partition
+ # -------------------------------------------------------------
+-add_executable(network_partition test/network_partition.cpp)
+-target_link_libraries(network_partition ${target_libraries})
+-gridpack_add_unit_test(network_partition network_partition)
++#add_executable(network_partition test/network_partition.cpp)
++#target_link_libraries(network_partition ${target_libraries})
++#gridpack_add_unit_test(network_partition network_partition)
+ 
+ # -------------------------------------------------------------
+ # installation
+diff --git a/src/optimization/CMakeLists.txt b/src/optimization/CMakeLists.txt
+index 0aea16c..b244abe 100644
+--- a/src/optimization/CMakeLists.txt
++++ b/src/optimization/CMakeLists.txt
+@@ -72,119 +72,119 @@ list(APPEND target_libraries
+ # -------------------------------------------------------------
+ # variable test suite
+ # -------------------------------------------------------------
+-add_executable(variable_test test/variable_test.cpp)
+-target_link_libraries(variable_test ${target_libraries})
++#add_executable(variable_test test/variable_test.cpp)
++#target_link_libraries(variable_test ${target_libraries})
+ 
+-gridpack_add_unit_test("optimization_variables" variable_test)
++#gridpack_add_unit_test("optimization_variables" variable_test)
+ 
+ 
+ # -------------------------------------------------------------
+ # expression test suite
+ # -------------------------------------------------------------
+-add_executable(expression_test test/expression_test.cpp)
+-target_link_libraries(expression_test ${target_libraries})
++#add_executable(expression_test test/expression_test.cpp)
++#target_link_libraries(expression_test ${target_libraries})
+ 
+-gridpack_add_unit_test("optimization_expressions" variable_test)
++#gridpack_add_unit_test("optimization_expressions" variable_test)
+ 
+ # -------------------------------------------------------------
+ # optimizer test suite
+ # -------------------------------------------------------------
+-add_executable(optimizer_test test/optimizer_test.cpp)
+-target_link_libraries(optimizer_test ${target_libraries})
++#add_executable(optimizer_test test/optimizer_test.cpp)
++#target_link_libraries(optimizer_test ${target_libraries})
+ 
+-gridpack_add_unit_test("optimizer" optimizer_test)
++#gridpack_add_unit_test("optimizer" optimizer_test)
+ 
+ # -------------------------------------------------------------
+ # TEST: 
+ # A simple optimization problem (3 generators)
+ # -------------------------------------------------------------
+-if(USE_CPLEX)
+- add_executable(test_optim 
+-   test/test_optim.cpp
+- )
+- target_link_libraries(test_optim ${target_libraries})
+-
+- add_executable(test_expression 
+-   test/test_expression.cpp
+- )
+- target_link_libraries(test_expression ${target_libraries})
+-endif()
+-
++#if(USE_CPLEX)
++# add_executable(test_optim 
++#   test/test_optim.cpp
++# )
++# target_link_libraries(test_optim ${target_libraries})
++#
++# add_executable(test_expression 
++#   test/test_expression.cpp
++# )
++# target_link_libraries(test_expression ${target_libraries})
++#endif()
+ 
+- add_executable(uc.x
+-   test_app/uc_app.cpp
+-   test_app/uc_components.cpp
+-   test_app/uc_main.cpp
+- )
+ 
+- target_link_libraries(uc.x ${target_libraries})
++# add_executable(uc.x
++#   test_app/uc_app.cpp
++#   test_app/uc_components.cpp
++#   test_app/uc_main.cpp
++# )
+ 
+- add_custom_target(uc.x.input
++# target_link_libraries(uc.x ${target_libraries})
+ 
+-   COMMAND ${CMAKE_COMMAND} -E copy
+-   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/uc_test.raw
+-   ${CMAKE_CURRENT_BINARY_DIR} 
++# add_custom_target(uc.x.input
++#
++#   COMMAND ${CMAKE_COMMAND} -E copy
++#   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/uc_test.raw
++#   ${CMAKE_CURRENT_BINARY_DIR} 
+ 
+-   DEPENDS
+-   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/uc_test.raw
++#   DEPENDS
++#   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/uc_test.raw
+ 
+-   COMMAND ${CMAKE_COMMAND} -E copy
+-   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/gen.uc
+-   ${CMAKE_CURRENT_BINARY_DIR} 
++#   COMMAND ${CMAKE_COMMAND} -E copy
++#   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/gen.uc
++#   ${CMAKE_CURRENT_BINARY_DIR} 
+ 
+-   DEPENDS
+-   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/gen.uc
++#   DEPENDS
++#   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/gen.uc
+ 
+-   COMMAND ${CMAKE_COMMAND} -E copy
+-   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/loads.txt
+-   ${CMAKE_CURRENT_BINARY_DIR} 
++#   COMMAND ${CMAKE_COMMAND} -E copy
++#   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/loads.txt
++#   ${CMAKE_CURRENT_BINARY_DIR} 
+ 
+-   DEPENDS
+-   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/loads.txt
++#   DEPENDS
++#   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/loads.txt
+    
+-   COMMAND ${CMAKE_COMMAND} -E copy
+-   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/loads.csv
+-   ${CMAKE_CURRENT_BINARY_DIR} 
++#   COMMAND ${CMAKE_COMMAND} -E copy
++#   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/loads.csv
++#   ${CMAKE_CURRENT_BINARY_DIR} 
+ 
+-   DEPENDS
+-   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/loads.csv
+- )
+- add_dependencies(uc.x uc.x.input)
++#   DEPENDS
++#   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/loads.csv
++# )
++# add_dependencies(uc.x uc.x.input)
+ 
+-if(USE_GUROBI)
+- add_executable(uc_gurobi.x
+-   test_gurobi/uc_app.cpp
+-   test_gurobi/uc_components.cpp
+-   test_gurobi/uc_main.cpp
+- )
++#if(USE_GUROBI)
++# add_executable(uc_gurobi.x
++#   test_gurobi/uc_app.cpp
++#   test_gurobi/uc_components.cpp
++#   test_gurobi/uc_main.cpp
++# )
+ 
+- target_link_libraries(uc_gurobi.x ${target_libraries})
++# target_link_libraries(uc_gurobi.x ${target_libraries})
+ 
+- add_custom_target(uc_gurobi.x.input
++# add_custom_target(uc_gurobi.x.input
+ 
+-   COMMAND ${CMAKE_COMMAND} -E copy
+-   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/uc_test.raw
+-   ${CMAKE_CURRENT_BINARY_DIR} 
++#   COMMAND ${CMAKE_COMMAND} -E copy
++#   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/uc_test.raw
++#   ${CMAKE_CURRENT_BINARY_DIR} 
+ 
+-   DEPENDS
+-   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/uc_test.raw
++#   DEPENDS
++#   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/uc_test.raw
+ 
+-   COMMAND ${CMAKE_COMMAND} -E copy
+-   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/gen.uc
+-   ${CMAKE_CURRENT_BINARY_DIR} 
++#   COMMAND ${CMAKE_COMMAND} -E copy
++#   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/gen.uc
++#   ${CMAKE_CURRENT_BINARY_DIR} 
+ 
+-   DEPENDS
+-   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/gen.uc
++#   DEPENDS
++#   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/gen.uc
+ 
+-   COMMAND ${CMAKE_COMMAND} -E copy
+-   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/loads.txt
+-   ${CMAKE_CURRENT_BINARY_DIR} 
++#   COMMAND ${CMAKE_COMMAND} -E copy
++#   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/loads.txt
++#   ${CMAKE_CURRENT_BINARY_DIR} 
+ 
+-   DEPENDS
+-   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/loads.txt
+- )
+- add_dependencies(uc_gurobi.x uc_gurobi.x.input)
+-endif()
++#   DEPENDS
++#   ${CMAKE_CURRENT_SOURCE_DIR}/test_app/loads.txt
++# )
++# add_dependencies(uc_gurobi.x uc_gurobi.x.input)
++#endif()
+ 
+ 
+ # -------------------------------------------------------------
+diff --git a/src/parallel/CMakeLists.txt b/src/parallel/CMakeLists.txt
+index ba467c9..9907640 100644
+--- a/src/parallel/CMakeLists.txt
++++ b/src/parallel/CMakeLists.txt
+@@ -56,72 +56,72 @@ install(TARGETS
+ # TEST: greetings
+ # A simple MPI program (that does not use boost::test)
+ # -------------------------------------------------------------
+-add_executable(greetings test/greetings.cpp)
+-target_link_libraries(greetings gridpack_parallel 
+-  ${GA_LIBRARIES} ${Boost_LIBRARIES} ${MPI_CXX_LIBRARIES})
+-
+-if (NOT USE_PROGRESS_RANKS)
+-  add_test(greetings_serial greetings)
+-  set_tests_properties(greetings_serial
+-    PROPERTIES 
+-    PASS_REGULAR_EXPRESSION "I am process 0 of [1-9].*$"
+-    )
+-endif()
+-
+-add_test(greetings_parallel 
+-  ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 4 ${MPIEXEC_PREFLAGS} greetings ${MPIEXEC_POSTFLAGS})
+-set_tests_properties(greetings_parallel
+-  PROPERTIES 
+-  PASS_REGULAR_EXPRESSION "I am process 0 of [1-9].*$"
+-)
++#add_executable(greetings test/greetings.cpp)
++#target_link_libraries(greetings gridpack_parallel 
++#  ${GA_LIBRARIES} ${Boost_LIBRARIES} ${MPI_CXX_LIBRARIES})
++
++#if (NOT USE_PROGRESS_RANKS)
++#  add_test(greetings_serial greetings)
++#  set_tests_properties(greetings_serial
++#    PROPERTIES 
++#    PASS_REGULAR_EXPRESSION "I am process 0 of [1-9].*$"
++#    )
++#endif()
++
++#add_test(greetings_parallel 
++#  ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 4 ${MPIEXEC_PREFLAGS} greetings ${MPIEXEC_POSTFLAGS})
++#set_tests_properties(greetings_parallel
++#  PROPERTIES 
++#  PASS_REGULAR_EXPRESSION "I am process 0 of [1-9].*$"
++#)
+ 
+ # -------------------------------------------------------------
+ # TEST: task_test
+ # A simple program to test the task manager
+ # -------------------------------------------------------------
+-add_executable(task_test test/task_test.cpp)
+-target_link_libraries(task_test gridpack_parallel 
+-  ${GA_LIBRARIES} ${Boost_LIBRARIES} ${MPI_CXX_LIBRARIES})
++#add_executable(task_test test/task_test.cpp)
++#target_link_libraries(task_test gridpack_parallel 
++#  ${GA_LIBRARIES} ${Boost_LIBRARIES} ${MPI_CXX_LIBRARIES})
+ 
+-gridpack_add_run_test(task_test task_test "")
++#gridpack_add_run_test(task_test task_test "")
+ 
+ # -------------------------------------------------------------
+ # TEST: mpi_test
+ # A simple MPI test using boost::test
+ # -------------------------------------------------------------
+-add_executable(mpi_test test/mpi_test.cpp)
+-target_link_libraries(mpi_test ${GA_LIBRARIES} ${Boost_LIBRARIES} ${MPI_CXX_LIBRARIES})
++#add_executable(mpi_test test/mpi_test.cpp)
++#target_link_libraries(mpi_test ${GA_LIBRARIES} ${Boost_LIBRARIES} ${MPI_CXX_LIBRARIES})
+ 
+-gridpack_add_unit_test(mpi_test mpi_test)
++#gridpack_add_unit_test(mpi_test mpi_test)
+ 
+ # -------------------------------------------------------------
+ # TEST: shuffle_test
+ # -------------------------------------------------------------
+-add_executable(shuffle_test test/shuffle_test.cpp)
+-target_link_libraries(shuffle_test 
+-  gridpack_parallel 
+-  ${GA_LIBRARIES} 
+-  ${Boost_LIBRARIES} 
+-  ${MPI_CXX_LIBRARIES}
+-)
+-gridpack_add_unit_test(shuffle shuffle_test)
++#add_executable(shuffle_test test/shuffle_test.cpp)
++#target_link_libraries(shuffle_test 
++#  gridpack_parallel 
++#  ${GA_LIBRARIES} 
++#  ${Boost_LIBRARIES} 
++#  ${MPI_CXX_LIBRARIES}
++#)
++#gridpack_add_unit_test(shuffle shuffle_test)
+ 
+ # -------------------------------------------------------------
+ # TEST: hash_test
+ # A simple program to test the task manager
+ # -------------------------------------------------------------
+-add_executable(hash_test test/hash_test.cpp)
+-target_link_libraries(hash_test gridpack_parallel 
+-  ${GA_LIBRARIES} ${Boost_LIBRARIES} ${MPI_CXX_LIBRARIES} gridpack_timer)
++#add_executable(hash_test test/hash_test.cpp)
++#target_link_libraries(hash_test gridpack_parallel 
++#  ${GA_LIBRARIES} ${Boost_LIBRARIES} ${MPI_CXX_LIBRARIES} gridpack_timer)
+ 
+-gridpack_add_unit_test(hash_test hash_test)
++#gridpack_add_unit_test(hash_test hash_test)
+ 
+ # -------------------------------------------------------------
+ # TEST: random_test
+ # A simple program to test the random number generator
+ # -------------------------------------------------------------
+-add_executable(random_test test/random_test.cpp)
+-target_link_libraries(random_test gridpack_parallel 
+-  ${GA_LIBRARIES} ${Boost_LIBRARIES} ${MPI_CXX_LIBRARIES})
++#add_executable(random_test test/random_test.cpp)
++#target_link_libraries(random_test gridpack_parallel 
++#  ${GA_LIBRARIES} ${Boost_LIBRARIES} ${MPI_CXX_LIBRARIES})
+ 
+-gridpack_add_run_test(random_test random_test "")
++#gridpack_add_run_test(random_test random_test "")
+diff --git a/src/parser/CMakeLists.txt b/src/parser/CMakeLists.txt
+index 08e07b8..30d27d2 100644
+--- a/src/parser/CMakeLists.txt
++++ b/src/parser/CMakeLists.txt
+@@ -45,40 +45,40 @@ endif()
+ #add_executable(PTI23_test test/PTI23_test.cpp)
+ #target_link_libraries(PTI23_test ${target_libraries})
+ 
+-add_executable(parser_test test/parser_test.cpp)
+-target_link_libraries(parser_test ${target_libraries})
++#add_executable(parser_test test/parser_test.cpp)
++#target_link_libraries(parser_test ${target_libraries})
+ 
+-add_custom_target(test_parser_input
++#add_custom_target(test_parser_input
+ 
+-  COMMAND ${CMAKE_COMMAND} -E copy 
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test/test.xml
+-  ${CMAKE_CURRENT_BINARY_DIR}
++#  COMMAND ${CMAKE_COMMAND} -E copy 
++#  ${CMAKE_CURRENT_SOURCE_DIR}/test/test.xml
++#  ${CMAKE_CURRENT_BINARY_DIR}
+ 
+-  COMMAND ${CMAKE_COMMAND} -E copy 
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test/parser_data.raw
+-  ${CMAKE_CURRENT_BINARY_DIR}
++#  COMMAND ${CMAKE_COMMAND} -E copy 
++#  ${CMAKE_CURRENT_SOURCE_DIR}/test/parser_data.raw
++#  ${CMAKE_CURRENT_BINARY_DIR}
+ 
+-  COMMAND ${CMAKE_COMMAND} -E copy 
+-  ${GridPACK_SOURCE_DIR}/applications/powerflow/IEEE14.raw
+-  ${CMAKE_CURRENT_BINARY_DIR}
++#  COMMAND ${CMAKE_COMMAND} -E copy 
++#  ${GridPACK_SOURCE_DIR}/applications/powerflow/IEEE14.raw
++#  ${CMAKE_CURRENT_BINARY_DIR}
+ 
+-  DEPENDS
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test/test.xml
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test/parser_data.raw
+-  ${GridPACK_SOURCE_DIR}/applications/powerflow/IEEE14.raw
+-)
+-add_dependencies(parser_test test_parser_input)
++#  DEPENDS
++#  ${CMAKE_CURRENT_SOURCE_DIR}/test/test.xml
++#  ${CMAKE_CURRENT_SOURCE_DIR}/test/parser_data.raw
++#  ${GridPACK_SOURCE_DIR}/applications/powerflow/IEEE14.raw
++#)
++#add_dependencies(parser_test test_parser_input)
+ #add_dependencies(PTI23_test test_parser_input)
+ 
+-gridpack_add_run_test(parser_test parser_test "IEEE14.raw")
++#gridpack_add_run_test(parser_test parser_test "IEEE14.raw")
+ 
+ # -------------------------------------------------------------
+ # TEST: hash_distr_test
+ # -------------------------------------------------------------
+-add_executable(hash_distr_test test/hash_distr_test.cpp)
+-target_link_libraries(hash_distr_test ${target_libraries})
++#add_executable(hash_distr_test test/hash_distr_test.cpp)
++#target_link_libraries(hash_distr_test ${target_libraries})
+ 
+-gridpack_add_unit_test(hash_distr_test hash_distr_test)
++#gridpack_add_unit_test(hash_distr_test hash_distr_test)
+ 
+ # -------------------------------------------------------------
+ # installation
+diff --git a/src/partition/CMakeLists.txt b/src/partition/CMakeLists.txt
+index 501cb2f..a039f8f 100644
+--- a/src/partition/CMakeLists.txt
++++ b/src/partition/CMakeLists.txt
+@@ -76,24 +76,24 @@ add_library(gridpack_partition
+ # -------------------------------------------------------------
+ # partition test suite
+ # -------------------------------------------------------------
+-add_executable(partition_test 
+-  test/partition_test.cpp
+-)
+-target_link_libraries(partition_test gridpack_partition ${target_libraries})
+-gridpack_add_unit_test(partition partition_test)
++#add_executable(partition_test 
++#  test/partition_test.cpp
++#)
++#target_link_libraries(partition_test gridpack_partition ${target_libraries})
++#gridpack_add_unit_test(partition partition_test)
+ 
+ 
+ 
+ # -------------------------------------------------------------
+ # ParMETIS specific unit tests
+ # -------------------------------------------------------------
+-if (PARMETIS_FOUND) 
+-    add_executable(parmetis_test 
+-      test/parmetis_test.cpp
+-    )
+-    target_link_libraries(parmetis_test gridpack_partition ${target_libraries})
+-    gridpack_add_unit_test(parmetis parmetis_test)
+-endif (PARMETIS_FOUND)
++#if (PARMETIS_FOUND) 
++#    add_executable(parmetis_test 
++#      test/parmetis_test.cpp
++#    )
++#    target_link_libraries(parmetis_test gridpack_partition ${target_libraries})
++#    gridpack_add_unit_test(parmetis parmetis_test)
++#endif (PARMETIS_FOUND)
+ 
+ # -------------------------------------------------------------
+ # installation
+diff --git a/src/serial_io/CMakeLists.txt b/src/serial_io/CMakeLists.txt
+index ac5592f..27f0ed4 100644
+--- a/src/serial_io/CMakeLists.txt
++++ b/src/serial_io/CMakeLists.txt
+@@ -45,24 +45,24 @@ endif()
+ # TEST: greetings
+ # A simple Serial IO test program
+ # -------------------------------------------------------------
+-add_executable(test_serial_io test/test_serial_io.cpp)
+-target_link_libraries(test_serial_io ${target_libraries})
+-if (GOSS_DIR)
+-  add_executable(test_goss test/test_goss.cpp)
+-  target_link_libraries(test_goss ${target_libraries} ${GOSS_LIBRARY} ${APR_LIBRARY})
+-
+-  add_custom_target(test_goss_input
+- 
+-    COMMAND ${CMAKE_COMMAND} -E copy 
+-    ${CMAKE_CURRENT_SOURCE_DIR}/test/input_goss.xml
+-    ${CMAKE_CURRENT_BINARY_DIR}
+-
+-    DEPENDS 
+-    ${CMAKE_CURRENT_SOURCE_DIR}/test/input_goss.xml
+-    )
+-
+-  add_dependencies(test_goss test_goss_input)
+-endif()
++#add_executable(test_serial_io test/test_serial_io.cpp)
++#target_link_libraries(test_serial_io ${target_libraries})
++#if (GOSS_DIR)
++#  add_executable(test_goss test/test_goss.cpp)
++#  target_link_libraries(test_goss ${target_libraries} ${GOSS_LIBRARY} ${APR_LIBRARY})
++#
++#  add_custom_target(test_goss_input
++# 
++#    COMMAND ${CMAKE_COMMAND} -E copy 
++#    ${CMAKE_CURRENT_SOURCE_DIR}/test/input_goss.xml
++#    ${CMAKE_CURRENT_BINARY_DIR}
++#
++#    DEPENDS 
++#    ${CMAKE_CURRENT_SOURCE_DIR}/test/input_goss.xml
++#    )
++#
++#  add_dependencies(test_goss test_goss_input)
++#endif()
+ 
+ # -------------------------------------------------------------
+ # installation
+diff --git a/src/timer/CMakeLists.txt b/src/timer/CMakeLists.txt
+index 00b373b..9ffe311 100644
+--- a/src/timer/CMakeLists.txt
++++ b/src/timer/CMakeLists.txt
+@@ -33,10 +33,10 @@ include_directories(AFTER ${GA_INCLUDE_DIRS})
+ # TEST: test_timer
+ # -------------------------------------------------------------
+ 
+-add_executable(test_timer test/test_timer.cpp)
+-target_link_libraries(test_timer ${target_libraries})
++#add_executable(test_timer test/test_timer.cpp)
++#target_link_libraries(test_timer ${target_libraries})
+ 
+-gridpack_add_unit_test(timer_test test_timer)
++#gridpack_add_unit_test(timer_test test_timer)
+ 
+ # -------------------------------------------------------------
+ # installation
+diff --git a/src/utilities/CMakeLists.txt b/src/utilities/CMakeLists.txt
+index 99aeae4..828b9d1 100644
+--- a/src/utilities/CMakeLists.txt
++++ b/src/utilities/CMakeLists.txt
+@@ -37,5 +37,5 @@ include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
+ # -------------------------------------------------------------
+ # TEST: test_network
+ # -------------------------------------------------------------
+-add_executable(test_string test/test_string.cpp)
+-target_link_libraries(test_string ${target_libraries})
++#add_executable(test_string test/test_string.cpp)
++#target_link_libraries(test_string ${target_libraries})
