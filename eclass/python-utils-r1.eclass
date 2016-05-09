@@ -325,10 +325,10 @@ python_export() {
 	local save_IFS=$IFS
 	local prefix=""
 	IFS=":"
-	local i
-	for i in $prefixes; do
-		if [ -x $i/usr/bin/${impl} ]; then
-			prefix="$i"
+	local p
+	for p in $prefixes; do
+		if [ -x $p/usr/bin/${impl} ]; then
+			prefix="$p"
 			break
 		fi
 	done
@@ -1161,6 +1161,7 @@ python_fix_shebang() {
 
 				# Match left-to-right in a loop, to avoid matching random
 				# repetitions like 'python2.7 python2'.
+				local i
 				for i in "${split_shebang[@]}"; do
 					case "${i}" in
 						*"${EPYTHON}")
