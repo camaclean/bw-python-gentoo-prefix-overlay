@@ -188,8 +188,30 @@ src_configure() {
 	append-ldflags "-L."
 
 	# make sure setup.py considers Prefix' paths before system ones
-	use prefix && append-cppflags -I"${EPREFIX}"/usr/include
-	use prefix && append-ldflags -L"${EPREFIX}"/lib -L"${EPREFIX}"/usr/lib
+	if use prefix; then
+		save_IFS=$IFS
+		IFS=":"
+		if [ -z "${CPATH}" ] && [ -z "${CPLUS_INCLUDE_PATH}" ]; then
+			append-cppflags -I"${EPREFIX}"/usr/include
+		elif [ ! -z "${CPLUS_INCLUDE_PATH}" ]; then
+			for path in ${CPLUS_INCLUDE_PATH}; do
+				append-cppflags -I$path
+			done
+		elif [ ! -z "${CPATH}" ]; then
+			for path in ${CPATH}; do
+				append-cppflags -I$path
+			done
+		fi
+		if [ -z "${LIBRARY_PATH}" ]; then
+			append-ldflags -L"${EPREFIX}"/$(get_libdir)
+			append-ldflags -L"${EPREFIX}"/usr/$(get_libdir)
+		else
+			for path in ${LIBRARY_PATH}; do
+				append-ldflags -L$path
+			done
+		fi
+		IFS=$save_IFS
+	fi
 
 	local dbmliborder
 	if use gdbm; then
