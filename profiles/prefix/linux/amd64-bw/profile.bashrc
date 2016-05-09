@@ -17,7 +17,7 @@ fi
 #echo $CFLAGS
 
 Pkgenvs=(
-	 "dev-python/numpy cray"
+	 "sys-devel/gdb addL"
 	 "dev-python/numpy-pypy cray"
 	 "dev-python/pypy ncurses"
 	 "dev-python/pypy3 ncurses"
@@ -31,21 +31,23 @@ Pkgenvs=(
 	 "sys-libs/ncurses nolibdirs"
 	 "media-libs/libpng nodirs"
 	 "dev-lang/python ncurses"
+	 "app-shells/bash addL"
+	 "dev-lang/tk addL"
 	 "sci-physics/harminv pthread"
 	 "sci-libs/gsl pthread"
 	 "dev-lang/python:2.7 rt"
 	 "sci-libs/superlu cray"
          "dev-python/pysparse cray"
-	 "dev-qt/qtcore nohostdirs"
-	 "dev-qt/qtscript simple nohostdirs" 
-	 "dev-qt/qtsql nohostdirs"
-	 "dev-qt/qtxmlpatterns nohostdirs"
-	 "dev-qt/qtgui nohostdirs x11"
-	 "dev-qt/qtsvg nohostdirs"
-	 "dev-qt/qtopengl nohostdirs"
-	 "dev-qt/qtwebkit nohostdirs"
-	 "dev-qt/qtdeclarative nohostdirs x11"
-	 "dev-python/PyQt4 nohostdirs"
+	 #"dev-qt/qtcore nohostdirs"
+	 #"dev-qt/qtscript simple nohostdirs" 
+	 #"dev-qt/qtsql nohostdirs"
+	 #"dev-qt/qtxmlpatterns nohostdirs"
+	 #"dev-qt/qtgui nohostdirs x11"
+	 #"dev-qt/qtsvg nohostdirs"
+	 #"dev-qt/qtopengl nohostdirs"
+	 #"dev-qt/qtwebkit nohostdirs"
+	 #"dev-qt/qtdeclarative nohostdirs x11"
+	 #"dev-python/PyQt4 nohostdirs"
 	 "dev-python/cvxopt cray"
 	# "dev-python/pycuda noinc nvidiadrivers"
 	 "dev-python/pyopencl nvidiadrivers"
@@ -163,6 +165,17 @@ do
 				export CXXFLAGS="${CFLAGS}"
 				;;
 
+			addL)
+				save_IFS=$IFS
+				IFS=":"
+				for l in ${LIBRARY_PATH}; do
+					CFLAGS="${CFLAGS} -L$l"
+					CXXFLAGS="${CXXFLAGS} -L$l"
+				done
+				IFS=$save_IFS
+				export CFLAGS CXXFLAGS
+				;;
+
 			nolibdirs)
 				export CFLAGS=$(echo "$CFLAGS" | perl -pe 's/-L[\S]+//g and s/-l[\S]+//g and s/[\s]+/ /g')
 				export FFLAGS=$(echo "$CFLAGS" | perl -pe 's/-L[\S]+//g and s/-l[\S]+//g and s/[\s]+/ /g')
@@ -224,7 +237,6 @@ do
 			rt)
 				export LDFLAGS="${LDFLAGS} -lrt"
 				;;
-
 			*)
 				;;	
 			esac
@@ -245,14 +257,19 @@ if [ -n "${USING_CRAY_ENV}" ] && [[ ${EBUILD_PHASE} == unpack ]]; then
 	#export LDFLAGS="$CRAY_LDFLAGS $LDFLAGS"
 fi
 
+
 if [[ ${EBUILD_PHASE} == unpack ]]; then
 	PATHTMP="$(echo $PATH | sed 's|:/usr/bin:/bin||g')"
 	ORIG_PATH2="$(echo $ORIG_PATH | sed 's|:/usr/bin:/bin||g')"
 	#export PATH="$PATHTMP:$HOST_PATH"
-	export PATH="$ORIG_PATH2:$PATHTMP:/usr/bin:/bin"
+	if [ -z "${ORIG_PATH2}" ]; then
+		export PATH="$PATHTMP:/usr/bin:/bin"
+	else
+		export PATH="$ORIG_PATH2:$PATHTMP:/usr/bin:/bin"
+	fi
+	unset PATHTMP ORIG_PATH2
 	PATH2="$(echo $PATH | sed -e "s|:@sbindir@:|:|" -e "s|:@bindir@:|:|"| perl -pe 's|:[a-zA-Z0-9./_-]+sbin:|:|g')"
-	export PATH="$PATH2"
-	#echo "$PATH"
+	export PATH="$PATH2:${EPREFIX}/usr/sbin:${EPREFIX}/sbin"
 	export LDFLAGS="$LDFLAGS $LDP_LDFLAGS"
 	export LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
 fi

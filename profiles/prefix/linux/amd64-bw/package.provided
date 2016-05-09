@@ -15,14 +15,14 @@ sys-devel/binutils-config-4-r2
 #app-misc/pax-utils-1.0.3
 virtual/libudev-215-r1
 sys-libs/binutils-libs-2.25.1-r1
-sys-apps/help2man-1.46.6
+#sys-apps/help2man-1.46.6 #missing help2man
 sys-apps/man-1.6g
 virtual/opengl-7.0-r1
 dev-util/gtk-doc-am-1.24
 sys-devel/libtool-2.4.6
 dev-libs/expat-2.1.0-r5
 #sys-devel/gettext-0.19.4 #gettext tools not installed
-net-misc/wget-1.16
+#net-misc/wget-1.16 #openssl too old 
 sys-kernel/linux-headers-3.18
 #app-crypt/mhash-0.9.9.9-r1
 #sys-devel/bison-3.0.4-r1 Need a newer version for gstreamer
@@ -34,22 +34,21 @@ sys-process/psmisc-22.21-r2
 #dev-libs/libpcre-8.36
 #app-editors/nano-2.3.6
 sys-process/procps-3.3.9-r2
-sys-apps/texinfo-5.2
+#sys-apps/texinfo-5.2 #missing makeinfo
 sys-apps/groff-1.22.2
 sys-apps/man-pages-4.00
 sys-apps/man-pages-posix-2013a
 #dev-libs/openssl-1.0.1p
 net-misc/openssh-6.9_p1-r2
 #sys-libs/gdbm-1.11
-#app-text/sgml-common-0.6.3-r5
 app-arch/unzip-6.0-r3
 dev-libs/libgpg-error-1.13
 #dev-libs/elfutils-0.158 #need libelf.h for prelink
 sys-libs/db-4.8.30-r2
-dev-libs/libxslt-1.1.28-r4
+#dev-libs/libxslt-1.1.28-r4
 #dev-util/intltool-0.50.2-r1
 dev-libs/iniparser-3.1-r1
-app-text/docbook-xsl-stylesheets-1.78.0-r1
+#app-text/docbook-xsl-stylesheets-1.78.0-r1
 dev-libs/libassuan-2.1.1
 dev-libs/libksba-1.3.3
 dev-libs/libgcrypt-1.5.4-r1
@@ -59,7 +58,7 @@ dev-libs/nettle-2.7.1-r4
 #net-misc/curl-7.43.0 #cmake requires CURLE_NOT_BUILT_IN, not in system curl
 dev-vcs/mercurial-2.3.2
 #dev-vcs/git-2.4.6
-dev-vcs/git-2.5.1
+#dev-vcs/git-2.5.1
 app-crypt/gnupg-2.0.26-r3
 dev-util/pkgconfig-2.28-r3
 app-editors/vim-7.4.827
@@ -75,20 +74,20 @@ sci-libs/lapack-reference-3.6.0-r1
 #media-libs/freetype-2.6
 sys-libs/libcap-2.24-r2
 x11-libs/libSM-1.2.1-r1
-x11-libs/libX11-1.5.0-r1
+#x11-libs/libX11-1.5.0-r1
 x11-libs/libXft-2.1.13
 x11-libs/libXt-1.0.5
-x11-libs/libxcb-1.9
-x11-proto/xcb-proto-1.1
+#x11-libs/libxcb-1.9
+#x11-proto/xcb-proto-1.1
 #x11-proto/xcb-proto-1.11
 x11-libs/libXrender-0.9.7-r1
-x11-libs/xcb-util-renderutil-0.3.8
-x11-proto/xproto-7.0.13
-x11-libs/libXext-1.3.1-r1
+#x11-libs/xcb-util-renderutil-0.3.8
+#x11-proto/xproto-7.0.13
+#x11-libs/libXext-1.3.1-r1
 x11-proto/xextproto-7.0.3
 x11-libs/libXdmcp-1.1.1-r1
 x11-proto/renderproto-0.9.3
-x11-libs/libXrandr-1.4.0-r1
+#x11-libs/libXrandr-1.4.0-r1
 x11-libs/libXi-1.7.1
 x11-libs/xtrans-1.2.4
 virtual/jpeg-0-r2
@@ -112,7 +111,7 @@ sys-fs/e2fsprogs-1.42.9-r1
 virtual/os-headers-0
 virtual/ttf-fonts-1
 #x11-libs/cairo-1.8.8
-app-text/sgml-common-0.6.3-r5
+#app-text/sgml-common-0.6.3-r5
 sys-apps/less-479
 app-misc/ca-certificates-20141019.3.19
 #dev-util/cmake-2.8.10.2
@@ -127,31 +126,31 @@ virtual/blas-2.1-r3
 virtual/blas-1.0
 sci-libs/hdf5-1.8.14-r1
 sci-libs/netcdf-4.3.3.1
-virtual/perl-Scalar-List-Utils-1.410.0
-virtual/perl-Parse-CPAN-Meta-1.441.400-r1
-virtual/perl-CPAN-Meta-YAML-0.12.0-r1
-virtual/perl-ExtUtils-MakeMaker-7.40.100_rc
-virtual/perl-libnet-3.50.0
-virtual/perl-Digest-SHA-5.950.0
-virtual/perl-Digest-MD5-2.540.0
-virtual/perl-version-0.990.900-r2
-virtual/perl-Text-ParseWords-3.300.0
-virtual/perl-Test-Simple-1.1.14
-virtual/perl-Test-Harness-3.350.0
-virtual/perl-Perl-OSType-1.8.0
-virtual/perl-Module-Metadata-1.0.26
-virtual/perl-Getopt-Long-2.450.0
-perl-core/File-Temp-0.230.400-r1
-virtual/perl-File-Spec-3.560.0
-virtual/perl-ExtUtils-ParseXS-3.280.0
-virtual/perl-ExtUtils-Manifest-1.700.0-r1
-virtual/perl-ExtUtils-Install-2.40.0
-virtual/perl-ExtUtils-CBuilder-0.280.221
-virtual/perl-Data-Dumper-2.158.0
-virtual/perl-JSON-PP-2.273.0
-dev-perl/Digest-HMAC-1.30.0-r1
-dev-perl/Net-SSLeay-1.650.0
-virtual/perl-File-Temp-0.230.400-r3
+#virtual/perl-Scalar-List-Utils-1.410.0
+#virtual/perl-Parse-CPAN-Meta-1.441.400-r1
+#virtual/perl-CPAN-Meta-YAML-0.12.0-r1
+#virtual/perl-ExtUtils-MakeMaker-7.40.100_rc
+#virtual/perl-libnet-3.50.0
+#virtual/perl-Digest-SHA-5.950.0
+#virtual/perl-Digest-MD5-2.540.0
+#virtual/perl-version-0.990.900-r2
+#virtual/perl-Text-ParseWords-3.300.0
+#virtual/perl-Test-Simple-1.1.14
+#virtual/perl-Test-Harness-3.350.0
+#virtual/perl-Perl-OSType-1.8.0
+#virtual/perl-Module-Metadata-1.0.26
+#virtual/perl-Getopt-Long-2.450.0
+#perl-core/File-Temp-0.230.400-r1
+#virtual/perl-File-Spec-3.560.0
+#virtual/perl-ExtUtils-ParseXS-3.280.0
+#virtual/perl-ExtUtils-Manifest-1.700.0-r1
+#virtual/perl-ExtUtils-Install-2.40.0
+#virtual/perl-ExtUtils-CBuilder-0.280.221
+#virtual/perl-Data-Dumper-2.158.0
+#virtual/perl-JSON-PP-2.273.0
+#dev-perl/Digest-HMAC-1.30.0-r1
+#dev-perl/Net-SSLeay-1.650.0
+#virtual/perl-File-Temp-0.230.400-r3
 #dev-db/sqlite-3.8.10.2 # python _sqlite not building against system sqlite
 sci-libs/scalapack-2.0.2
 sci-libs/fftw-3.3.4

@@ -31,3 +31,5 @@ sys-apps/man-db
 =dev-libs/gobject-introspection-1.46.0
 =dev-libs/gobject-introspection-common-1.46.0
 =app-arch/bzip2-9999
+# find/choices limitation breaks pyrsistent
+>=dev-python/hypothesis-2.0.0 
