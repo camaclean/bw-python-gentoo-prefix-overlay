@@ -208,7 +208,7 @@ index 289d04b..bae2ddb 100644
 +			"${PORTAGE_BIN_PATH}/ebuild-helpers/portageq" has_version "${eroot}" "${atom}"
 +			retval=$?
 +		fi
-+		[[ retval == 0 ]] && break
++		[[ ${retval} == 0 ]] && break
 +	done
 +	IFS=$save_IFS
  	case "${retval}" in
