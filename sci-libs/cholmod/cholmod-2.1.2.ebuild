@@ -4,7 +4,7 @@
 
 EAPI=5
 
-inherit autotools-utils multilib toolchain-funcs craymodules
+inherit autotools-utils multilib toolchain-funcs
 
 DESCRIPTION="Sparse Cholesky factorization and update/downdate library"
 HOMEPAGE="http://www.cise.ufl.edu/research/sparse/cholmod/"
@@ -35,7 +35,7 @@ src_prepare() {
 		epatch "${FILESDIR}"/${PN}-1.7.4-parmetis32.patch
 }
 
-use cray cuda && module load cudatoolkit
+ENVMOD_REQUIRE="cudatoolkit"
 
 src_configure() {
 	local lapack_libs=no
