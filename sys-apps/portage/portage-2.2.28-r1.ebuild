@@ -210,6 +210,7 @@ python_install() {
 		--sbindir="$(python_get_scriptdir)" \
 		--sysconfdir="${EPREFIX}/etc" \
 		"${@}"
+	cp "${FILESDIR}"/envmod-functions.sh.${PV} "${EPREFIX}/usr/lib/portage/${EPYTHON}/envmod-functions.sh"
 }
 
 python_install_all() {

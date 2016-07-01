@@ -1,0 +1,191 @@
+## #!/usr/bin/env bash
+
+# . /sw/xe/bwpy/0.2.0/usr/lib/portage/bin/isolated-functions.sh
+
+# envmod_list_loaded_modules
+#
+# Print a list of currently loaded modules
+#
+envmod_list_loaded_modules()
+{
+	local saveIFS=$IFS
+	IFS=':'
+	local modules=( $LOADEDMODULES )
+	IFS=$saveIFS
+	echo ${modules[@]}
+}
+
+# envmod_module_loaded module
+#
+# Test if module $module is currently loaded
+#
+envmod_module_loaded()
+{
+	local modules=( $(envmod_list_loaded_modules) )
+	case "${modules[@]}" in *" ${1}"*) return 0 ;; esac
+	return 1
+}
+
+# envmod_list_potential_conflicts module
+#
+# Print a list of potential conflicts for module $module
+#
+envmod_list_potential_conflicts()
+{
+	local conflicts=( "$(module show ${1} 2>&1 | grep "conflict" | cut -f 2)" )
+	echo ${conflicts[@]/${1%/*}}
+}
+
+envmod__found_conflicts=()
+
+# envmod_conflicts module potential_conflicts...
+#
+# Test if $module conflicts with any potential conflicts
+#
+envmod_conflicts()
+{
+	[[ $# < 2 ]] && die "Expected list of potential conflicts"
+	local conflicts=( $(envmod_list_potential_conflicts ${1}) )
+	shift
+	local mod
+	envmod__found_conflicts=()
+	for mod in "${@%/*}"; do
+		case "${conflicts[@]}" in *"${mod}"*) envmod__found_conflicts+=( ${mod} ); return 0 ;; esac
+	done
+	return 1
+}
+
+# envmod_loaded_conflicts module
+#
+# Test if $module conflicts with loaded modules
+#
+envmod_loaded_conflicts()
+{
+	envmod_conflicts ${1} $(envmod_list_loaded_modules)
+}
+
+# envmod_list_conflicts module potential_conflicts...
+#
+# Print a list of conflicts for $module in ${potential_conflicts[@]}
+envmod_list_conflicts()
+{
+	[[ $# < 2 ]] && die "Expected list of potential conflicts"
+	local potential_conflicts=( $(envmod_list_potential_conflicts ${1}) ) conflicts=()
+	shift
+	local mod
+	for mod in "${@%/*}"; do
+		case "${potential_conflicts[@]}" in *"${mod}"*) conflicts+=( ${mod} ) ;; esac
+	done
+	echo "${conflicts[@]}"
+}
+
+# envmod_list_loaded_conflicts module
+#
+# Print a list of conflicts for $module in currently loaded modules
+#
+envmod_list_loaded_conflicts()
+{
+	envmod_list_conflicts ${1} $(envmod_list_loaded_modules)
+}
+
+# envmod_list_last_conflicts
+#
+# Print the conflicts found from running `envmod_conflicts`
+#
+envmod_list_last_conflicts()
+{
+	echo "${envmod__found_conflicts[@]}"
+}
+
+# envmod_modify_modules
+#
+# Modify which environment modules are currently loaded
+#
+envmod_modify_modules()
+{
+	local mod
+	for mod in "${@}"; do
+		case $mod in
+			"!!")
+				local MODULESHOME_BAK="$MODULESHOME"
+				eval "$("${MODULESHOME}"/bin/modulecmd bash purge)"
+				export MODULESHOME="${MODULESHOME_BAK}"
+				;;
+			"-"*)
+				eval "$("${MODULESHOME}"/bin/modulecmd bash unload ${mod#-})"
+				;;
+			%*)
+				local save_IFS=$IFS
+				IFS=":"
+				local parts=( ${mod#%} )
+				IFS=$save_IFS
+				eval "$("${MODULESHOME}"/bin/modulecmd bash switch ${parts[@]})"
+				;;
+			*)	
+				eval "$("${MODULESHOME}"/bin/modulecmd bash load ${mod})"
+				;;
+		esac
+	done
+}
+
+#ENVMOD="-cudatoolkit %PrgEnv-gnu:PrgEnv-intel"
+#ENVMOD_RESTRICT="cudatoolkit PrgEnv-gnu"
+#ENVMOD_REQUIRE="PrgEnv-intel"
+
+envmod_check_restrict()
+{
+	local m arr_ENVMOD_RESTRICT=( $ENVMOD_RESTRICT ) restricted_found=()
+	for m in "${arr_ENVMOD_RESTRICT[@]}"; do
+		if envmod_module_loaded "$m"; then
+			restricted_found+=( "$m" )
+		fi
+	done
+	if [[ ${#restricted_found[@]} > 0 ]]; then
+		echo "${restricted_found[@]}"
+		return 1
+	else
+		return 0
+	fi
+}
+
+envmod_check_require()
+{
+	local m arr_ENVMOD_REQUIRE=( $ENVMOD_REQUIRE ) required_not_found=()
+	for m in "${arr_ENVMOD_REQUIRE[@]}"; do
+		if ! envmod_module_loaded "$m"; then
+			required_not_found+=( "$m" )
+		fi
+	done
+	if [[ ${#required_not_found[@]} > 0 ]]; then
+		echo "${required_not_found[@]}"
+		return 1
+	else
+		return 0
+	fi
+}
+
+envmod_check_restrict_fatal()
+{
+	local restricted
+	if ! restricted="$(envmod_check_restrict)"; then
+		die "Incompatible Environment Modules loaded: ${restricted}"
+	fi
+}
+
+envmod_check_require_fatal()
+{
+	local required
+	if ! required="$(envmod_check_require)"; then
+		die "Required Environment Modules not loaded: ${required}"
+	fi
+}
+
+envmod_process_ENVMOD()
+{
+	envmod_modify_modules $ENVMOD
+}
+
+#envmod_process_ENVMOD
+#envmod_check_restrict_fatal
+#envmod_check_require_fatal
+
