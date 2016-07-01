@@ -33,3 +33,4 @@ sys-apps/man-db
 =app-arch/bzip2-9999
 # find/choices limitation breaks pyrsistent
 >=dev-python/hypothesis-2.0.0 
+sys-apps/portage::gentoo_prefix
