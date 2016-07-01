@@ -17,6 +17,9 @@ fi
 #echo $CFLAGS
 #echo "bashrc LIBRARY_PATH: $LIBRARY_PATH"
 
+export LIBRARY_PATH="$EPREFIX/usr/lib64:$EPREFIX/lib64:$EPREFIX/usr/lib:$EPREFIX/lib:$LIBRARY_PATH"
+export CPATH="$EPREFIX/usr/include:$CPATH"
+
 Pkgenvs=(
 	 "sys-devel/gdb addL"
 	 "dev-python/numpy-pypy cray"
