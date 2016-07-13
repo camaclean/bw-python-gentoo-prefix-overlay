@@ -140,11 +140,20 @@ src_configure() {
 			-DMKL_LIBRARIES="$(echo /opt/intel/mkl/10.0.5.025/lib/*/libmkl.so);$(echo /opt/intel/mkl/10.0.5.025/lib/*/libiomp*.so)"
 		)
 	elif use mkl; then
-		local bits=$(get_libdir)
-		fft_opts=( -DGMX_FFT_LIBRARY=mkl
-			-DMKL_INCLUDE_DIR="$(echo /opt/intel/*/mkl/include)"
-			-DMKL_LIBRARIES="$(echo /opt/intel/*/mkl/lib/*${bits/lib}/libmkl_rt.so)"
-		)
+		if use cray; then
+			local bits=$(get_libdir)
+			[[ ${bits} == lib ]] && bits=lib64
+			fft_opts=( -DGMX_FFT_LIBRARY=mkl
+				-DMKL_INCLUDE_DIR="$(echo /opt/intel/mkl/include)"
+				-DMKL_LIBRARIES="$(echo /opt/intel/mkl/lib/*${bits/lib}/libmkl_rt.so)"
+			)
+		else
+			local bits=$(get_libdir)
+			fft_opts=( -DGMX_FFT_LIBRARY=mkl
+				-DMKL_INCLUDE_DIR="$(echo /opt/intel/*/mkl/include)"
+				-DMKL_LIBRARIES="$(echo /opt/intel/*/mkl/lib/*${bits/lib}/libmkl_rt.so)"
+			)
+		fi
 	else
 		fft_opts=( -DGMX_FFT_LIBRARY=fftpack )
 	fi

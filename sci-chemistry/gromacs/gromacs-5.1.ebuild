@@ -6,7 +6,7 @@ EAPI=5
 
 CMAKE_MAKEFILE_GENERATOR="ninja"
 
-inherit bash-completion-r1 cmake-utils cuda eutils multilib readme.gentoo toolchain-funcs craymodules
+inherit bash-completion-r1 cmake-utils cuda eutils multilib readme.gentoo toolchain-funcs
 
 if [[ $PV = *9999* ]]; then
 	EGIT_REPO_URI="git://git.gromacs.org/gromacs.git

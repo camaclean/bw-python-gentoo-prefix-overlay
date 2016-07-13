@@ -1,0 +1,22 @@
+diff --git a/share/man/man1/wraprun.1 b/share/man/man1/wraprun.1
+index 1d75efb..e69670d 100644
+--- a/share/man/man1/wraprun.1
++++ b/share/man/man1/wraprun.1
+@@ -136,6 +136,17 @@ wraprun -n 5,6,5 --w-cd ./a,./b,./c foo
+ 
+ .fi
+ .in
++.SH ENVIRONMENT
++.IP WRAPRUN_PRELOAD
++The 
++.B WRAPRUN_PRELOAD
++environment variable must be correctly set to point to
++.IR libsplit.so ,
++which can be found at 
++.IR @GENTOO_PORTAGE_EPREFIX@/usr/lib/libsplit.so .
++In the case of fortran applications the location of libfmpich.so must also be
++provided e.g. 
++WRAPRUN_PRELOAD=@GENTOO_PORTAGE_EPREFIX@/usr/lib/libsplit.so:/path/to/libfmpich.so.
+ .SH REPORTING BUGS
+ Report bugs and feature requests to the wraprun issue tracker at:
+ <https://github.com/olcf/wraprun/issues>
