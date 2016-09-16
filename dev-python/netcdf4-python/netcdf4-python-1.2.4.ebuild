@@ -2,11 +2,11 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Id$
 
-EAPI=6
+EAPI=5
 
 PYTHON_COMPAT=( python2_7 python3_4 python3_5 )
 
-inherit distutils-r1
+inherit eutils distutils-r1
 
 MY_PN="netCDF4"
 MY_P="${MY_PN}-${PV}"
