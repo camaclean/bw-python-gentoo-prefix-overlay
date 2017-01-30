@@ -4,20 +4,13 @@
 
 EAPI=5
 
-PYTHON_COMPAT=( python2_7 python3_4 )
+PYTHON_COMPAT=( python2_7 python3_{4,5} )
 
 inherit multilib-build eutils python-r1 distutils-r1 cmake-utils
 
 DESCRIPTION="Open source software library for numerical computation using data flow graphs."
 HOMEPAGE="http://www.tensorflow.org/"
 SRC_URI="https://github.com/tensorflow/${PN}/archive/${PV}.tar.gz -> ${P}.tar.gz"
-
-#SRC_URI=""
-#EGIT_REPO_URI="https://github.com/tensorflow/tensorflow.git"
-#EGIT_HAS_SUBMODULES="yes"
-#if [[ ${PV} != 9999 ]]; then
-#	EGIT_COMMIT="v${PV}"
-#fi
 
 LICENSE="Apache-2.0"
 SLOT="0"
@@ -73,9 +66,7 @@ src_configure() {
 
 src_compile() {
 	python_compile() {
-		#MAKEOPTS="-j1"
 		cd "${BUILD_DIR}"
-		#emake || die
 		VERBOSE=1 emake tf_python_build_pip_package || die
 		cd tf_python || die
 		esetup.py build || die
@@ -85,16 +76,9 @@ src_compile() {
 
 src_install() {
 	python_install() {
-		cd "${BUILD_DIR}" || die
-		if use cuda; then
-			pip install --no-deps --ignore-installed --prefix="${ED}"/usr tf_python/dist/tensorflow_gpu-${PV}-*.whl
-		else
-			pip install --no-deps --ignore-installed --prefix="${ED}"/usr tf_python/dist/tensorflow-${PV}-*.whl
-		fi
-		mkdir -p "${ED}"/usr/lib/python-exec/${EPYTHON}/
-		mv "${ED}"/usr/bin/tensorboard "${ED}"/usr/lib/python-exec/${EPYTHON}/tensorboard
+		cd "${BUILD_DIR}/tf_python" || die;
+		distutils-r1_python_install
 	}
 	python_foreach_impl python_install
-	ln -snf ../lib/python-exec/python-exec2 "${ED}"/usr/bin/tensorflow
 }
 
