@@ -1,0 +1,234 @@
+diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
+index 5ac9ec5..c1ad91f 100644
+--- a/tensorflow/contrib/cmake/CMakeLists.txt
++++ b/tensorflow/contrib/cmake/CMakeLists.txt
+@@ -7,6 +7,11 @@ project(tensorflow C CXX)
+ # Set C++14 as standard for the whole project
+ set(CMAKE_CXX_STANDARD 14)
+ 
++set(CMAKE_EXE_LINKER_FLAGS "$ENV{LDFLAGS}")
++set(CMAKE_SHARED_LINKER_FLAGS "$ENV{LDFLAGS}")
++set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
++set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
++
+ # Actual source is the ../../.. directory
+ get_filename_component(tf_contrib_source_dir ${tensorflow_SOURCE_DIR} PATH)
+ get_filename_component(tf_tf_source_dir ${tf_contrib_source_dir} PATH)
+@@ -19,6 +24,9 @@ cmake_policy(SET CMP0022 NEW)
+ # Options
+ option(tensorflow_VERBOSE "Enable for verbose output" OFF)
+ option(tensorflow_ENABLE_GPU "Enable GPU support" OFF)
++option(tensorflow_CUDA_30 "Build for CUDA 3.0 compute capability" ON)
++option(tensorflow_CUDA_35 "Build for CUDA 3.5 compute capability" ON)
++option(tensorflow_CUDA_52 "Build for CUDA 5.2 compute capability" ON)
+ option(tensorflow_ENABLE_SSL_SUPPORT "Enable boringssl support" OFF)
+ option(tensorflow_ENABLE_GRPC_SUPPORT "Enable gRPC support" ON)
+ option(tensorflow_BUILD_CC_EXAMPLE "Build the C++ tutorial example" ON)
+@@ -153,45 +161,98 @@ if(UNIX)
+   list(APPEND tensorflow_EXTERNAL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
+ endif()
+ 
++function(JOIN VALUES GLUE OUTPUT)
++  string (REGEX REPLACE "([^\\]|^);" "\\1${GLUE}" _TMP_STR "${VALUES}")
++  string (REGEX REPLACE "[\\](.)" "\\1" _TMP_STR "${_TMP_STR}") #fixes escaping
++  set (${OUTPUT} "${_TMP_STR}" PARENT_SCOPE)
++endfunction()
++
++if(NOT (tensorflow_CUDA_30 OR tensorflow_CUDA_35 OR tensorflow_CUDA_52))
++  set(tensorflow_ENABLE_GPU FALSE)
++endif()
++
+ if (tensorflow_ENABLE_GPU)
+-  if (WIN32)
+-    find_package(CUDA 8.0 REQUIRED)
++  find_package(CUDA 7.5 REQUIRED)
+ 
+-    # by default we assume compute cabability 3.5 and 5.2. If you change this change it in
+-    # CUDA_NVCC_FLAGS and cuda_config.h below
+-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_30,code=\"sm_30,compute_30\";-gencode arch=compute_35,code=\"sm_35,compute_35\";-gencode arch=compute_52,code=\"sm_52,compute_52\")
+-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};--include-path ${PROJECT_BINARY_DIR}/$\{build_configuration\};--expt-relaxed-constexpr)
+-    set(CUDA_INCLUDE ${CUDA_TOOLKIT_TARGET_DIR} ${CUDA_TOOLKIT_TARGET_DIR}/extras/CUPTI/include)
+-    include_directories(${CUDA_INCLUDE})
+-    add_definitions(-DGOOGLE_CUDA=1 -DTF_EXTRA_CUDA_CAPABILITIES=3.0,3.5,5.2)
++  # by default we assume compute cabability 3.5 and 5.2. If you change this change it in
++  # CUDA_NVCC_FLAGS and cuda_config.h below
++  set(TF_EXTRA_CUDA_CAPABILITIES_30 "3.0")
++  set(TF_EXTRA_CUDA_CAPABILITIES_35 "3.5")
++  set(TF_EXTRA_CUDA_CAPABILITIES_52 "5.2")
++  set(CUDA_NVCC_FLAGS_30 "-gencode arch=compute_30,code=\"sm_30,compute_30\"")
++  set(CUDA_NVCC_FLAGS_35 "-gencode arch=compute_35,code=\"sm_35,compute_35\"")
++  set(CUDA_NVCC_FLAGS_52 "-gencode arch=compute_52,code=\"sm_30,compute_52\"")
++  set(TF_CUDA_CAPABILITIES_30 "CudaVersion(\"3.0\")")
++  set(TF_CUDA_CAPABILITIES_35 "CudaVersion(\"3.5\")")
++  set(TF_CUDA_CAPABILITIES_52 "CudaVersion(\"5.2\")")
++  if(tensorflow_CUDA_30)
++    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} ${CUDA_NVCC_FLAGS_30})
++    set(TF_CUDA_CAPABILITIES_LIST ${TF_CUDA_CAPABILITIES_LIST} ${TF_CUDA_CAPABILITIES_30})
++    set(TF_EXTRA_CUDA_CAPABILITIES_LIST ${TF_EXTRA_CUDA_CAPABILITIES_LIST} ${TF_EXTRA_CUDA_CAPABILITIES_30})
++  endif()
++  if(tensorflow_CUDA_35)
++    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} ${CUDA_NVCC_FLAGS_35})
++    set(TF_CUDA_CAPABILITIES_LIST ${TF_CUDA_CAPABILITIES_LIST} ${TF_CUDA_CAPABILITIES_35})
++    set(TF_EXTRA_CUDA_CAPABILITIES_LIST ${TF_EXTRA_CUDA_CAPABILITIES_LIST} ${TF_EXTRA_CUDA_CAPABILITIES_35})
++  endif()
++  if(tensorflow_CUDA_52)
++    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} ${CUDA_NVCC_FLAGS_52})
++    set(TF_CUDA_CAPABILITIES_LIST ${TF_CUDA_CAPABILITIES_LIST} ${TF_CUDA_CAPABILITIES_52})
++    set(TF_EXTRA_CUDA_CAPABILITIES_LIST ${TF_EXTRA_CUDA_CAPABILITIES_LIST} ${TF_EXTRA_CUDA_CAPABILITIES_52})
++  endif()
++  join("${TF_CUDA_CAPABILITIES_LIST}" "," TF_CUDA_CAPABILITIES)
++  join("${TF_EXTRA_CUDA_CAPABILITIES_LIST}" "," TF_EXTRA_CUDA_CAPABILITIES)
+ 
+-    # add cudnn
++  if(${CUDA_VERSION} STREQUAL "7.5")
++    set(TF_CUDA_VERSION "64_75")
++    set(CUDNN_VERSION "4")
++  elseif(${CUDA_VERSION} STREQUAL "8.0")
++    set(TF_CUDA_VERSION "64_80")
++    set(CUDNN_VERSION "5")
++  endif()
++  set(TF_CUDNN_VERSION "64_${CUDNN_VERSION}")
++
++  set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};--include-path ${PROJECT_BINARY_DIR}/$\{build_configuration\};--expt-relaxed-constexpr)
++  if(UNIX)
++    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-Xcompiler;-fPIC)
++  endif(UNIX)
++  set(CUDA_INCLUDE ${CUDA_TOOLKIT_TARGET_DIR} ${CUDA_TOOLKIT_TARGET_DIR}/extras/CUPTI/include)
++  include_directories(${CUDA_INCLUDE})
++  add_definitions(-DGOOGLE_CUDA=1 -DTF_EXTRA_CUDA_CAPABILITIES=${TF_EXTRA_CUDA_CAPABILITIES})
++
++  # add cudnn
++  if (WIN32)
+     include_directories(${CUDNN_HOME})
+     set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDNN_HOME}/lib/x64/cudnn.lib)
+-
+-    # create cuda_config.h
+-    FILE(WRITE ${tensorflow_source_dir}/third_party/gpus/cuda/cuda_config.h
+-      "#ifndef CUDA_CUDA_CONFIG_H_\n"
+-      "#define CUDA_CUDA_CONFIG_H_\n"
+-      "#define TF_CUDA_CAPABILITIES CudaVersion(\"3.0\"),CudaVersion(\"3.5\"),CudaVersion(\"5.2\")\n"
+-      "#define TF_CUDA_VERSION \"64_80\"\n"
+-      "#define TF_CUDNN_VERSION \"64_5\"\n"
+-      "#endif  // CUDA_CUDA_CONFIG_H_\n"
+-    )
+-
+-    # tf assumes in various places header files to be in cuda/include. On windows the cuda sdk
+-    # installs them under cuda/version/include and to avoid that we need to change tf we copy a
+-    # few files to cuda/include
+-    FILE(COPY
+-      ${CUDA_TOOLKIT_TARGET_DIR}/include/cuda.h ${CUDA_TOOLKIT_TARGET_DIR}/include/cuComplex.h
+-      ${CUDA_TOOLKIT_TARGET_DIR}/include/cublas_v2.h ${CUDNN_HOME}/include/cudnn.h
+-      ${CUDA_TOOLKIT_TARGET_DIR}/include/cufft.h ${CUDA_TOOLKIT_TARGET_DIR}/include/curand.h
+-      DESTINATION ${tensorflow_source_dir}/third_party/gpus/cuda/include
+-    )
+-    include_directories(${tensorflow_source_dir}/third_party/gpus)
+-    # add cuda libraries to tensorflow_EXTERNAL_LIBRARIES
+-    list(APPEND tensorflow_EXTERNAL_LIBRARIES ${CUDA_LIBRARIES})
++  elseif(UNIX)
++    #set(CUDNN_HOME "/sw/bw/bwpy/0.3.0/python-single/usr")
++    set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDNN_HOME}/lib/libcudnn.so)
+   endif()
++
++  # create cuda_config.h
++  FILE(WRITE ${tensorflow_source_dir}/third_party/gpus/cuda/cuda_config.h
++    "#ifndef CUDA_CUDA_CONFIG_H_\n"
++    "#define CUDA_CUDA_CONFIG_H_\n"
++    "#define TF_CUDA_CAPABILITIES ${TF_CUDA_CAPABILITIES}\n"
++    "#define TF_CUDA_VERSION \"${TF_CUDA_VERSION}\"\n"
++    "#define TF_CUDNN_VERSION \"${TF_CUDNN_VERSION}\"\n"
++    "#endif  // CUDA_CUDA_CONFIG_H_\n"
++  )
++
++  execute_process(COMMAND ln -snf "${CUDA_TOOLKIT_TARGET_DIR}/extras" "${tensorflow_source_dir}/third_party/gpus/cuda/")
++
++  # tf assumes in various places header files to be in cuda/include. On windows the cuda sdk
++  # installs them under cuda/version/include and to avoid that we need to change tf we copy a
++  # few files to cuda/include
++  FILE(COPY
++    ${CUDA_TOOLKIT_TARGET_DIR}/include/cuda.h ${CUDA_TOOLKIT_TARGET_DIR}/include/cuComplex.h
++    ${CUDA_TOOLKIT_TARGET_DIR}/include/cublas_v2.h ${CUDNN_HOME}/include/cudnn.h
++    ${CUDA_TOOLKIT_TARGET_DIR}/include/cufft.h ${CUDA_TOOLKIT_TARGET_DIR}/include/curand.h
++    DESTINATION ${tensorflow_source_dir}/third_party/gpus/cuda/include
++  )
++  include_directories(${tensorflow_source_dir}/third_party/gpus)
++  # add cuda libraries to tensorflow_EXTERNAL_LIBRARIES
++  list(APPEND tensorflow_EXTERNAL_LIBRARIES ${CUDA_LIBRARIES})
+ endif()
+ 
+ # Let's get to work!
+@@ -200,9 +261,7 @@ include(tf_tools.cmake)
+ # NOTE: Disabled until issue #3996 is fixed.
+ # include(tf_stream_executor.cmake)
+ if (tensorflow_ENABLE_GPU)
+-  if (WIN32)
+-    include(tf_stream_executor.cmake)
+-  endif()
++  include(tf_stream_executor.cmake)
+ endif()
+ 
+ include(tf_core_cpu.cmake)
+diff --git a/tensorflow/contrib/cmake/tf_core_kernels.cmake b/tensorflow/contrib/cmake/tf_core_kernels.cmake
+index 911e526..39de24a 100644
+--- a/tensorflow/contrib/cmake/tf_core_kernels.cmake
++++ b/tensorflow/contrib/cmake/tf_core_kernels.cmake
+@@ -123,16 +123,24 @@ endif(WIN32 AND tensorflow_ENABLE_GPU)
+ add_library(tf_core_kernels OBJECT ${tf_core_kernels_srcs})
+ add_dependencies(tf_core_kernels tf_core_cpu)
+ 
+-if(WIN32)
+-  target_compile_options(tf_core_kernels PRIVATE /MP)
+-  if (tensorflow_ENABLE_GPU)
+-    set_source_files_properties(${tf_core_gpu_kernels_srcs} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+-    set(tf_core_gpu_kernels_lib tf_core_gpu_kernels)
+-    cuda_add_library(${tf_core_gpu_kernels_lib} ${tf_core_gpu_kernels_srcs})
++if (tensorflow_ENABLE_GPU)
++  if(WIN32)
++    target_compile_options(tf_core_kernels PRIVATE /MP)
++  endif()
++  set_source_files_properties(${tf_core_gpu_kernels_srcs} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
++  set(tf_core_gpu_kernels_lib tf_core_gpu_kernels)
++  cuda_add_library(${tf_core_gpu_kernels_lib} ${tf_core_gpu_kernels_srcs})
++  if (WIN32)
++    set_target_properties(${tf_core_gpu_kernels_lib}
++                          PROPERTIES DEBUG_POSTFIX ""
++                          COMPILE_FLAGS "${TF_REGULAR_CXX_FLAGS}"
++    )
++  else()
+     set_target_properties(${tf_core_gpu_kernels_lib}
+                           PROPERTIES DEBUG_POSTFIX ""
+                           COMPILE_FLAGS "${TF_REGULAR_CXX_FLAGS}"
++                          POSITION_INDEPENDENT_CODE ON
+     )
+-    add_dependencies(${tf_core_gpu_kernels_lib} tf_core_cpu)
+   endif()
++  add_dependencies(${tf_core_gpu_kernels_lib} tf_core_cpu)
+ endif()
+diff --git a/tensorflow/contrib/cmake/tf_python.cmake b/tensorflow/contrib/cmake/tf_python.cmake
+index 6fe83bf..ffc29b4 100644
+--- a/tensorflow/contrib/cmake/tf_python.cmake
++++ b/tensorflow/contrib/cmake/tf_python.cmake
+@@ -548,6 +548,12 @@ add_custom_command(
+       COMMENT "Running SWIG to generate Python wrappers"
+       VERBATIM )
+ 
++if (WIN32 AND tensorflow_ENABLE_GPU)
++  set(tensorflow_has_cpu_only_kernels True)
++else (WIN32 AND tensorflow_ENABLE_GPU)
++  set(tensorflow_has_cpu_only_kernels False)
++endif(WIN32 AND tensorflow_ENABLE_GPU)
++
+ # pywrap_tensorflow is a shared library containing all of the TensorFlow
+ # runtime and the standard ops and kernels. These are installed into
+ # tf_python/tensorflow/python/.
+@@ -584,9 +590,10 @@ add_library(pywrap_tensorflow SHARED
+     $<TARGET_OBJECTS:tf_core_direct_session>
+     $<$<BOOL:${tensorflow_ENABLE_GRPC_SUPPORT}>:$<TARGET_OBJECTS:tf_core_distributed_runtime>>
+     $<TARGET_OBJECTS:tf_core_kernels>
+-    $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_core_kernels_cpu_only>>
++    $<$<BOOL:${tensorflow_has_cpu_only_kernels}>:$<TARGET_OBJECTS:tf_core_kernels_cpu_only>>
+     $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_stream_executor>>
+ )
++
+ target_include_directories(pywrap_tensorflow PUBLIC
+     ${PYTHON_INCLUDE_DIR}
+     ${NUMPY_INCLUDE_DIR}

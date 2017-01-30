@@ -83,7 +83,6 @@ python_configure_all() {
 		IFS=':'
 		prefixes="${EPREFIX}:${PORTAGE_READONLY_EPREFIXES}"
 		for p in $prefixes; do
-			echo "$p"
 			if [ -e "${p}/usr/lib/libcudnn.so" ]; then
 				prefix=$p
 			fi
