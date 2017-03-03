@@ -1,0 +1,506 @@
+diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
+index 7fd903d..028f840 100644
+--- a/tensorflow/contrib/cmake/CMakeLists.txt
++++ b/tensorflow/contrib/cmake/CMakeLists.txt
+@@ -19,6 +19,9 @@ cmake_policy(SET CMP0022 NEW)
+ # Options
+ option(tensorflow_VERBOSE "Enable for verbose output" OFF)
+ option(tensorflow_ENABLE_GPU "Enable GPU support" OFF)
++option(tensorflow_CUDA_30 "Build for CUDA 3.0 compute capability" ON)
++option(tensorflow_CUDA_35 "Build for CUDA 3.5 compute capability" ON)
++option(tensorflow_CUDA_52 "Build for CUDA 5.2 compute capability" ON)
+ option(tensorflow_ENABLE_SSL_SUPPORT "Enable boringssl support" OFF)
+ option(tensorflow_ENABLE_GRPC_SUPPORT "Enable gRPC support" ON)
+ option(tensorflow_BUILD_CC_EXAMPLE "Build the C++ tutorial example" ON)
+@@ -29,6 +32,13 @@ option(tensorflow_BUILD_CC_TESTS "Build cc unit tests " OFF)
+ option(tensorflow_BUILD_PYTHON_TESTS "Build python unit tests " OFF)
+ option(tensorflow_OPTIMIZE_FOR_NATIVE_ARCH "Enable compiler optimizations for the native processor architecture (if available)" ON)
+ 
++if(UNIX)
++  set(CMAKE_EXE_LINKER_FLAGS "$ENV{LDFLAGS}")
++  set(CMAKE_SHARED_LINKER_FLAGS "$ENV{LDFLAGS}")
++  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
++  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
++endif()
++
+ if (NOT WIN32)
+   # Threads: defines CMAKE_THREAD_LIBS_INIT and adds -pthread compile option
+   # for targets that link ${CMAKE_THREAD_LIBS_INIT}.
+@@ -153,46 +163,114 @@ if(UNIX)
+   list(APPEND tensorflow_EXTERNAL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
+ endif()
+ 
++function(JOIN VALUES GLUE OUTPUT)
++  string (REGEX REPLACE "([^\\]|^);" "\\1${GLUE}" _TMP_STR "${VALUES}")
++  string (REGEX REPLACE "[\\](.)" "\\1" _TMP_STR "${_TMP_STR}") #fixes escaping
++  set (${OUTPUT} "${_TMP_STR}" PARENT_SCOPE)
++endfunction()
++
++if(NOT (tensorflow_CUDA_30 OR tensorflow_CUDA_35 OR tensorflow_CUDA_52))
++  set(tensorflow_ENABLE_GPU FALSE)
++endif()
++
++
+ if (tensorflow_ENABLE_GPU)
+-  if (WIN32)
+-    find_package(CUDA 8.0 REQUIRED)
++  find_package(CUDA 7.5 REQUIRED)
+ 
+-    # by default we assume compute cabability 3.5 and 5.2. If you change this change it in
+-    # CUDA_NVCC_FLAGS and cuda_config.h below
+-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_30,code=\"sm_30,compute_30\";-gencode arch=compute_35,code=\"sm_35,compute_35\";-gencode arch=compute_52,code=\"sm_52,compute_52\")
+-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};--include-path ${PROJECT_BINARY_DIR}/$\{build_configuration\};--expt-relaxed-constexpr)
+-    set(CUDA_INCLUDE ${CUDA_TOOLKIT_TARGET_DIR} ${CUDA_TOOLKIT_TARGET_DIR}/extras/CUPTI/include)
+-    include_directories(${CUDA_INCLUDE})
+-    add_definitions(-DGOOGLE_CUDA=1 -DTF_EXTRA_CUDA_CAPABILITIES=3.0,3.5,5.2)
++  # by default we assume compute cabability 3.5 and 5.2. If you change this change it in
++  # CUDA_NVCC_FLAGS and cuda_config.h below
++  set(TF_EXTRA_CUDA_CAPABILITIES_30 "3.0")
++  set(TF_EXTRA_CUDA_CAPABILITIES_35 "3.5")
++  set(TF_EXTRA_CUDA_CAPABILITIES_52 "5.2")
++  set(CUDA_NVCC_FLAGS_30 "-gencode arch=compute_30,code=\"sm_30,compute_30\"")
++  set(CUDA_NVCC_FLAGS_35 "-gencode arch=compute_35,code=\"sm_35,compute_35\"")
++  set(CUDA_NVCC_FLAGS_52 "-gencode arch=compute_52,code=\"sm_30,compute_52\"")
++  set(TF_CUDA_CAPABILITIES_30 "CudaVersion(\"3.0\")")
++  set(TF_CUDA_CAPABILITIES_35 "CudaVersion(\"3.5\")")
++  set(TF_CUDA_CAPABILITIES_52 "CudaVersion(\"5.2\")")
++  if(tensorflow_CUDA_30)
++    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} ${CUDA_NVCC_FLAGS_30})
++    set(TF_CUDA_CAPABILITIES_LIST ${TF_CUDA_CAPABILITIES_LIST} ${TF_CUDA_CAPABILITIES_30})
++    set(TF_EXTRA_CUDA_CAPABILITIES_LIST ${TF_EXTRA_CUDA_CAPABILITIES_LIST} ${TF_EXTRA_CUDA_CAPABILITIES_30})
++  endif()
++  if(tensorflow_CUDA_35)
++    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} ${CUDA_NVCC_FLAGS_35})
++    set(TF_CUDA_CAPABILITIES_LIST ${TF_CUDA_CAPABILITIES_LIST} ${TF_CUDA_CAPABILITIES_35})
++    set(TF_EXTRA_CUDA_CAPABILITIES_LIST ${TF_EXTRA_CUDA_CAPABILITIES_LIST} ${TF_EXTRA_CUDA_CAPABILITIES_35})
++  endif()
++  if(tensorflow_CUDA_52)
++    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} ${CUDA_NVCC_FLAGS_52})
++    set(TF_CUDA_CAPABILITIES_LIST ${TF_CUDA_CAPABILITIES_LIST} ${TF_CUDA_CAPABILITIES_52})
++    set(TF_EXTRA_CUDA_CAPABILITIES_LIST ${TF_EXTRA_CUDA_CAPABILITIES_LIST} ${TF_EXTRA_CUDA_CAPABILITIES_52})
++  endif()
++  join("${TF_CUDA_CAPABILITIES_LIST}" "," TF_CUDA_CAPABILITIES)
++  join("${TF_EXTRA_CUDA_CAPABILITIES_LIST}" "," TF_EXTRA_CUDA_CAPABILITIES)
+ 
+-    # add cudnn
++  if(${CUDA_VERSION} STREQUAL "7.5")
++    if(WIN32)
++      set(TF_CUDA_VERSION "64_75")
++    else()
++      set(TF_CUDA_VERSION "7.5")
++    endif()
++  elseif(${CUDA_VERSION} STREQUAL "8.0")
++    if(WIN32)
++      set(TF_CUDA_VERSION "64_80")
++    else()
++      set(TF_CUDA_VERSION "8.0")
++    endif()
++  endif()
++  set(CUDNN_VERSION "5")
++  if(WIN32)
++    set(TF_CUDNN_VERSION "64_${CUDNN_VERSION}")
++  else()
++    set(TF_CUDNN_VERSION "${CUDNN_VERSION}")
++  endif()
++
++  set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};--include-path ${PROJECT_BINARY_DIR}/$\{build_configuration\};--expt-relaxed-constexpr)
++  if(UNIX)
++    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--rpath=${CUDA_TOOLKIT_TARGET_DIR}/lib64 -Wl,--rpath=${CUDA_TOOLKIT_TARGET_DIR}/extras/CUPTI/lib64")
++    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--rpath=${CUDA_TOOLKIT_TARGET_DIR}/lib64 -Wl,--rpath=${CUDA_TOOLKIT_TARGET_DIR}/extras/CUPTI/lib64")
++    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-Xcompiler;-fPIC)
++  endif(UNIX)
++  set(CUDA_INCLUDE ${CUDA_TOOLKIT_TARGET_DIR} ${CUDA_TOOLKIT_TARGET_DIR}/extras/CUPTI/include)
++  include_directories(${CUDA_INCLUDE})
++  add_definitions(-DGOOGLE_CUDA=1 -DTF_EXTRA_CUDA_CAPABILITIES=${TF_EXTRA_CUDA_CAPABILITIES})
++
++  # add cudnn
++  if (WIN32)
+     include_directories(${CUDNN_HOME})
+     set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDNN_HOME}/lib/x64/cudnn.lib)
+-
+-    # create cuda_config.h
+-    FILE(WRITE ${tensorflow_source_dir}/third_party/gpus/cuda/cuda_config.h
+-      "#ifndef CUDA_CUDA_CONFIG_H_\n"
+-      "#define CUDA_CUDA_CONFIG_H_\n"
+-      "#define TF_CUDA_CAPABILITIES CudaVersion(\"3.0\"),CudaVersion(\"3.5\"),CudaVersion(\"5.2\")\n"
+-      "#define TF_CUDA_VERSION \"64_80\"\n"
+-      "#define TF_CUDNN_VERSION \"64_5\"\n"
+-      "#define TF_CUDA_TOOLKIT_PATH \"${CUDA_TOOLKIT_ROOT_DIR}\"\n"
+-      "#endif  // CUDA_CUDA_CONFIG_H_\n"
+-    )
+-
+-    # tf assumes in various places header files to be in cuda/include. On windows the cuda sdk
+-    # installs them under cuda/version/include and to avoid that we need to change tf we copy a
+-    # few files to cuda/include
+-    FILE(COPY
+-      ${CUDA_TOOLKIT_TARGET_DIR}/include/cuda.h ${CUDA_TOOLKIT_TARGET_DIR}/include/cuComplex.h
+-      ${CUDA_TOOLKIT_TARGET_DIR}/include/cublas_v2.h ${CUDNN_HOME}/include/cudnn.h
+-      ${CUDA_TOOLKIT_TARGET_DIR}/include/cufft.h ${CUDA_TOOLKIT_TARGET_DIR}/include/curand.h
+-      DESTINATION ${tensorflow_source_dir}/third_party/gpus/cuda/include
+-    )
+-    include_directories(${tensorflow_source_dir}/third_party/gpus)
+-    # add cuda libraries to tensorflow_EXTERNAL_LIBRARIES
+-    list(APPEND tensorflow_EXTERNAL_LIBRARIES ${CUDA_LIBRARIES})
++  elseif(UNIX)
++    set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDNN_HOME}/lib/libcudnn.so)
+   endif()
++
++  # create cuda_config.h
++  FILE(WRITE ${tensorflow_source_dir}/third_party/gpus/cuda/cuda_config.h
++    "#ifndef CUDA_CUDA_CONFIG_H_\n"
++    "#define CUDA_CUDA_CONFIG_H_\n"
++    "#define TF_CUDA_CAPABILITIES ${TF_CUDA_CAPABILITIES}\n"
++    "#define TF_CUDA_VERSION \"${TF_CUDA_VERSION}\"\n"
++    "#define TF_CUDNN_VERSION \"${TF_CUDNN_VERSION}\"\n"
++    "#define TF_CUDA_TOOLKIT_PATH \"${CUDA_TOOLKIT_ROOT_DIR}\"\n"
++    "#endif  // CUDA_CUDA_CONFIG_H_\n"
++  )
++
++  if(UNIX)
++    execute_process(COMMAND ln -snf "${CUDA_TOOLKIT_TARGET_DIR}/extras" "${tensorflow_source_dir}/third_party/gpus/cuda/")
++  endif(UNIX)
++
++  # tf assumes in various places header files to be in cuda/include. On windows the cuda sdk
++  # installs them under cuda/version/include and to avoid that we need to change tf we copy a
++  # few files to cuda/include
++  FILE(COPY
++    ${CUDA_TOOLKIT_TARGET_DIR}/include/cuda.h ${CUDA_TOOLKIT_TARGET_DIR}/include/cuComplex.h
++    ${CUDA_TOOLKIT_TARGET_DIR}/include/cublas_v2.h ${CUDNN_HOME}/include/cudnn.h
++    ${CUDA_TOOLKIT_TARGET_DIR}/include/cufft.h ${CUDA_TOOLKIT_TARGET_DIR}/include/curand.h
++    DESTINATION ${tensorflow_source_dir}/third_party/gpus/cuda/include
++  )
++  include_directories(${tensorflow_source_dir}/third_party/gpus)
++  # add cuda libraries to tensorflow_EXTERNAL_LIBRARIES
++  list(APPEND tensorflow_EXTERNAL_LIBRARIES ${CUDA_LIBRARIES})
+ endif()
+ 
+ # Let's get to work!
+@@ -201,9 +279,7 @@ include(tf_tools.cmake)
+ # NOTE: Disabled until issue #3996 is fixed.
+ # include(tf_stream_executor.cmake)
+ if (tensorflow_ENABLE_GPU)
+-  if (WIN32)
+-    include(tf_stream_executor.cmake)
+-  endif()
++  include(tf_stream_executor.cmake)
+ endif()
+ 
+ include(tf_core_cpu.cmake)
+diff --git a/tensorflow/contrib/cmake/tf_core_kernels.cmake b/tensorflow/contrib/cmake/tf_core_kernels.cmake
+index 911e526..39de24a 100644
+--- a/tensorflow/contrib/cmake/tf_core_kernels.cmake
++++ b/tensorflow/contrib/cmake/tf_core_kernels.cmake
+@@ -123,16 +123,24 @@ endif(WIN32 AND tensorflow_ENABLE_GPU)
+ add_library(tf_core_kernels OBJECT ${tf_core_kernels_srcs})
+ add_dependencies(tf_core_kernels tf_core_cpu)
+ 
+-if(WIN32)
+-  target_compile_options(tf_core_kernels PRIVATE /MP)
+-  if (tensorflow_ENABLE_GPU)
+-    set_source_files_properties(${tf_core_gpu_kernels_srcs} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+-    set(tf_core_gpu_kernels_lib tf_core_gpu_kernels)
+-    cuda_add_library(${tf_core_gpu_kernels_lib} ${tf_core_gpu_kernels_srcs})
++if (tensorflow_ENABLE_GPU)
++  if(WIN32)
++    target_compile_options(tf_core_kernels PRIVATE /MP)
++  endif()
++  set_source_files_properties(${tf_core_gpu_kernels_srcs} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
++  set(tf_core_gpu_kernels_lib tf_core_gpu_kernels)
++  cuda_add_library(${tf_core_gpu_kernels_lib} ${tf_core_gpu_kernels_srcs})
++  if (WIN32)
++    set_target_properties(${tf_core_gpu_kernels_lib}
++                          PROPERTIES DEBUG_POSTFIX ""
++                          COMPILE_FLAGS "${TF_REGULAR_CXX_FLAGS}"
++    )
++  else()
+     set_target_properties(${tf_core_gpu_kernels_lib}
+                           PROPERTIES DEBUG_POSTFIX ""
+                           COMPILE_FLAGS "${TF_REGULAR_CXX_FLAGS}"
++                          POSITION_INDEPENDENT_CODE ON
+     )
+-    add_dependencies(${tf_core_gpu_kernels_lib} tf_core_cpu)
+   endif()
++  add_dependencies(${tf_core_gpu_kernels_lib} tf_core_cpu)
+ endif()
+diff --git a/tensorflow/contrib/cmake/tf_python.cmake b/tensorflow/contrib/cmake/tf_python.cmake
+index 6fe83bf..fbc0b6f 100644
+--- a/tensorflow/contrib/cmake/tf_python.cmake
++++ b/tensorflow/contrib/cmake/tf_python.cmake
+@@ -203,6 +203,7 @@ add_python_module("tensorflow/python/util")
+ add_python_module("tensorflow/python/util/protobuf")
+ add_python_module("tensorflow/tensorboard")
+ add_python_module("tensorflow/tensorboard/backend")
++add_python_module("tensorflow/tensorboard/lib")
+ add_python_module("tensorflow/tensorboard/lib/python")
+ add_python_module("tensorflow/tensorboard/plugins")
+ add_python_module("tensorflow/tensorboard/plugins/projector")
+@@ -522,6 +523,146 @@ GENERATE_PYTHON_OP_LIB("contrib_tensor_forest_ops"
+ add_custom_target(tf_python_ops SOURCES ${tf_python_ops_generated_files} ${PYTHON_PROTO_GENFILES})
+ add_dependencies(tf_python_ops tf_python_op_gen_main)
+ 
++add_custom_target(tf_python_contrib_ops)
++
++set(image_ops_cpu_srcs
++            "${tensorflow_source_dir}/tensorflow/contrib/image/kernels/image_ops.cc"
++            "${tensorflow_source_dir}/tensorflow/contrib/image/ops/image_ops.cc"
++)
++set(image_ops_gpu_srcs
++            "${tensorflow_source_dir}/tensorflow/contrib/image/kernels/image_ops_gpu.cu.cc"
++)
++if(${tensorflow_ENABLE_GPU})
++    cuda_add_library(image_ops SHARED ${image_ops_cpu_srcs} ${image_ops_gpu_srcs})
++else()
++    add_library(image_ops SHARED ${image_ops_cpu_srcs})
++endif()
++add_dependencies(image_ops tf_python_ops)
++add_dependencies(tf_python_contrib_ops image_ops)
++
++add_library(cudnn_rnn_ops SHARED
++            "${tensorflow_source_dir}/tensorflow/contrib/cudnn_rnn/kernels/cudnn_rnn_ops.cc"
++            $<TARGET_OBJECTS:tf_contrib_cudnn_rnn_ops>
++)
++add_dependencies(cudnn_rnn_ops tf_python_ops)
++add_dependencies(tf_python_contrib_ops cudnn_rnn_ops)
++
++add_library(clustering_ops SHARED
++            "${tensorflow_source_dir}/tensorflow/contrib/factorization/kernels/clustering_ops.cc"
++            $<TARGET_OBJECTS:tf_contrib_factorization_clustering_ops>
++)
++add_dependencies(clustering_ops tf_python_ops)
++add_dependencies(tf_python_contrib_ops clustering_ops)
++
++add_library(factorization_ops SHARED
++            "${tensorflow_source_dir}/tensorflow/contrib/factorization/kernels/wals_solver_ops.cc"
++            $<TARGET_OBJECTS:tf_contrib_factorization_factorization_ops>
++)
++add_dependencies(factorization_ops tf_python_ops)
++add_dependencies(tf_python_contrib_ops factorization_ops)
++
++set(variable_ops_cpu_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/framework/kernels/zero_initializer_op.cc")
++set(variable_ops_gpu_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/framework/kernels/zero_initializer_op_gpu.cu.cc")
++if(${tensorflow_ENABLE_GPU})
++  add_library(variable_ops SHARED
++              ${variable_ops_cpu_srcs}
++              $<TARGET_OBJECTS:tf_contrib_framework_variable_ops>
++  )
++else()
++  add_library(variable_ops SHARED
++              ${variable_ops_cpu_srcs}
++              ${variable_ops_gpu_srcs}
++              $<TARGET_OBJECTS:tf_contrib_framework_variable_ops>
++  )
++endif()
++add_dependencies(variable_ops tf_python_ops)
++add_dependencies(tf_python_contrib_ops variable_ops)
++
++set(lstm_ops_cpu_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/blas_gemm.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/lstm_ops.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/rnn/ops/lstm_ops.cc"
++)
++set(lstm_ops_gpu_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/lstm_ops_gpu.cu.cc"
++)
++if(${tensorflow_ENABLE_GPU})
++    cuda_add_library(lstm_ops SHARED ${lstm_ops_cpu_srcs} ${lstm_ops_gpu_srcs})
++else()
++    add_library(lstm_ops SHARED ${lstm_ops_cpu_srcs})
++endif()
++add_dependencies(lstm_ops eigen tf_python_ops)
++add_dependencies(tf_python_contrib_ops lstm_ops)
++
++set(gru_ops_cpu_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/blas_gemm.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/gru_ops.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/rnn/ops/gru_ops.cc"
++)
++set(gru_ops_gpu_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/gru_ops_gpu.cu.cc"
++)
++if(${tensorflow_ENABLE_GPU})
++    cuda_add_library(gru_ops SHARED ${gru_ops_cpu_srcs} ${gru_ops_gpu_srcs})
++else()
++    add_library(gru_ops SHARED ${gru_ops_cpu_srcs})
++endif()
++add_dependencies(gru_ops eigen tf_python_ops)
++add_dependencies(tf_python_contrib_ops gru_ops)
++
++add_library(bucketization_op SHARED
++            "${tensorflow_source_dir}/tensorflow/contrib/layers/ops/bucketization_op.cc"
++            "${tensorflow_source_dir}/tensorflow/contrib/layers/kernels/bucketization_kernel.cc"
++)
++add_dependencies(bucketization_op tf_python_ops protobuf)
++add_dependencies(tf_python_contrib_ops bucketization_op)
++
++add_library(sparse_feature_cross_op SHARED
++            "${tensorflow_source_dir}/tensorflow/contrib/layers/ops/sparse_feature_cross_op.cc"
++            "${tensorflow_source_dir}/tensorflow/contrib/layers/kernels/sparse_feature_cross_kernel.cc"
++)
++add_dependencies(sparse_feature_cross_op tf_python_ops farmhash protobuf)
++add_dependencies(tf_python_contrib_ops sparse_feature_cross_op)
++
++add_library(forest_core
++            "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/core/ops/tree_utils.cc"
++)
++add_dependencies(forest_core tf_python_ops)
++
++add_library(forest_ops SHARED
++            "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/core/ops/best_splits_op.cc"
++            "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/core/ops/count_extremely_random_stats_op.cc"
++            "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/core/ops/finished_nodes_op.cc"
++            "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/core/ops/grow_tree_op.cc"
++            "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/core/ops/reinterpret_string_to_float_op.cc"
++            "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/core/ops/sample_inputs_op.cc"
++            "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/core/ops/scatter_add_ndim_op.cc"
++            "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/core/ops/topn_ops.cc"
++            "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/core/ops/update_fertile_slots_op.cc"
++	    $<TARGET_OBJECTS:tf_contrib_tensor_forest_ops>
++)
++target_link_libraries(forest_ops forest_core)
++add_dependencies(tf_python_contrib_ops forest_ops)
++
++add_library(forest_hybrid_utils
++            "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/hybrid/core/ops/utils.cc"
++)
++add_dependencies(forest_hybrid_utils tf_python_ops)
++add_library(training_ops SHARED
++            "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/hybrid/core/ops/hard_routing_function_op.cc"
++            "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/hybrid/core/ops/k_feature_gradient_op.cc"
++            "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/hybrid/core/ops/k_feature_routing_function_op.cc"
++            "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/hybrid/core/ops/routing_function_op.cc"
++            "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/hybrid/core/ops/routing_gradient_op.cc"
++            "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/hybrid/core/ops/stochastic_hard_routing_function_op.cc"
++            "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/hybrid/core/ops/stochastic_hard_routing_gradient_op.cc"
++            "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/hybrid/core/ops/unpack_path_op.cc"
++)
++target_link_libraries(training_ops forest_hybrid_utils forest_core)
++add_dependencies(tf_python_contrib_ops training_ops)
++
+ 
+ ############################################################
+ # Build the SWIG-wrapped library for the TensorFlow runtime.
+@@ -548,6 +689,12 @@ add_custom_command(
+       COMMENT "Running SWIG to generate Python wrappers"
+       VERBATIM )
+ 
++if (WIN32 AND ${tensorflow_ENABLE_GPU})
++    set(tensorflow_has_cpu_only_lib TRUE)
++else()
++    set(tensorflow_has_cpu_only_lib FALSE)
++endif()
++
+ # pywrap_tensorflow is a shared library containing all of the TensorFlow
+ # runtime and the standard ops and kernels. These are installed into
+ # tf_python/tensorflow/python/.
+@@ -584,7 +731,7 @@ add_library(pywrap_tensorflow SHARED
+     $<TARGET_OBJECTS:tf_core_direct_session>
+     $<$<BOOL:${tensorflow_ENABLE_GRPC_SUPPORT}>:$<TARGET_OBJECTS:tf_core_distributed_runtime>>
+     $<TARGET_OBJECTS:tf_core_kernels>
+-    $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_core_kernels_cpu_only>>
++    $<$<BOOL:${tensorflow_has_cpu_only_lib}>:$<TARGET_OBJECTS:tf_core_kernels_cpu_only>>
+     $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_stream_executor>>
+ )
+ target_include_directories(pywrap_tensorflow PUBLIC
+@@ -608,7 +755,9 @@ add_dependencies(tf_python_build_pip_package
+     tensorboard_copy_dependencies
+     tf_python_copy_scripts_to_destination
+     tf_python_touchup_modules
+-    tf_python_ops)
++    tf_python_ops
++    tf_python_contrib_ops
++)
+ add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
+   COMMAND ${CMAKE_COMMAND} -E copy ${tensorflow_source_dir}/tensorflow/tools/pip_package/setup.py
+                                    ${CMAKE_CURRENT_BINARY_DIR}/tf_python/)
+@@ -616,10 +765,76 @@ if(WIN32)
+   add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
+     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/pywrap_tensorflow.dll
+                                      ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/python/_pywrap_tensorflow.pyd)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/image_ops.dll
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/image/python/ops/_image_ops.pyd)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/cudnn_rnn_ops.dll
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/cudnn_rnn/python/ops/_cudnn_rnn_ops.pyd)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/clustering_ops.dll
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/factorization/python/ops/_clustering_ops.pyd)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/factorization_ops.dll
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/factorization/python/ops/_factorization_ops.pyd)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/variable_ops.dll
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/framework/python/ops/_variable_ops.pyd)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/lstm_ops.dll
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/rnn/python/ops/_lstm_ops.pyd)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/gru_ops.dll
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/rnn/python/ops/_gru_ops.pyd)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/bucketization_op.dll
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/layers/python/ops/_bucketization_op.pyd)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/sparse_feature_cross_op.dll
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/layers/python/ops/_sparse_feature_cross_op.pyd)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/forest_ops.dll
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/tensor_forest/python/ops/_tensor_forest_ops.pyd)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/training_ops.dll
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/tensor_forest/python/ops/_training_ops.pyd)
+ else()
+   add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
+     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libpywrap_tensorflow.so
+                                      ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/python/_pywrap_tensorflow.so)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libimage_ops.so
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/image/python/ops/_image_ops.so)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libcudnn_rnn_ops.so
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/cudnn_rnn/python/ops/_cudnn_rnn_ops.so)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libclustering_ops.so
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/factorization/python/ops/_clustering_ops.so)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libfactorization_ops.so
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/factorization/python/ops/_factorization_ops.so)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libvariable_ops.so
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/framework/python/ops/_variable_ops.so)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/liblstm_ops.so
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/rnn/python/ops/_lstm_ops.so)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libgru_ops.so
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/rnn/python/ops/_gru_ops.so)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libbucketization_op.so
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/layers/python/ops/_bucketization_op.so)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libsparse_feature_cross_op.so
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/layers/python/ops/_sparse_feature_cross_op.so)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libforest_ops.so
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/tensor_forest/python/ops/_tensor_forest_ops.so)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libtraining_ops.so
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/tensor_forest/hybrid/python/ops/_training_ops.so)
+ endif()
+ add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
+   COMMAND ${CMAKE_COMMAND} -E copy ${tensorflow_source_dir}/tensorflow/tools/pip_package/README
+@@ -648,12 +863,3 @@ add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
+   COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_BINARY_DIR}/tensorboard_external
+                                              ${CMAKE_CURRENT_BINARY_DIR}/tf_python/external)
+ 
+-if(${tensorflow_ENABLE_GPU})
+-  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
+-    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/tf_python/setup.py bdist_wheel --project_name tensorflow_gpu
+-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tf_python)
+-else()
+-  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
+-    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/tf_python/setup.py bdist_wheel
+-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tf_python)
+-endif(${tensorflow_ENABLE_GPU})

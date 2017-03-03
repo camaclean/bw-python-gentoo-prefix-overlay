@@ -45,9 +45,9 @@ src_configure() {
 			mycmakeargs=( "-Dtensorflow_ENABLE_GPU=ON" )
 			cudnn_path=${EPREFIX}/usr
         	        if use prefix-chaining; then
-				cudnn_path="$(get_eprefix sci-libs/nvidia-cuda-cudnn || die)"/usr
+				cudnn_prefix="$(get_eprefix sci-libs/nvidia-cuda-cudnn || die)"
 			fi
-			mycmakeargs+=( "-DCUDNN_HOME=\"${cudnn_path}\"" )
+			mycmakeargs+=( "-DCUDNN_HOME=${cudnn_prefix%/}/usr" )
 			mycmakeargs+=( "-Dtensorflow_CUDA_35=ON" )
 			if use cray; then
 				mycmakeargs+=( "-Dtensorflow_CUDA_30=OFF" )
