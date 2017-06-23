@@ -9,7 +9,7 @@ fi
 #echo "$PKG_CONFIG_PATH"
 #export PATH=""
 #. $EPREFIX/etc/profile
-#export PATH="$EPREFIX/usr/lib/portage/bin/ebuild-helpers/unprivileged:$EPREFIX/usr/lib/portage/bin/ebuild-helpers/:$PATH"
+#export PATH="$EPREFIX/usr/lib/portage/bin/ebuild-helpers/unprivileged:$EPREFIX/usr/lib/portage/bin/ebuild-helpers/:$EPREFIX/tmp/usr/lib/portage/bin/ebuild-helpers/unprivileged:$EPREFIX/tmp/usr/lib/portage/bin/ebuild-helpers/:$PATH"
 #echo "bashrc PATH: $PATH"
 #which aclocal
 #echo "$PYTHONPATH"
@@ -17,8 +17,10 @@ fi
 #echo $CFLAGS
 #echo "bashrc LIBRARY_PATH: $LIBRARY_PATH"
 
-export LIBRARY_PATH="$EPREFIX/usr/lib64:$EPREFIX/lib64:$EPREFIX/usr/lib:$EPREFIX/lib:$LIBRARY_PATH"
-export CPATH="$EPREFIX/usr/include:$CPATH"
+LIBRARY_PATH="$EPREFIX/usr/lib64:$EPREFIX/lib64:$EPREFIX/usr/lib:$EPREFIX/lib:$LIBRARY_PATH"
+export LIBRARY_PATH="${LIBRARY_PATH%:}"
+CPATH="$EPREFIX/usr/include:$CPATH"
+export CPATH="${CPATH%:}"
 
 Pkgenvs=(
 	 "sys-devel/gdb addL"
@@ -290,19 +292,6 @@ if [[ ${EBUILD_PHASE} == unpack ]]; then
 	export LDFLAGS="$LDFLAGS $LDP_LDFLAGS"
 	export LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
 fi
-
-pre_src_prepare() {
-	if ! type epatch_user > /dev/null 2>&1; then
-		local names="EPATCH_USER_SOURCE epatch_user epatch evar_push evar_push_set evar_pop estack_push estack_pop"
-		source <(awk "/^# @(FUNCTION|VARIABLE): / { p = 0 } /^# @(FUNCTION|VARIABLE): (${names// /|})\$/ { p = 1 } p { print }" ${PORTDIR}/eclass/eutils.eclass)
-	fi
-
-	epatch_user
-
-	for name in $names; do
-		unset $name
-	done
-}
 
 post_src_test() {
 	if has savetests ${FEATURES}; then
