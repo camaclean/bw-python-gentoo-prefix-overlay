@@ -39,3 +39,4 @@ sys-apps/man-db
 >=dev-python/hypothesis-2.0.0 
 
 #>sys-apps/portage-2.2.28-r1
+>sys-apps/portage-2.3.5
