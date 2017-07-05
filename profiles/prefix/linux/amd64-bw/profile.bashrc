@@ -17,8 +17,9 @@ fi
 #echo $CFLAGS
 #echo "bashrc LIBRARY_PATH: $LIBRARY_PATH"
 
-export LIBRARY_PATH="$EPREFIX/usr/lib64:$EPREFIX/lib64:$EPREFIX/usr/lib:$EPREFIX/lib:$LIBRARY_PATH"
-export CPATH="$EPREFIX/usr/include:$CPATH"
+#export LIBRARY_PATH="$EPREFIX/usr/lib64:$EPREFIX/lib64:$EPREFIX/usr/lib:$EPREFIX/lib:$LIBRARY_PATH"
+#export CPATH="$EPREFIX/usr/include:$CPATH"
+#echo "bashrc CPATH: ${CPATH}"
 
 Pkgenvs=(
 	 "sys-devel/gdb addL"
@@ -60,6 +61,7 @@ Pkgenvs=(
 );
 	 #"dev-python/mpi4py cray" 
 
+#type epatch
 
 . $PORTAGE_CONFIGROOT/etc/portage/make.profile/versionator.sh
 
@@ -287,21 +289,32 @@ if [[ ${EBUILD_PHASE} == unpack ]]; then
 	unset PATHTMP ORIG_PATH2
 	PATH2="$(echo $PATH | sed -e "s|:@sbindir@:|:|" -e "s|:@bindir@:|:|"| perl -pe 's|:[a-zA-Z0-9./_-]+sbin:|:|g')"
 	export PATH="$PATH2:${EPREFIX}/usr/sbin:${EPREFIX}/sbin"
-	export LDFLAGS="$LDFLAGS $LDP_LDFLAGS"
+	#export LDFLAGS="$LDFLAGS $LDP_LDFLAGS"
 	export LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
 fi
 
 pre_src_prepare() {
-	if ! type epatch_user > /dev/null 2>&1; then
-		local names="EPATCH_USER_SOURCE epatch_user epatch evar_push evar_push_set evar_pop estack_push estack_pop"
-		source <(awk "/^# @(FUNCTION|VARIABLE): / { p = 0 } /^# @(FUNCTION|VARIABLE): (${names// /|})\$/ { p = 1 } p { print }" ${PORTDIR}/eclass/eutils.eclass)
+	#if ! type epatch_user > /dev/null 2>&1; then
+	#	local names="EPATCH_USER_SOURCE epatch_user epatch evar_push evar_push_set evar_pop estack_push estack_pop"
+	#	source <(awk "/^# @(FUNCTION|VARIABLE): / { p = 0 } /^# @(FUNCTION|VARIABLE): (${names// /|})\$/ { p = 1 } p { print }" ${PORTDIR}/eclass/eutils.eclass)
+	#fi
+
+	if (( ${EAPI:-0} < 6 )); then
+		if ! type epatch_user > /dev/null 2>&1; then
+			local names="EPATCH_USER_SOURCE epatch_user epatch evar_push evar_push_set evar_pop estack_push estack_pop"
+			source <(awk "/^# @(FUNCTION|VARIABLE): / { p = 0 } /^# @(FUNCTION|VARIABLE): (${names// /|})\$/ { p = 1 } p { print }" ${PORTDIR}/eclass/eutils.eclass)
+		fi
+		epatch_user
+		for name in $names; do
+			unset $name
+		done
+	else
+		eapply_user
 	fi
 
-	epatch_user
-
-	for name in $names; do
-		unset $name
-	done
+	#for name in $names; do
+	#	unset $name
+	#done
 }
 
 post_src_test() {
