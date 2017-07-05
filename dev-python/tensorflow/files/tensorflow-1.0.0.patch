@@ -187,9 +187,18 @@ index 7fd903d..028f840 100644
  
  include(tf_core_cpu.cmake)
 diff --git a/tensorflow/contrib/cmake/tf_core_kernels.cmake b/tensorflow/contrib/cmake/tf_core_kernels.cmake
-index 911e526..39de24a 100644
+index 911e526..e6e8ae7 100644
 --- a/tensorflow/contrib/cmake/tf_core_kernels.cmake
 +++ b/tensorflow/contrib/cmake/tf_core_kernels.cmake
+@@ -41,7 +41,7 @@ if(tensorflow_BUILD_CONTRIB_KERNELS)
+       "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/lstm_ops.cc"
+       "${tensorflow_source_dir}/tensorflow/contrib/rnn/ops/gru_ops.cc"
+       "${tensorflow_source_dir}/tensorflow/contrib/rnn/ops/lstm_ops.cc"
+-      "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest"
++      "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/ops/tensor_forest_ops.cc"
+       "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/core/ops/best_splits_op.cc"
+       "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/core/ops/count_extremely_random_stats_op.cc"
+       "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/core/ops/finished_nodes_op.cc"
 @@ -123,16 +123,24 @@ endif(WIN32 AND tensorflow_ENABLE_GPU)
  add_library(tf_core_kernels OBJECT ${tf_core_kernels_srcs})
  add_dependencies(tf_core_kernels tf_core_cpu)
@@ -222,8 +231,36 @@ index 911e526..39de24a 100644
    endif()
 +  add_dependencies(${tf_core_gpu_kernels_lib} tf_core_cpu)
  endif()
+diff --git a/tensorflow/contrib/cmake/tf_core_ops.cmake b/tensorflow/contrib/cmake/tf_core_ops.cmake
+index 0e61bfc..c524156 100644
+--- a/tensorflow/contrib/cmake/tf_core_ops.cmake
++++ b/tensorflow/contrib/cmake/tf_core_ops.cmake
+@@ -43,11 +43,23 @@ function(GENERATE_CONTRIB_OP_LIBRARY op_lib_name cc_srcs)
+     add_dependencies(tf_contrib_${op_lib_name}_ops tf_core_framework)
+ endfunction()
+ 
++file(GLOB_RECURSE tensor_forest_hybrid_srcs
++     "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/hybrid/core/ops/*.cc"
++)
++
+ GENERATE_CONTRIB_OP_LIBRARY(cudnn_rnn "${tensorflow_source_dir}/tensorflow/contrib/cudnn_rnn/ops/cudnn_rnn_ops.cc")
+ GENERATE_CONTRIB_OP_LIBRARY(factorization_clustering "${tensorflow_source_dir}/tensorflow/contrib/factorization/ops/clustering_ops.cc")
+ GENERATE_CONTRIB_OP_LIBRARY(factorization_factorization "${tensorflow_source_dir}/tensorflow/contrib/factorization/ops/factorization_ops.cc")
++GENERATE_CONTRIB_OP_LIBRARY(input_pipeline "${tensorflow_source_dir}/tensorflow/contrib/input_pipeline/ops/input_pipeline_ops.cc")
++GENERATE_CONTRIB_OP_LIBRARY(image "${tensorflow_source_dir}/tensorflow/contrib/image/ops/image_ops.cc")
++GENERATE_CONTRIB_OP_LIBRARY(layers_bucketization "${tensorflow_source_dir}/tensorflow/contrib/layers/ops/bucketization_op.cc")
++GENERATE_CONTRIB_OP_LIBRARY(layers_sparse_feature_cross "${tensorflow_source_dir}/tensorflow/contrib/layers/ops/sparse_feature_cross_op.cc")
++GENERATE_CONTRIB_OP_LIBRARY(nccl "${tensorflow_source_dir}/tensorflow/contrib/nccl/ops/nccl_ops.cc")
++GENERATE_CONTRIB_OP_LIBRARY(rnn_gru "${tensorflow_source_dir}/tensorflow/contrib/rnn/ops/gru_ops.cc")
++GENERATE_CONTRIB_OP_LIBRARY(rnn_lstm "${tensorflow_source_dir}/tensorflow/contrib/rnn/ops/lstm_ops.cc")
+ GENERATE_CONTRIB_OP_LIBRARY(framework_variable "${tensorflow_source_dir}/tensorflow/contrib/framework/ops/variable_ops.cc")
+ GENERATE_CONTRIB_OP_LIBRARY(tensor_forest "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/ops/tensor_forest_ops.cc")
++GENERATE_CONTRIB_OP_LIBRARY(tensor_forest_hybrid "${tensor_forest_hybrid_srcs}")
+ 
+ ########################################################
+ # tf_user_ops library
 diff --git a/tensorflow/contrib/cmake/tf_python.cmake b/tensorflow/contrib/cmake/tf_python.cmake
-index 6fe83bf..fbc0b6f 100644
+index 6fe83bf..5e1bbd7 100644
 --- a/tensorflow/contrib/cmake/tf_python.cmake
 +++ b/tensorflow/contrib/cmake/tf_python.cmake
 @@ -203,6 +203,7 @@ add_python_module("tensorflow/python/util")
@@ -234,7 +271,49 @@ index 6fe83bf..fbc0b6f 100644
  add_python_module("tensorflow/tensorboard/lib/python")
  add_python_module("tensorflow/tensorboard/plugins")
  add_python_module("tensorflow/tensorboard/plugins/projector")
-@@ -522,6 +523,146 @@ GENERATE_PYTHON_OP_LIB("contrib_tensor_forest_ops"
+@@ -264,9 +265,11 @@ add_python_module("tensorflow/contrib/grid_rnn/python")
+ add_python_module("tensorflow/contrib/grid_rnn/python/kernel_tests")
+ add_python_module("tensorflow/contrib/grid_rnn/python/ops")
+ add_python_module("tensorflow/contrib/image")
++add_python_module("tensorflow/contrib/image/ops")
+ add_python_module("tensorflow/contrib/image/python")
+ add_python_module("tensorflow/contrib/image/python/ops")
+ add_python_module("tensorflow/contrib/input_pipeline")
++add_python_module("tensorflow/contrib/input_pipeline/ops")
+ add_python_module("tensorflow/contrib/input_pipeline/python")
+ add_python_module("tensorflow/contrib/input_pipeline/python/ops")
+ add_python_module("tensorflow/contrib/integrate")
+@@ -384,6 +387,7 @@ add_python_module("tensorflow/contrib/tensor_forest/core")
+ add_python_module("tensorflow/contrib/tensor_forest/core/ops")
+ add_python_module("tensorflow/contrib/tensor_forest/data")
+ add_python_module("tensorflow/contrib/tensor_forest/hybrid")
++add_python_module("tensorflow/contrib/tensor_forest/hybrid/ops")
+ add_python_module("tensorflow/contrib/tensor_forest/hybrid/core")
+ add_python_module("tensorflow/contrib/tensor_forest/hybrid/core/ops")
+ add_python_module("tensorflow/contrib/tensor_forest/hybrid/python")
+@@ -516,12 +520,175 @@ GENERATE_PYTHON_OP_LIB("contrib_factorization_factorization_ops"
+   DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/factorization/python/ops/gen_factorization_ops.py)
+ GENERATE_PYTHON_OP_LIB("contrib_framework_variable_ops"
+   DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/framework/python/ops/gen_variable_ops.py)
++GENERATE_PYTHON_OP_LIB("contrib_input_pipeline_ops"
++  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/input_pipeline/ops/gen_input_pipeline_ops.py)
++GENERATE_PYTHON_OP_LIB("contrib_image_ops"
++  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/image/ops/gen_image_ops.py)
++GENERATE_PYTHON_OP_LIB("contrib_layers_bucketization_ops"
++  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/layers/ops/gen_bucketization_op.py)
++GENERATE_PYTHON_OP_LIB("contrib_layers_sparse_feature_cross_ops"
++  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/layers/ops/gen_sparse_feature_cross_op.py)
++GENERATE_PYTHON_OP_LIB("contrib_nccl_ops"
++  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/nccl/ops/gen_nccl_ops.py)
++GENERATE_PYTHON_OP_LIB("contrib_rnn_gru_ops"
++  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/rnn/ops/gen_gru_ops.py)
++GENERATE_PYTHON_OP_LIB("contrib_rnn_lstm_ops"
++  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/rnn/ops/gen_lstm_ops.py)
+ GENERATE_PYTHON_OP_LIB("contrib_tensor_forest_ops"
+ 	  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/tensor_forest/python/ops/gen_tensor_forest_ops.py)
++GENERATE_PYTHON_OP_LIB("contrib_tensor_forest_hybrid_ops"
++  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/tensor_forest/hybrid/ops/gen_training_ops.py)
+ 
  add_custom_target(tf_python_ops SOURCES ${tf_python_ops_generated_files} ${PYTHON_PROTO_GENFILES})
  add_dependencies(tf_python_ops tf_python_op_gen_main)
  
@@ -378,10 +457,17 @@ index 6fe83bf..fbc0b6f 100644
 +target_link_libraries(training_ops forest_hybrid_utils forest_core)
 +add_dependencies(tf_python_contrib_ops training_ops)
 +
++add_library(input_pipeline_ops SHARED
++	"${tensorflow_source_dir}/tensorflow/contrib/input_pipeline/ops/input_pipeline_ops.cc"
++)
++add_dependencies(input_pipeline_ops tf_python_ops)
++add_dependencies(tf_python_contrib_ops input_pipeline_ops)
++
++
  
  ############################################################
  # Build the SWIG-wrapped library for the TensorFlow runtime.
-@@ -548,6 +689,12 @@ add_custom_command(
+@@ -548,6 +717,12 @@ add_custom_command(
        COMMENT "Running SWIG to generate Python wrappers"
        VERBATIM )
  
@@ -394,7 +480,7 @@ index 6fe83bf..fbc0b6f 100644
  # pywrap_tensorflow is a shared library containing all of the TensorFlow
  # runtime and the standard ops and kernels. These are installed into
  # tf_python/tensorflow/python/.
-@@ -584,7 +731,7 @@ add_library(pywrap_tensorflow SHARED
+@@ -584,7 +759,7 @@ add_library(pywrap_tensorflow SHARED
      $<TARGET_OBJECTS:tf_core_direct_session>
      $<$<BOOL:${tensorflow_ENABLE_GRPC_SUPPORT}>:$<TARGET_OBJECTS:tf_core_distributed_runtime>>
      $<TARGET_OBJECTS:tf_core_kernels>
@@ -403,7 +489,7 @@ index 6fe83bf..fbc0b6f 100644
      $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_stream_executor>>
  )
  target_include_directories(pywrap_tensorflow PUBLIC
-@@ -608,7 +755,9 @@ add_dependencies(tf_python_build_pip_package
+@@ -608,7 +783,9 @@ add_dependencies(tf_python_build_pip_package
      tensorboard_copy_dependencies
      tf_python_copy_scripts_to_destination
      tf_python_touchup_modules
@@ -414,7 +500,7 @@ index 6fe83bf..fbc0b6f 100644
  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
    COMMAND ${CMAKE_COMMAND} -E copy ${tensorflow_source_dir}/tensorflow/tools/pip_package/setup.py
                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/)
-@@ -616,10 +765,76 @@ if(WIN32)
+@@ -616,10 +793,82 @@ if(WIN32)
    add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
      COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/pywrap_tensorflow.dll
                                       ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/python/_pywrap_tensorflow.pyd)
@@ -451,6 +537,9 @@ index 6fe83bf..fbc0b6f 100644
 +  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
 +    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/training_ops.dll
 +                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/tensor_forest/python/ops/_training_ops.pyd)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/input_pipeline_ops.dll
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/input_pipeline/python/ops/_input_pipeline_ops.pyd)
  else()
    add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
      COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libpywrap_tensorflow.so
@@ -488,10 +577,13 @@ index 6fe83bf..fbc0b6f 100644
 +  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
 +    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libtraining_ops.so
 +                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/tensor_forest/hybrid/python/ops/_training_ops.so)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libinput_pipeline_ops.so
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/input_pipeline/python/ops/_input_pipeline_ops.so)
  endif()
  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
    COMMAND ${CMAKE_COMMAND} -E copy ${tensorflow_source_dir}/tensorflow/tools/pip_package/README
-@@ -648,12 +863,3 @@ add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
+@@ -648,12 +897,3 @@ add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_BINARY_DIR}/tensorboard_external
                                               ${CMAKE_CURRENT_BINARY_DIR}/tf_python/external)
  
