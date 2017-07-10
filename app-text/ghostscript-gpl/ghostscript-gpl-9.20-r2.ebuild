@@ -84,7 +84,7 @@ src_prepare() {
 	#Add rpath with prefix
 	if use prefix; then
 		CFLAGS="${CFLAGS} ${LDFLAGS}"
-		tc-export CFLAGS
+		export CFLAGS
 	fi
 
 	# remove internal copies of various libraries
