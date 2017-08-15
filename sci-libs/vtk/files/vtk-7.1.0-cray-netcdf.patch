@@ -1,0 +1,19 @@
+diff --git a/CMake/FindNetCDF.cmake b/CMake/FindNetCDF.cmake
+index a28c959..354742a 100644
+--- a/CMake/FindNetCDF.cmake
++++ b/CMake/FindNetCDF.cmake
+@@ -66,11 +66,14 @@ macro (NetCDF_check_interface lang header libs)
+     #search starting from user modifiable cache var
+     find_path (NETCDF_${lang}_INCLUDE_DIR NAMES ${header}
+       HINTS "${NETCDF_INCLUDE_DIR}"
++      HINTS "${NETCDF_CXX_EPREFIX}/usr/include"
+       HINTS "${NETCDF_${lang}_ROOT}/include"
+       ${USE_DEFAULT_PATHS})
++    message("NETCDF_${lang}_INCLUDE_DIR: ${NETCDF_${lang}_INCLUDE_DIR}")
+ 
+     find_library (NETCDF_${lang}_LIBRARY NAMES ${libs}
+       HINTS "${NetCDF_lib_dirs}"
++      HINTS "${NETCDF_CXX_EPREFIX}/usr/lib"
+       HINTS "${NETCDF_${lang}_ROOT}/lib"
+       ${USE_DEFAULT_PATHS})
+ 
