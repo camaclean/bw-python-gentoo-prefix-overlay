@@ -94,7 +94,7 @@
 + 		# we're in the last prefix of the chain here.
 + 		_ro_name="@GENTOO_PORTAGE_EPREFIX@"
 + 		if [[ $_ro_name =~ ([^/]+)/+([0-9\.]+)/*$ ]]; then
-+ 			ro_name="${BASH_REMATCH[1]}-${BASH_REMATCH[2]}"
++ 			_ro_name="${BASH_REMATCH[1]}-${BASH_REMATCH[2]}"
 + 		else
 + 		_ro_name="${_ro_name##*/}"
 + 		fi
@@ -138,7 +138,7 @@
 + # was previously done by the startprefix script, but we want to be able to start
 + # this environment by simply sourcing etc/profile with the correct shell.
 + #
-+ if [[ -z "${EPREFIX}" ]]; then
++ if [[ -z "${EPREFIX}" && ${_ro_recursion_level} == 0 ]]; then
 + 	if [[ ! -x "@GENTOO_PORTAGE_EPREFIX@"/usr/bin/emerge ]]; then
 + 		export EPREFIX="@GENTOO_PORTAGE_EPREFIX@"
 + 	fi
@@ -148,7 +148,7 @@
 + 	echo "         Having EPREFIX set this way will probably render this environment unusable."
 + fi
 + 
-+ mkdir -p $(. "@GENTOO_PORTAGE_EPREFIX@"/etc/portage/make.conf && portageq envvar PORTAGE_TMPDIR) 2>/dev/null || true
++ mkdir -p $(. "@GENTOO_PORTAGE_EPREFIX@"/usr/share/portage/config/make.globals && . "@GENTOO_PORTAGE_EPREFIX@"/etc/portage/make.conf && echo $PORTAGE_TMPDIR) 2>/dev/null || true
 + 
 + unset _ro_root
 + unset _ro_deps
