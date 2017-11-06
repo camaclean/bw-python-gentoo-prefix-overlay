@@ -1,0 +1,283 @@
+diff --git a/bin/ebuild.sh b/bin/ebuild.sh
+index 72d900f..e9bfeaf 100755
+--- a/bin/ebuild.sh
++++ b/bin/ebuild.sh
+@@ -9,8 +9,38 @@ unalias -a
+ # Make sure this isn't exported to scripts we execute.
+ unset BASH_COMPAT
+ 
++MODULESHOME="${MODULESHOME:-/opt/modules/default}"
++
++_bak_cpath="${CPATH}"
++_bak_c_include_path="${C_INCLUDE_PATH}"
++_bak_cplus_include_path="${CPLUS_INCLUDE_PATH}"
++_bak_library_path="${LIBRARY_PATH}"
++
++unset CPATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH LIBRARY_PATH
++
++. $PORTAGE_CONFIGROOT/etc/profile #>/dev/null 2>&1
++
++export PATH="${PORTAGE_BIN_PATH}/ebuild-helpers/xattr:${PORTAGE_BIN_PATH}/ebuild-helpers/unprivileged:${PORTAGE_BIN_PATH}/ebuild-helpers:${PATH}"
++
++[ -z "${CPATH}" ] || CPATH="$_bak_cpath:${CPATH}"
++[ -z "${C_INCLUDE_PATH}" ] || C_INCLUDE_PATH="$_bak_c_include_path:${C_INCLUDE_PATH}"
++[ -z "${CPLUS_INCLUDE_PATH}" ] || CPLUS_INCLUDE_PATH="$_bak_cplus_include_path:${CPLUS_INCLUDE_PATH}"
++[ -z "${LIBRARY_PATH}" ] || LIBRARY_PATH="$_bak_library_path:${LIBRARY_PATH}"
++
++unset _bak_cpath _bak_c_include_path _bak_cplus_include_path _bak_library_path
++
++source "$MODULESHOME/init/bash" || exit 1
++
+ source "${PORTAGE_BIN_PATH}/isolated-functions.sh" || exit 1
+ 
++source "${PORTAGE_BIN_PATH}/envmod-functions.sh" || die
++envmod_process_ENVMOD
++
++if [[ $EBUILD_PHASE == pkg_pretend ]]; then
++	envmod_check_restrict_fatal
++	envmod_check_require_fatal
++fi
++
+ # Set up the bash version compatibility level.  This does not disable
+ # features when running with a newer version, but makes it so that when
+ # bash changes behavior in an incompatible way, the older behavior is
+diff --git a/bin/install-qa-check.d/05prefix b/bin/install-qa-check.d/05prefix
+index 0c11473..c0ddd57 100644
+--- a/bin/install-qa-check.d/05prefix
++++ b/bin/install-qa-check.d/05prefix
+@@ -116,10 +116,11 @@ install_qa_check_prefix() {
+ 				# reasons
+ 				sed -i -e '1s:^#! \?'"${line[0]}"':#!'"${found}"':' "${rf}"
+ 				continue
+-			else
+-				# this is definitely wrong: script in $PATH and invalid shebang
+-				echo "${fn#${D}}:${line[0]} (script ${fn##*/} installed in PATH but interpreter ${line[0]} not found)" \
+-					>> "${T}"/non-prefix-shebangs-errs
++			# On Cray, sometimes we use things out outside of the prefix
++			#else
++			#	# this is definitely wrong: script in $PATH and invalid shebang
++			#	echo "${fn#${D}}:${line[0]} (script ${fn##*/} installed in PATH but interpreter ${line[0]} not found)" \
++			#		>> "${T}"/non-prefix-shebangs-errs
+ 			fi
+ 		else
+ 			# unprefixed/invalid shebang, but outside $PATH, this may be
+diff --git a/bin/phase-functions.sh b/bin/phase-functions.sh
+index 741b6ff..743e330 100644
+--- a/bin/phase-functions.sh
++++ b/bin/phase-functions.sh
+@@ -87,7 +87,9 @@ PORTAGE_MUTABLE_FILTERED_VARS="AA HOSTNAME"
+ __filter_readonly_variables() {
+ 	local x filtered_vars
+ 	local readonly_bash_vars="BASHOPTS BASHPID DIRSTACK EUID
+-		FUNCNAME GROUPS PIPESTATUS PPID SHELLOPTS UID"
++ 		FUNCNAME GROUPS PIPESTATUS PPID SHELLOPTS UID BASH_VERSINFO 
++ 		PROFILEREAD RCLOCAL_BASEOPTS RCLOCAL_PRGENV _HOMEBASHRC
++ 		PELOCAL_PRGENV TMOUT"
+ 	local bash_misc_vars="BASH BASH_.* COLUMNS COMP_WORDBREAKS HISTCMD
+ 		HISTFILE HOSTNAME HOSTTYPE IFS LINENO MACHTYPE OLDPWD
+ 		OPTERR OPTIND OSTYPE POSIXLY_CORRECT PS4 PWD RANDOM
+diff --git a/pym/_emerge/resolver/output.py b/pym/_emerge/resolver/output.py
+index 32a942c..2d2a8c0 100644
+--- a/pym/_emerge/resolver/output.py
++++ b/pym/_emerge/resolver/output.py
+@@ -21,13 +21,13 @@ from portage.exception import InvalidDependString, SignatureException
+ from portage.localization import localized_size
+ from portage.package.ebuild.config import _get_feature_flags
+ from portage.package.ebuild._spawn_nofetch import spawn_nofetch
+-from portage.output import ( blue, colorize, create_color_func,
++from portage.output import ( red, blue, colorize, create_color_func,
+ 	darkblue, darkgreen, green, nc_len, teal, yellow, turquoise)
+ bad = create_color_func("BAD")
+ from portage._sets.base import InternalPackageSet
+ from portage.util import writemsg_stdout
+ from portage.versions import best, cpv_getversion
+-from portage.dep.dep_check import ro_selected
++from portage.dep.dep_check import ro_selected, unloaded_module_matches
+ 
+ from _emerge.Blocker import Blocker
+ from _emerge.create_world_atom import create_world_atom
+@@ -601,6 +601,16 @@ class Display(object):
+ 			out.write(yellow("    errors. It is recommended to use RDEPEND READONLY_EPREFIX's\n"))
+ 			out.write(yellow("    only with matching CHOST portage instances.\n"))
+ 
++	def print_unloaded_module_matches(self):
++		"""Print matches found in unloaded Environment Modules
++		"""
++		if len(unloaded_module_matches) > 0:
++			writemsg_stdout("\n%s\n" % (darkgreen("Some missing dependencies could be satisfied by existing modules. Consider loading these modules:")), noiselevel=-1)
++			for atom in unloaded_module_matches:
++				writemsg_stdout("\n    %s match found in:\n" % (green(atom)), noiselevel=-1)
++				for module in unloaded_module_matches[atom]:
++					writemsg_stdout("        %s\n" % (yellow(module)), noiselevel=-1)
++
+ 	def print_verbose(self, show_repos):
+ 		"""Prints the verbose output to std_out
+ 
+@@ -951,6 +961,7 @@ class Display(object):
+ 
+ 		# now finally print out the messages
+ 		self.print_readonly_prefix()
++		self.print_unloaded_module_matches()
+ 		self.print_messages(show_repos)
+ 		self.print_blockers()
+ 		if self.conf.verbosity == 3:
+diff --git a/pym/portage/dep/__init__.py b/pym/portage/dep/__init__.py
+index 6ff6adc..13a6524 100644
+--- a/pym/portage/dep/__init__.py
++++ b/pym/portage/dep/__init__.py
+@@ -2375,6 +2375,15 @@ def match_from_list(mydep, candidate_list):
+ 						if need_disabled:
+ 							if any(f not in missing_disabled for f in need_disabled):
+ 								continue
++			else:
++				# For modulesprovided
++				# x may be a string, so make an Atom out of it. We process the use flags
++				# a bit differently here. Only explicitly mentioned flags are considered.
++				x2 = Atom("=" + x)
++				use = getattr(x2, "use", None)
++				if use is not None:
++					if any(frozenset(f for f in mydep.use.enabled if f in x2.use.disabled)) or any(frozenset(f for f in mydep.use.disabled if f in x2.use.enabled)):
++						continue
+ 
+ 			mylist.append(x)
+ 
+diff --git a/pym/portage/dep/dep_check.py b/pym/portage/dep/dep_check.py
+index 1ade00b..737e2ba 100644
+--- a/pym/portage/dep/dep_check.py
++++ b/pym/portage/dep/dep_check.py
+@@ -847,6 +847,8 @@ def dep_check(depstring, mydbapi, mysettings, use="yes", mode=None, myuse=None,
+ 
+ 	return [1, selected_atoms]
+ 
++unloaded_module_matches = {}
++
+ def dep_wordreduce(mydeplist,mysettings,mydbapi,mode,use_cache=1):
+ 	"Reduces the deplist to ones and zeros"
+ 	deplist=mydeplist[:]
+@@ -860,7 +862,26 @@ def dep_wordreduce(mydeplist,mysettings,mydbapi,mode,use_cache=1):
+ 			deplist[mypos] = False
+ 		else:
+ 			mykey = deplist[mypos].cp
+-			if mysettings and mykey in mysettings.pprovideddict and \
++			myatom = deplist[mypos]
++			found_in_module = False
++			found_in_loaded_module = False
++			notatom = False
++			umm = []
++			for module in mysettings.pmprovideddict:
++				modprovdeps = mysettings.pmprovideddict[module]
++				if mykey not in modprovdeps:
++					continue
++				if mysettings.loaded_modules is not None and module in mysettings.loaded_modules and \
++					match_from_list(deplist[mypos], modprovdeps[mykey]):
++					found_in_module = True
++					found_in_loaded_module = True
++				elif match_from_list(deplist[mypos], modprovdeps[mykey]):
++					# Dependency found in module which is not loaded
++					found_in_module = True
++					umm.append(module)
++			if found_in_module and found_in_loaded_module:
++				deplist[mypos]=True
++			elif mysettings and mykey in mysettings.pprovideddict and \
+ 			        match_from_list(deplist[mypos], mysettings.pprovideddict[mykey]):
+ 				deplist[mypos]=True
+ 			elif mydbapi is None:
+@@ -882,9 +903,12 @@ def dep_wordreduce(mydeplist,mysettings,mydbapi,mode,use_cache=1):
+ 				if mydep!=None:
+ 					tmp=(len(mydep)>=1)
+ 					if deplist[mypos][0]=="!":
++						notatom = True
+ 						tmp=False
+ 					deplist[mypos]=tmp
+ 				else:
+ 					#encountered invalid string
+ 					return None
++			if found_in_module and not deplist[mypos] and not notatom:
++				unloaded_module_matches[myatom] = umm
+ 	return deplist
+diff --git a/pym/portage/package/ebuild/config.py b/pym/portage/package/ebuild/config.py
+index 88764eb..fc47d87 100644
+--- a/pym/portage/package/ebuild/config.py
++++ b/pym/portage/package/ebuild/config.py
+@@ -302,6 +302,8 @@ class config(object):
+ 			self.backupenv  = self.configdict["backupenv"]
+ 			self.prevmaskdict = copy.deepcopy(clone.prevmaskdict)
+ 			self.pprovideddict = copy.deepcopy(clone.pprovideddict)
++			self.pmprovideddict = copy.deepcopy(clone.pmprovideddict)
++			self.loaded_modules = copy.deepcopy(clone.loaded_modules)
+ 			self.features = features_set(self)
+ 			self.features._features = copy.deepcopy(clone.features._features)
+ 			self._features_overrides = copy.deepcopy(clone._features_overrides)
+@@ -805,6 +807,11 @@ class config(object):
+ 				recursive=x.portage1_directories)
+ 				for x in profiles_complex]
+ 			pkgprovidedlines = stack_lists(pkgprovidedlines, incremental=1)
++			pkgmoduleprovidedlines = [grabfile(
++				os.path.join(x.location, "package.moduleprovided"),
++				recursive=x.portage1_directories)
++				for x in profiles_complex]
++			pkgmoduleprovidedlines = stack_lists(pkgmoduleprovidedlines, incremental=1)
+ 			has_invalid_data = False
+ 			for x in range(len(pkgprovidedlines)-1, -1, -1):
+ 				myline = pkgprovidedlines[x]
+@@ -814,27 +821,36 @@ class config(object):
+ 					has_invalid_data = True
+ 					del pkgprovidedlines[x]
+ 					continue
+-				cpvr = catpkgsplit(pkgprovidedlines[x])
+-				if not cpvr or cpvr[0] == "null":
+-					writemsg(_("Invalid package name in package.provided: ")+pkgprovidedlines[x]+"\n",
+-						noiselevel=-1)
+-					has_invalid_data = True
+-					del pkgprovidedlines[x]
+-					continue
++			for x in range(len(pkgmoduleprovidedlines)-1, -1, -1):
++				myline = pkgmoduleprovidedlines[x].split(" ")
++				if not isvalidatom("=" + myline[0]) and len(myline) != 2:
++					writemsg(_("Invalid package name in package.moduleprovided: %s\n") % \
++						myline, noiselevel=-1)
++ 					has_invalid_data = True
++					del pkgmoduleprovidedlines[x]
++ 					continue
+ 			if has_invalid_data:
+ 				writemsg(_("See portage(5) for correct package.provided usage.\n"),
+ 					noiselevel=-1)
+ 			self.pprovideddict = {}
+ 			for x in pkgprovidedlines:
+-				x_split = catpkgsplit(x)
+-				if x_split is None:
+-					continue
+-				mycatpkg = cpv_getkey(x)
++				mycatpkg = Atom("=" + x).cp
+ 				if mycatpkg in self.pprovideddict:
+ 					self.pprovideddict[mycatpkg].append(x)
+ 				else:
+ 					self.pprovideddict[mycatpkg]=[x]
+ 
++			self.pmprovideddict = {}
++			for x in pkgmoduleprovidedlines:
++				(package, module) = x.split(" ")
++				mycatpkg = cpv_getkey(Atom("=" + package).cpv)
++				if module not in self.pmprovideddict:
++					self.pmprovideddict[module] = {}
++				if mycatpkg in self.pmprovideddict[module]:
++					self.pmprovideddict[module][mycatpkg].append(package)
++				else:
++					self.pmprovideddict[module][mycatpkg]=[package]
++
+ 			# reasonable defaults; this is important as without USE_ORDER,
+ 			# USE will always be "" (nothing set)!
+ 			if "USE_ORDER" not in self:
+@@ -911,6 +927,12 @@ class config(object):
+ 					self["PORTAGE_USERNAME"] = v
+ 			# END PREFIX LOCAL
+ 
++			lm = os.environ.get("LOADEDMODULES")
++			if lm is not None:
++				self.loaded_modules = lm.split(":")
++			else:
++				self.loaded_modules = []
++
+ 			for var, default_val in default_inst_ids.items():
+ 				try:
+ 					self[var] = str(int(self.get(var, default_val)))

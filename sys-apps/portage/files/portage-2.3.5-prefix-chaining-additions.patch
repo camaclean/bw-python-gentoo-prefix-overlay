@@ -1,0 +1,318 @@
+diff --git a/bin/phase-helpers.sh b/bin/phase-helpers.sh
+index 170e368..67e1bc3 100644
+--- a/bin/phase-helpers.sh
++++ b/bin/phase-helpers.sh
+@@ -854,23 +854,42 @@ has_version() {
+ 		# since both prefixes can share root=/ while
+ 		# having different EPREFIX offsets.
+ 		if ${host_root} ; then
+-			eroot=${root%/}${PORTAGE_OVERRIDE_EPREFIX}/
++			if [ ! -z "$PORTAGE_READONLY_EPREFIXES" ]; then
++				prefixes="$PORTAGE_OVERRIDE_EPREFIX:$PORTAGE_READONLY_EPREFIXES"
++			else
++				prefixes="$PORTAGE_OVERRIDE_EPREFIX"
++			fi
+ 		else
+-			eroot=${root%/}${EPREFIX}/
++			if [ ! -z "$PORTAGE_READONLY_EPREFIXES" ]; then
++				prefixes="$EPREFIX:$PORTAGE_READONLY_EPREFIXES"
++			else
++				prefixes="$EPREFIX"
++			fi
+ 		fi
+ 	else
++		prefixes=${root}
+ 		eroot=${root}
+ 	fi
+-	if [[ -n $PORTAGE_IPC_DAEMON ]] ; then
+-		"$PORTAGE_BIN_PATH"/ebuild-ipc has_version "${eroot}" "${atom}"
+-	else
+-		"${PORTAGE_BIN_PATH}/ebuild-helpers/portageq" has_version "${eroot}" "${atom}"
+-	fi
+-	local retval=$?
+-	if [[ ${retval} -eq 1 && -n ${READONLY_EPREFIX} ]]; then
+-		${SHELL} -c "EPREFIX='${READONLY_EPREFIX%:*}' EPYTHON= '${PORTAGE_BIN_PATH}/ebuild-helpers/portageq' has_version '${READONLY_EPREFIX%:*}' '${atom}'"
+-		retval=$?
+-	fi
++
++	local retval save_IFS=$IFS i
++	IFS=":"
++	for i in ${prefixes%:}; do
++		IFS=$save_IFS
++		if ___eapi_has_prefix_variables; then
++			eroot=${root%/}${i}/
++		else
++			eroot=${root}
++		fi
++		if [[ -n $PORTAGE_IPC_DAEMON ]] ; then
++			"$PORTAGE_BIN_PATH"/ebuild-ipc has_version "${eroot}" "${atom}"
++			retval=$?
++		else
++			"${PORTAGE_BIN_PATH}/ebuild-helpers/portageq" has_version "${eroot}" "${atom}"
++			retval=$?
++		fi
++		[[ ${retval} == 0 ]] && break
++	done
++	IFS=$save_IFS
+ 	case "${retval}" in
+ 		0|1)
+ 			return ${retval}
+@@ -917,23 +936,41 @@ best_version() {
+ 		# since both prefixes can share root=/ while
+ 		# having different EPREFIX offsets.
+ 		if ${host_root} ; then
+-			eroot=${root%/}${PORTAGE_OVERRIDE_EPREFIX}/
++			if [ ! -z "$PORTAGE_READONLY_EPREFIXES" ]; then
++				prefixes="$PORTAGE_OVERRIDE_EPREFIX:$PORTAGE_READONLY_EPREFIXES"
++			else
++				prefixes="$PORTAGE_OVERRIDE_EPREFIX"
++			fi
+ 		else
+-			eroot=${root%/}${EPREFIX}/
++			if [ ! -z "$PORTAGE_READONLY_EPREFIXES" ]; then
++				prefixes="$EPREFIX:$PORTAGE_READONLY_EPREFIXES"
++			else
++				prefixes="$EPREFIX"
++			fi
+ 		fi
+ 	else
++		prefixes=${root}
+ 		eroot=${root}
+ 	fi
+-	if [[ -n $PORTAGE_IPC_DAEMON ]] ; then
+-		"$PORTAGE_BIN_PATH"/ebuild-ipc best_version "${eroot}" "${atom}"
+-	else
+-		"${PORTAGE_BIN_PATH}/ebuild-helpers/portageq" best_version "${eroot}" "${atom}"
+-	fi
+-	local retval=$?
+-	if [[ ${retval} -eq 1 && -n ${READONLY_EPREFIX} ]]; then
+-		${SHELL} -c "EPREFIX='${READONLY_EPREFIX%:*}' EPYTHON= '${PORTAGE_BIN_PATH}/ebuild-helpers/portageq' best_version '${READONLY_EPREFIX%:*}' '${atom}'"
+-		retval=$?
+-	fi
++	local retval save_IFS=$IFS i
++	IFS=":"
++	for i in ${prefixes%:}; do
++		IFS=$save_IFS
++		if ___eapi_has_prefix_variables; then
++			eroot=${root%/}${i}/
++		else
++			eroot=${root}
++		fi
++		if [[ -n $PORTAGE_IPC_DAEMON ]] ; then
++			"$PORTAGE_BIN_PATH"/ebuild-ipc best_version "${eroot}" "${atom}"
++			retval=$?
++		else
++			"${PORTAGE_BIN_PATH}/ebuild-helpers/portageq" best_version "${eroot}" "${atom}"
++			retval=$?
++		fi
++		[[ ${retval} == 0 ]] && break
++	done
++	IFS=$save_IFS
+ 	case "${retval}" in
+ 		0|1)
+ 			return ${retval}
+@@ -951,6 +988,63 @@ best_version() {
+ 	esac
+ }
+ 
++# @FUNCTION: get_eprefix
++# @USAGE: [--host-root] <DEPEND ATOM>
++# @DESCRIPTION:
++# Prints the EPREFIX of the best match.
++get_eprefix() {
++        local atom eroot host_root=false root=${ROOT} dep_type
++        if [[ $1 == --host-root ]] ; then
++                host_root=true
++                shift
++        fi
++        atom=$1
++        shift
++        if [ ! -z "$1" ]; then
++                dep_type=$1
++                shift
++        else
++                dep_type="DEPEND"
++        fi
++        [ $# -gt 0 ] && die "${FUNCNAME[0]}: unused argument(s): $*"
++
++        if ${host_root} ; then
++                if ! ___eapi_best_version_and_has_version_support_--host-root; then
++                        die "${FUNCNAME[0]}: option --host-root is not supported with EAPI ${EAPI}"
++                fi
++                root=/
++        fi
++
++        local retval
++        if ___eapi_has_prefix_variables; then
++                eroot=${root%/}${EPREFIX}/
++        else
++                eroot=${root}
++        fi
++        if [[ -n $PORTAGE_IPC_DAEMON ]] ; then
++                "$PORTAGE_BIN_PATH"/ebuild-ipc get_eprefix "${eroot}" "${atom}" "${dep_type}"
++                retval=$?
++        else
++                "${PORTAGE_BIN_PATH}/ebuild-helpers/portageq" get_eprefix "${eroot}" "${atom}" "${dep_type}"
++                retval=$?
++        fi
++        case "${retval}" in
++                0|1)
++                        return ${retval}
++                        ;;
++                2)
++                        die "${FUNCNAME[0]}: invalid atom: ${atom}"
++                        ;;
++                *)
++                        if [[ -n ${PORTAGE_IPC_DAEMON} ]]; then
++                                die "${FUNCNAME[0]}: unexpected ebuild-ipc exit code: ${retval}"
++                        else
++                                die "${FUNCNAME[0]}: unexpected portageq exit code: ${retval}"
++                        fi
++                        ;;
++        esac
++}
++
+ if ___eapi_has_get_libdir; then
+ 	get_libdir() {
+ 		local libdir_var="LIBDIR_${ABI}"
+diff --git a/pym/portage/__init__.py b/pym/portage/__init__.py
+index e41f566..cb11897 100644
+--- a/pym/portage/__init__.py
++++ b/pym/portage/__init__.py
+@@ -61,7 +61,7 @@ try:
+ 		'portage.dep:best_match_to_list,dep_getcpv,dep_getkey,' + \
+ 			'flatten,get_operator,isjustname,isspecific,isvalidatom,' + \
+ 			'match_from_list,match_to_list',
+-		'portage.dep.dep_check:dep_check,dep_eval,dep_wordreduce,dep_zapdeps',
++		'portage.dep.dep_check:dep_check,dep_eval,dep_wordreduce,dep_zapdeps,dep_wordreduce_readonly',
+ 		'portage.eclass_cache',
+ 		'portage.elog',
+ 		'portage.exception',
+@@ -384,7 +384,7 @@ except (ImportError, OSError) as e:
+ _python_interpreter = os.path.realpath(sys.executable)
+ _bin_path = PORTAGE_BIN_PATH
+ _pym_path = PORTAGE_PYM_PATH
+-_not_installed = os.path.isfile(os.path.join(PORTAGE_BASE_PATH, ".portage_not_installed"))
++_not_installed = os.path.isfile(os.path.join(EPREFIX, ".portage_not_installed"))
+ 
+ # Api consumers included in portage should set this to True.
+ _internal_caller = False
+@@ -588,6 +588,10 @@ def create_trees(config_root=None, target_root=None, trees=None, env=None,
+ 	depcachedir = settings.get('PORTAGE_DEPCACHEDIR')
+ 	trees._target_eroot = settings['EROOT']
+ 	myroots = [(settings['EROOT'], settings)]
++	# I believe this was necessary for portageq stuff
++	readonly_eprefixes = settings.readonly_prefixes
++	if readonly_eprefixes is not None:
++		myroots.extend([(p, settings) for p in readonly_eprefixes])
+ 	if settings["ROOT"] == "/" and settings["EPREFIX"] == const.EPREFIX:
+ 		trees._running_eroot = trees._target_eroot
+ 	else:
+diff --git a/pym/portage/dep/dep_check.py b/pym/portage/dep/dep_check.py
+index 7ca883a..1ade00b 100644
+--- a/pym/portage/dep/dep_check.py
++++ b/pym/portage/dep/dep_check.py
+@@ -831,9 +831,13 @@ def dep_check(depstring, mydbapi, mysettings, use="yes", mode=None, myuse=None,
+ 	writemsg("mysplit2: %s\n" % (mysplit2), 1)
+ 
+ 	if dep_type is not None:
+-		mysplit2=dep_wordreduce_readonly(unreduced=mysplit[:],
+-				reduced=mysplit2, settings=mysettings,
+-				dep_type=dep_type, parent=trees[myroot].get("disp_parent"))
++		# disp_parent may not be valid for get_eprefix
++		doparent = trees[myroot].get("disp_parent")
++		if doparent is None:
++			doparent = trees[myroot].get("parent")
++		mysplit2=dep_wordreduce_readonly(unreduced=mysplit[:], 
++			reduced=mysplit2, settings=mysettings, 
++			dep_type=dep_type, parent=doparent)
+ 
+ 		writemsg("\n", 1)
+ 		writemsg("mysplit2 after readonly reduce: %s\n" % (mysplit2), 1)
+diff --git a/pym/portage/exception.py b/pym/portage/exception.py
+index 263cdf0..10e6976 100644
+--- a/pym/portage/exception.py
++++ b/pym/portage/exception.py
+@@ -206,3 +206,6 @@ class InvalidSignature(SignatureException):
+ class UntrustedSignature(SignatureException):
+ 	"""Signature was not certified to the desired security level"""
+ 
++class InvalidReadonlyERoot(PortageException):
++	"""Readonly EROOT definition string in make.conf invalid."""
++
+diff --git a/pym/portage/package/ebuild/_ipc/QueryCommand.py b/pym/portage/package/ebuild/_ipc/QueryCommand.py
+index 351c956..b5c56f0 100644
+--- a/pym/portage/package/ebuild/_ipc/QueryCommand.py
++++ b/pym/portage/package/ebuild/_ipc/QueryCommand.py
+@@ -50,7 +50,7 @@ class QueryCommand(IpcCommand):
+ 		eapi = self.settings.get('EAPI')
+ 
+ 		root = normalize_path(root).rstrip(os.path.sep) + os.path.sep
+-		if root not in db:
++		if root not in db and root:
+ 			return ('', '%s: Invalid ROOT: %s\n' % (cmd, root), 3)
+ 
+ 		portdb = db[root]["porttree"].dbapi
+@@ -82,11 +82,40 @@ class QueryCommand(IpcCommand):
+ 			if vardb.match(atom):
+ 				returncode = 0
+ 			else:
+-				returncode = 1
++				from portage.dep.dep_check import dep_match_readonly_roots
++				mylist = dep_match_readonly_roots(db[root]["vartree"].settings, atom, "DEPEND")
++				if len(mylist) > 0:
++					returncode = 0
++				else:
++					returncode = 1
+ 			return ('', warnings_str, returncode)
+ 		elif cmd == 'best_version':
+ 			m = best(vardb.match(atom))
++			if m is None:
++				from portage.dep.dep_check import dep_match_readonly_roots
++				mylist = dep_match_readonly_roots(db[root]["vartree"].settings, atom, "DEPEND")
++				if len(mylist) > 0:
++					m = mylist[0]
+ 			return ('%s\n' % m, warnings_str, 0)
++		elif cmd == 'get_eprefix':
++			prefix=""
++			if vardb.match(atom):
++				prefix=root
++				returncode = 0
++			else:
++				if len(args) == 3:
++					dep_type = args[1]
++				else:
++					dep_type = "DEPEND"
++				from portage.dep.dep_check import dep_match_readonly_roots
++				mylist = dep_match_readonly_roots(db[root]["vartree"].settings, atom, dep_type)
++				if len(mylist) > 0:
++					prefix=mylist[0]['ro_root']
++					returncode = 0
++				else:
++					returncode = 1
++			return ('%s\n' % prefix, warnings_str, returncode)
++
+ 		elif cmd in ('master_repositories', 'repository_path', 'available_eclasses', 'eclass_path', 'license_path'):
+ 			repo = _repo_name_re.match(args[0])
+ 			if repo is None:
+diff --git a/pym/portage/package/ebuild/config.py b/pym/portage/package/ebuild/config.py
+index 2e31cf0..88764eb 100644
+--- a/pym/portage/package/ebuild/config.py
++++ b/pym/portage/package/ebuild/config.py
+@@ -899,6 +899,16 @@ class config(object):
+ #						else:
+ #							self["PORTAGE_GRPNAME"] = grp_struct.gr_name
+ #							self.backup_changes("PORTAGE_GRPNAME")
++			# Above is silly. There is no need to do everything completely automatically
++			# Simply allow overrides from make.conf and set the best guesses when creating
++			# prefix chain. Then, the user can adjust if necessary.
++			for confs in [make_globals, make_conf, self.configdict["env"]]:
++				v = confs.get("PORTAGE_GROUP")
++				if v is not None:
++					self["PORTAGE_GRPNAME"] = v
++				v = confs.get("PORTAGE_USER")
++				if v is not None:
++					self["PORTAGE_USERNAME"] = v
+ 			# END PREFIX LOCAL
+ 
+ 			for var, default_val in default_inst_ids.items():
