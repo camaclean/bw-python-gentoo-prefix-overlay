@@ -83,14 +83,15 @@ cuda_gccdir() {
 
 	# https://bluewaters.ncsa.illinois.edu/cuda uses `which CC` for compiler bindir
 	local cc_tmp
-	if use cray; then
-		cc_tmp=$(which CC)
-		gcc_bindir="${cc_tmp%/CC}"
+	if [ -d "/opt/cray/nvidia" ]; then
+		cc_tmp=$(which g++)
+		gcc_bindir="$(dirname $(which g++))/../snos/bin"
 	else
 		cc_tmp=$(which g++)
 		gcc_bindir="${cc_tmp%/g++}"
 	fi
 	# Clean up gcc_bindir to actually be the directory, not the executable itself
+	echo ${gcc_bindir} >/dev/stderr
 
 	if [[ -n ${gcc_bindir} ]]; then
 		if [[ -n ${flag} ]]; then
@@ -123,8 +124,8 @@ cuda_sanitize() {
 	NVCCFLAGS+=" $(cuda_gccdir -f)"
 
 	# Tell nvcc which flags should be used for underlying C compiler
-	if use cray; then
-		NVCCFLAGS+=" -ccbin=CC --compiler-options=\"${CXXFLAGS}\" --linker-options=\"${rawldflags// /,},-L/opt/cray/nvidia/default/lib64,--rpath=/opt/cray/nvidia/default/lib64\""
+	if [ -d "/opt/cray/nvidia" ]; then
+		NVCCFLAGS+=" -ccbin=g++ --compiler-options=\"${CXXFLAGS}\" --linker-options=\"${rawldflags// /,},-L/opt/cray/nvidia/default/lib64,--rpath=/opt/cray/nvidia/default/lib64\""
 	else
 		NVCCFLAGS+=" --compiler-options=\"${CXXFLAGS}\" --linker-options=\"${rawldflags// /,}\""
 	fi
