@@ -25,18 +25,12 @@ src_prepare() {
 
 src_configure() {
 	econf \
-		--includedir=/usr/include/libshp
+		--includedir=${EPREFIX}/usr/include/libshp
 }
 
 src_install() {
 	use doc && HTML_DOCS=( web/. )
 	default
-
-	if use prefix; then
-		mkdir -p "${ED}"/usr/include/libshp || die
-		mv "${D}"/usr/include/libshp/shapefil.h "${ED}"/usr/include/libshp/shapefil.h || die
-		rm -rf "${D}"/usr || die
-	fi
 
 	if ! use static-libs; then
 		find "${ED}" \( -name '*.la' -o -name '*.a' \) -delete || die
