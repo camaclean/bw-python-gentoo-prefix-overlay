@@ -203,11 +203,13 @@ src_configure() {
 #		sed -i -e 's!$(DD)bbox.dev!& $(DD)djvumask.dev $(DD)djvusep.dev!g' \
 #			"${S}"/Makefile || die "sed failed"
 #	fi
+	sed -i -e "s|-I${EPREFIX}/usr/include ||g" Makefile || die
 
 	cd "${S}/ijs" || die
 	econf \
 		--enable-shared$(tc-is-static-only && echo =no) \
 		$(use_enable static-libs static)
+	sed -i -e "s|-I${EPREFIX}/usr/include ||g" Makefile || die
 }
 
 src_compile() {
