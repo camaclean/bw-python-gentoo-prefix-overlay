@@ -1,0 +1,7 @@
+import os
+import glob
+
+for file in glob.glob(os.path.dirname(os.path.realpath(__file__))+"/sitecustomize.d/*.py"):
+    with open(file) as f:
+        code = compile(f.read(), file, 'exec')
+        exec(code)
