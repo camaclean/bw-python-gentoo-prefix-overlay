@@ -27,9 +27,7 @@ DEPEND="dev-lang/swig
 
 PATCHES=( "${FILESDIR}"/tensorflow-0.12.1.patch )
 
-if use cray; then
-	ENVMOD_REQUIRE="cudatoolkit"
-fi
+ENVMOD_REQUIRE="cudatoolkit"
 
 src_configure() {
 	python_configure() {

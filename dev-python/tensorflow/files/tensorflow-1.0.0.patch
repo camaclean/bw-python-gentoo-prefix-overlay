@@ -232,7 +232,7 @@ index 911e526..e6e8ae7 100644
 +  add_dependencies(${tf_core_gpu_kernels_lib} tf_core_cpu)
  endif()
 diff --git a/tensorflow/contrib/cmake/tf_core_ops.cmake b/tensorflow/contrib/cmake/tf_core_ops.cmake
-index 0e61bfc..c524156 100644
+index 0e61bfc..2f4be59 100644
 --- a/tensorflow/contrib/cmake/tf_core_ops.cmake
 +++ b/tensorflow/contrib/cmake/tf_core_ops.cmake
 @@ -43,11 +43,23 @@ function(GENERATE_CONTRIB_OP_LIBRARY op_lib_name cc_srcs)
@@ -260,7 +260,7 @@ index 0e61bfc..c524156 100644
  ########################################################
  # tf_user_ops library
 diff --git a/tensorflow/contrib/cmake/tf_python.cmake b/tensorflow/contrib/cmake/tf_python.cmake
-index 6fe83bf..5e1bbd7 100644
+index 6fe83bf..0be5516 100644
 --- a/tensorflow/contrib/cmake/tf_python.cmake
 +++ b/tensorflow/contrib/cmake/tf_python.cmake
 @@ -203,6 +203,7 @@ add_python_module("tensorflow/python/util")
@@ -283,7 +283,16 @@ index 6fe83bf..5e1bbd7 100644
  add_python_module("tensorflow/contrib/input_pipeline/python")
  add_python_module("tensorflow/contrib/input_pipeline/python/ops")
  add_python_module("tensorflow/contrib/integrate")
-@@ -384,6 +387,7 @@ add_python_module("tensorflow/contrib/tensor_forest/core")
+@@ -335,6 +338,8 @@ add_python_module("tensorflow/contrib/metrics/python")
+ add_python_module("tensorflow/contrib/metrics/python/kernel_tests")
+ add_python_module("tensorflow/contrib/metrics/python/metrics")
+ add_python_module("tensorflow/contrib/metrics/python/ops")
++add_python_module("tensorflow/contrib/nccl")
++add_python_module("tensorflow/contrib/nccl/ops")
+ add_python_module("tensorflow/contrib/ndlstm")
+ add_python_module("tensorflow/contrib/ndlstm/python")
+ add_python_module("tensorflow/contrib/nn")
+@@ -384,6 +389,7 @@ add_python_module("tensorflow/contrib/tensor_forest/core")
  add_python_module("tensorflow/contrib/tensor_forest/core/ops")
  add_python_module("tensorflow/contrib/tensor_forest/data")
  add_python_module("tensorflow/contrib/tensor_forest/hybrid")
@@ -291,7 +300,7 @@ index 6fe83bf..5e1bbd7 100644
  add_python_module("tensorflow/contrib/tensor_forest/hybrid/core")
  add_python_module("tensorflow/contrib/tensor_forest/hybrid/core/ops")
  add_python_module("tensorflow/contrib/tensor_forest/hybrid/python")
-@@ -516,12 +520,175 @@ GENERATE_PYTHON_OP_LIB("contrib_factorization_factorization_ops"
+@@ -516,12 +522,175 @@ GENERATE_PYTHON_OP_LIB("contrib_factorization_factorization_ops"
    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/factorization/python/ops/gen_factorization_ops.py)
  GENERATE_PYTHON_OP_LIB("contrib_framework_variable_ops"
    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/framework/python/ops/gen_variable_ops.py)
