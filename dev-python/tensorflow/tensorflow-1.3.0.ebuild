@@ -18,7 +18,8 @@ SLOT="0"
 KEYWORDS="~amd64"
 IUSE="cray cuda graphviz prefix-chaining prefix-chain"
 
-RDEPEND="dev-python/numpy[${PYTHON_USEDEP}]
+RDEPEND="dev-libs/nccl
+	 dev-python/numpy[${PYTHON_USEDEP}]
 	 ~dev-python/protobuf-python-3.1.0[${PYTHON_USEDEP}]
 	 ~dev-libs/protobuf-3.1.0[${PYTHON_USEDEP}]
          >=sci-libs/scipy-0.15.0[${PYTHON_USEDEP}]
