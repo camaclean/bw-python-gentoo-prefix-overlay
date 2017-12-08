@@ -20,14 +20,14 @@ sys-libs/binutils-libs-2.25.1-r1
 sys-apps/man-1.6g
 virtual/opengl-7.0-r1
 dev-util/gtk-doc-am-1.24
-sys-devel/libtool-2.4.6
-dev-libs/expat-2.1.0-r5
+#sys-devel/libtool-2.4.6
+#dev-libs/expat-2.1.0-r5
 #sys-devel/gettext-0.19.4 #gettext tools not installed
 #net-misc/wget-1.16 #openssl too old 
 sys-kernel/linux-headers-3.18
 #app-crypt/mhash-0.9.9.9-r1
 #sys-devel/bison-3.0.4-r1 Need a newer version for gstreamer
-sys-devel/gnuconfig-20150308
+#sys-devel/gnuconfig-20150308
 app-arch/gzip-1.6
 sys-apps/diffutils-3.3
 sys-apps/net-tools-1.60_p20130513023548
@@ -35,7 +35,6 @@ sys-process/psmisc-22.21-r2
 #dev-libs/libpcre-8.36
 #app-editors/nano-2.3.6
 sys-process/procps-3.3.9-r2
-#sys-apps/texinfo-5.2 #missing makeinfo
 sys-apps/groff-1.22.2
 sys-apps/man-pages-4.00
 sys-apps/man-pages-posix-2013a
@@ -57,21 +56,21 @@ dev-libs/libtasn1-4.5
 net-dns/libidn-1.30
 dev-libs/nettle-2.7.1-r4
 #net-misc/curl-7.43.0 #cmake requires CURLE_NOT_BUILT_IN, not in system curl
-dev-vcs/mercurial-2.3.2
+#dev-vcs/mercurial-2.3.2
 #dev-vcs/git-2.4.6
 #dev-vcs/git-2.5.1
 app-crypt/gnupg-2.0.26-r3
 dev-util/pkgconfig-2.28-r3
 app-editors/vim-7.4.827
 app-editors/vim-core-7.4.827
-virtual/cblas-2.0-r3
-virtual/cblas-2.0-r4
-virtual/lapack-3.5-r2
-virtual/lapack-3.6
-sci-libs/cblas-reference-20110218-r1
-sci-libs/blas-reference-20070226-r2
-sci-libs/lapack-reference-3.5.0
-sci-libs/lapack-reference-3.6.0-r1
+#virtual/cblas-2.0-r3
+#virtual/cblas-2.0-r4
+#virtual/lapack-3.5-r2
+#virtual/lapack-3.6
+#sci-libs/cblas-reference-20110218-r1
+#sci-libs/blas-reference-20070226-r2
+#sci-libs/lapack-reference-3.5.0
+#sci-libs/lapack-reference-3.6.0-r1
 #media-libs/freetype-2.6
 sys-libs/libcap-2.24-r2
 x11-libs/libSM-1.2.1-r1
@@ -95,7 +94,8 @@ virtual/jpeg-0-r2
 x11-proto/kbproto-1.0.3
 x11-proto/inputproto-1.5.1
 x11-proto/xf86bigfontproto-1.1.2
-x11-proto/xf86vidmodeproto-2.3.1-r1
+#x11-proto/xf86vidmodeproto-2.3.1-r1
+sys-fs/udev-init-scripts-32
 sys-libs/glibc-2.22-r1
 sys-apps/hwids-20150717-r1
 x11-drivers/nvidia-drivers-358.09
@@ -125,8 +125,8 @@ virtual/opencl-0-r4
 #dev-libs/boost-1.53.0
 #dev-util/boost-build-1.53.0
 #media-libs/fontconfig-2.11.94
-virtual/blas-2.1-r3
-virtual/blas-1.0
+#virtual/blas-2.1-r3
+#virtual/blas-1.0
 #virtual/perl-Scalar-List-Utils-1.410.0
 #virtual/perl-Parse-CPAN-Meta-1.441.400-r1
 #virtual/perl-CPAN-Meta-YAML-0.12.0-r1
@@ -160,7 +160,7 @@ sci-libs/scotch-5.1.12b
 #app-arch/xz-utils-5.2.2 provided package lacks lzma support
 virtual/ssh-0
 virtual/man-0-r1
-sys-apps/coreutils-9999
+#sys-apps/coreutils-9999
 #app-arch/bzip2-9999 #System bz2 is too old for python3 
 #sys-devel/make-9999 #make is not gnu make
 #dev-libs/glib-2.44.1
