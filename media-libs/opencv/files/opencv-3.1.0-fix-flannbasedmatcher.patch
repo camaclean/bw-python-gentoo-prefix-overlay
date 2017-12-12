@@ -1,0 +1,124 @@
+From 2f5ea3437e00dab81339e398ae86e655b481f230 Mon Sep 17 00:00:00 2001
+From: Patrick Snape <patricksnape@gmail.com>
+Date: Sat, 23 Jan 2016 15:57:46 +0000
+Subject: [PATCH 1/2] Update indentation to match rest of file
+
+Very cosmetic, but was analyzing code and just wanted to make it
+consistent.
+---
+ modules/features2d/src/matchers.cpp | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/modules/features2d/src/matchers.cpp b/modules/features2d/src/matchers.cpp
+index fad73a27152..e8047371993 100644
+--- a/modules/features2d/src/matchers.cpp
++++ b/modules/features2d/src/matchers.cpp
+@@ -517,30 +517,32 @@ DescriptorMatcher::~DescriptorMatcher()
+ 
+ void DescriptorMatcher::add( InputArrayOfArrays _descriptors )
+ {
+-    if(_descriptors.isUMatVector())
++    if( _descriptors.isUMatVector() )
+     {
+         std::vector<UMat> descriptors;
+-        _descriptors.getUMatVector(descriptors);
++        _descriptors.getUMatVector( descriptors );
+         utrainDescCollection.insert( utrainDescCollection.end(), descriptors.begin(), descriptors.end() );
+     }
+-    else if(_descriptors.isUMat())
++    else if( _descriptors.isUMat() )
+     {
+         std::vector<UMat> descriptors = std::vector<UMat>(1, _descriptors.getUMat());
+         utrainDescCollection.insert( utrainDescCollection.end(), descriptors.begin(), descriptors.end() );
+     }
+-    else if(_descriptors.isMatVector())
++    else if( _descriptors.isMatVector() )
+     {
+         std::vector<Mat> descriptors;
+         _descriptors.getMatVector(descriptors);
+         trainDescCollection.insert( trainDescCollection.end(), descriptors.begin(), descriptors.end() );
+     }
+-    else if(_descriptors.isMat())
++    else if( _descriptors.isMat() )
+     {
+         std::vector<Mat> descriptors = std::vector<Mat>(1, _descriptors.getMat());
+         trainDescCollection.insert( trainDescCollection.end(), descriptors.begin(), descriptors.end() );
+     }
+     else
++    {
+         CV_Assert( _descriptors.isUMat() || _descriptors.isUMatVector() || _descriptors.isMat() || _descriptors.isMatVector() );
++    }
+ }
+ 
+ const std::vector<Mat>& DescriptorMatcher::getTrainDescriptors() const
+
+From 05cfe28612fd8dc8fb0ccb876df945c7b435dd26 Mon Sep 17 00:00:00 2001
+From: Patrick Snape <patricksnape@gmail.com>
+Date: Sat, 23 Jan 2016 15:58:16 +0000
+Subject: [PATCH 2/2] Fix parsing of training vecs for FlannBasedMatcher
+
+FlannBasedMatcher::add is overloaded, but the style of parsing the
+InputArrayOfArrays does not match the style from
+DescriptorMatcher::add. The issue is that InputArrayOfArrays
+must be properly marshalled so that the data can be read
+correctly. In this case, the method expects the training
+descriptors to be either a vector of matrices or a single matrix
+(as is shown in DescriptorMatcher::add). These code
+replicates that for the case of the FlannBasedMatcher::add.
+
+In fact, a similar commit to this was added by 26d9a7c but was
+ultimately not accepted in #4111. This is likely due to the
+fact that the input arrays were not parsed properly and the
+case of a single matrix was being improperly handled. I believe
+this commit to be correct given the logic from
+DescriptorMatcher::add.
+---
+ modules/features2d/src/matchers.cpp | 33 +++++++++++++++++++++++++++++----
+ 1 file changed, 29 insertions(+), 4 deletions(-)
+
+diff --git a/modules/features2d/src/matchers.cpp b/modules/features2d/src/matchers.cpp
+index e8047371993..a1b557fa9e4 100644
+--- a/modules/features2d/src/matchers.cpp
++++ b/modules/features2d/src/matchers.cpp
+@@ -1034,12 +1034,37 @@ FlannBasedMatcher::FlannBasedMatcher( const Ptr<flann::IndexParams>& _indexParam
+ void FlannBasedMatcher::add( InputArrayOfArrays _descriptors )
+ {
+     DescriptorMatcher::add( _descriptors );
+-    std::vector<UMat> descriptors;
+-    _descriptors.getUMatVector(descriptors);
+ 
+-    for( size_t i = 0; i < descriptors.size(); i++ )
++    if( _descriptors.isUMatVector() )
++    {
++        std::vector<UMat> descriptors;
++        _descriptors.getUMatVector( descriptors );
++
++        for( size_t i = 0; i < descriptors.size(); i++ )
++        {
++            addedDescCount += descriptors[i].rows;
++        }
++    }
++    else if( _descriptors.isUMat() )
++    {
++        addedDescCount += _descriptors.getUMat().rows;
++    }
++    else if( _descriptors.isMatVector() )
+     {
+-        addedDescCount += descriptors[i].rows;
++        std::vector<Mat> descriptors;
++        _descriptors.getMatVector(descriptors);
++        for( size_t i = 0; i < descriptors.size(); i++ )
++        {
++            addedDescCount += descriptors[i].rows;
++        }
++    }
++    else if( _descriptors.isMat() )
++    {
++        addedDescCount += _descriptors.getMat().rows;
++    }
++    else
++    {
++        CV_Assert( _descriptors.isUMat() || _descriptors.isUMatVector() || _descriptors.isMat() || _descriptors.isMatVector() );
+     }
+ }
+ 
