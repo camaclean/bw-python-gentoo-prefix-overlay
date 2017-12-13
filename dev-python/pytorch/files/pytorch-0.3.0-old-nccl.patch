@@ -1,0 +1,13 @@
+diff --git a/torch/csrc/cuda/nccl.cpp b/torch/csrc/cuda/nccl.cpp
+index 0ae936d..4c984e5 100644
+--- a/torch/csrc/cuda/nccl.cpp
++++ b/torch/csrc/cuda/nccl.cpp
+@@ -20,7 +20,7 @@ static inline void CHECK(ncclResult_t status)
+ struct NcclCommList {
+   std::unique_ptr<ncclComm_t[]> comms;
+   int ndevices;
+-  NcclCommList(const std::vector<int>& devices)
++  NcclCommList(std::vector<int>& devices)
+     : comms(new ncclComm_t[devices.size()]), ndevices(devices.size()) {
+     CHECK(ncclCommInitAll(comms.get(), devices.size(), devices.data()));
+   }
