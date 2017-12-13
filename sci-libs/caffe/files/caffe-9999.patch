@@ -1,0 +1,72 @@
+diff --git a/cmake/ConfigGen.cmake b/cmake/ConfigGen.cmake
+index 4b447a6..82f8146 100644
+--- a/cmake/ConfigGen.cmake
++++ b/cmake/ConfigGen.cmake
+@@ -96,7 +96,7 @@ function(caffe_generate_export_configs)
+   # remove source and build dir includes
+   caffe_get_items_with_prefix(${PROJECT_SOURCE_DIR} Caffe_INCLUDE_DIRS __insource)
+   caffe_get_items_with_prefix(${PROJECT_BINARY_DIR} Caffe_INCLUDE_DIRS __inbinary)
+-  list(REMOVE_ITEM Caffe_INCLUDE_DIRS ${__insource} ${__inbinary})
++  list(REMOVE_ITEM Caffe_INCLUDE_DIRS __insource __inbinary)
+ 
+   # add `install` include folder
+   set(lines
+diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
+index ad8f1df..4d8c627 100644
+--- a/cmake/Dependencies.cmake
++++ b/cmake/Dependencies.cmake
+@@ -26,7 +26,7 @@ include(cmake/ProtoBuf.cmake)
+ # ---[ HDF5
+ find_package(HDF5 COMPONENTS HL REQUIRED)
+ include_directories(SYSTEM ${HDF5_INCLUDE_DIRS} ${HDF5_HL_INCLUDE_DIR})
+-list(APPEND Caffe_LINKER_LIBS ${HDF5_LIBRARIES})
++list(APPEND Caffe_LINKER_LIBS ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES})
+ 
+ # ---[ LMDB
+ if(USE_LMDB)
+diff --git a/src/caffe/layers/detectnet_transform_layer.cpp b/src/caffe/layers/detectnet_transform_layer.cpp
+index 1e13b99..50a4e92 100644
+--- a/src/caffe/layers/detectnet_transform_layer.cpp
++++ b/src/caffe/layers/detectnet_transform_layer.cpp
+@@ -83,7 +83,7 @@ void DetectNetTransformationLayer<Dtype>::retrieveMeanImage(Size dimensions) {
+ #endif
+ 
+   // scale from 0..255 to 0..1:
+-  data_mean_ /= Dtype(UINT8_MAX);
++  data_mean_ /= Dtype(__UINT8_MAX__);
+ }
+ 
+ 
+@@ -91,12 +91,12 @@ template<typename Dtype>
+ void DetectNetTransformationLayer<Dtype>::retrieveMeanChannels() {
+   switch (t_param_.mean_value_size()) {
+     case 1:
+-      mean_values_.fill(t_param_.mean_value(0) / Dtype(UINT8_MAX));
++      mean_values_.fill(t_param_.mean_value(0) / Dtype(__UINT8_MAX__));
+       break;
+     case 3:
+       for (size_t iChannel = 0; iChannel != 3; ++iChannel) {
+         mean_values_[iChannel] =
+-            t_param_.mean_value(iChannel) / Dtype(UINT8_MAX);
++            t_param_.mean_value(iChannel) / Dtype(__UINT8_MAX__);
+       }
+       break;
+     case 0:
+@@ -417,7 +417,7 @@ DetectNetTransformationLayer<Dtype>::transform_image_cpu(
+     const Mat3v& src_img, const AugmentSelection& as
+ ) {
+   // Scale from [0,255] to [0,1] for HSV augmentations
+-  Mat3v img = src_img.clone() / UINT8_MAX;
++  Mat3v img = src_img.clone() / __UINT8_MAX__;
+ 
+   // Do HSV transformations before mean subtraction while image still in [0,1]
+   if (as.doHueRotation() || as.doDesaturation()) {
+@@ -441,7 +441,7 @@ DetectNetTransformationLayer<Dtype>::transform_image_cpu(
+       as.crop_offset);
+ 
+   // Scale from [-1,1] into [-255,255]
+-  img *= Dtype(UINT8_MAX);
++  img *= Dtype(__UINT8_MAX__);
+   return img;
+ }
+ 
