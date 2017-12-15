@@ -1,0 +1,24 @@
+diff --git a/exodus/CMakeLists.txt b/exodus/CMakeLists.txt
+index 5e8c62f..0165023 100644
+--- a/exodus/CMakeLists.txt
++++ b/exodus/CMakeLists.txt
+@@ -41,15 +41,15 @@ find_program (NETCDF_NCDUMP ncdump
+ find_library( HDF5_LIBRARY hdf5
+   $ENV{ACCESS}/lib/shared
+   $ENV{ACCESS}/lib
+-  $ENV{NETCDF_DIR}/lib${LIB_SUFFIX}
+-  $ENV{NETCDF_DIR}/libsrc/.libs
++  $ENV{HDF5_DIR}/lib${LIB_SUFFIX}
++  $ENV{HDF5_DIR}/libsrc/.libs
+   /usr/local/hdf5/lib
+   )
+ find_library( HDF5HL_LIBRARY hdf5_hl
+   $ENV{ACCESS}/lib/shared
+   $ENV{ACCESS}/lib
+-  $ENV{NETCDF_DIR}/lib${LIB_SUFFIX}
+-  $ENV{NETCDF_DIR}/libsrc/.libs
++  $ENV{HDF5_DIR}/lib${LIB_SUFFIX}
++  $ENV{HDF5_DIR}/libsrc/.libs
+   /usr/local/hdf5/lib
+   )
+ 
