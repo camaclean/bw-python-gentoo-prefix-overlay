@@ -1,0 +1,38 @@
+import os
+import sys
+import pwd
+import types
+import atexit
+import syslog
+import site
+
+def in_prefix(file):
+    for s in site.PREFIXES:
+        if len(os.path.commonprefix([file, s])) > 1:
+            return True
+    return False
+
+def imports():
+    #for name, val in globals().items():
+    for name, val in sys.modules.items():
+        if isinstance(val, types.ModuleType) and name is not 'sitecustomize' and '.' not in val.__name__:
+            if hasattr(val,'__file__'):
+                if in_prefix(val.__file__):
+                    if  'site-packages' in val.__file__:
+                        yield "%s (%s)" % (val.__name__, val.__file__)
+                else:
+                    yield "%s (%s)" % (val.__name__, val.__file__)
+
+def get_username():
+    uid = os.getuid();
+    try:
+        return pwd.getpwuid(uid).pw_name
+    except KeyError:
+        return str(uid)
+
+def log_imports():
+    syslog.openlog(logoption=syslog.LOG_PID | syslog.LOG_CONS)
+    syslog.syslog("user: %s Imported Modules: %s" % (get_username(), ', '.join(list(imports()))))
+    #print("user: %s Imported Modules: %s" % (get_username(), ', '.join(list(imports()))))
+
+atexit.register(log_imports)

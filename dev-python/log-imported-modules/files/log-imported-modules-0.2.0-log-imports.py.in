@@ -1,0 +1,78 @@
+import os
+import sys
+import pwd
+import types
+import atexit
+import syslog
+import site
+import platform
+import time
+import datetime
+
+pyversion="%s.%s" % platform.python_version_tuple()[:2]
+
+def in_prefix(file):
+    for s in site.PREFIXES:
+        if len(os.path.commonprefix([file, s])) > 1:
+            return True
+    return False
+
+def imports():
+    #for name, val in globals().items():
+    for name, val in sys.modules.items():
+        if isinstance(val, types.ModuleType) and name is not 'sitecustomize' and '.' not in name:
+            if hasattr(val,'__file__'):
+                if in_prefix(val.__file__):
+                    if  'site-packages' in val.__file__:
+                        yield (val.__name__, val.__file__)
+                else:
+                    yield (val.__name__, val.__file__)
+
+def get_username():
+    uid = os.getuid();
+    try:
+        return pwd.getpwuid(uid).pw_name
+    except KeyError:
+        return str(uid)
+
+def log_imports():
+    import fcntl
+    global pyversion
+    lockfile = os.open("@GENTOO_EPREFIX@/var/log/bwpy/locks/.%s%s.log.lock" % (platform.python_implementation(), pyversion), os.O_CREAT | os.O_RDWR)
+    fcntl.flock(lockfile, fcntl.LOCK_EX)
+    modulename= "BWPY"
+    try:
+        with open("@GENTOO_EPREFIX@/.version","r") as bwpyversionfile:
+            bwpyversion = bwpyversionfile.readline().strip()
+            modulename = "BWPY %s" % bwpyversion 
+            if 'BWPY_MPI_VERSION' in os.environ:
+                modulename = "BWPY-MPI %s" % bwpyversion
+    except:
+        if 'BWPY_MPI_VERSION' in os.environ:
+            modulename = "BWPY-MPI %s"
+    impts = imports()
+    if impts is None:
+        impts = []
+    ts = time.time()
+    ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    with open("@GENTOO_EPREFIX@/var/log/bwpy/%s%s.log" % (platform.python_implementation(), pyversion), 'a') as log:
+        import json
+        log.write(json.dumps({ "timestamp" : ts,
+                    "modulename" : modulename,
+                    "pid" : os.getpid(),
+                    "username" : get_username(),
+                    "jobid" : os.environ.get('PBS_JOBID',''),
+                    "nodes" : int(os.environ.get('PBS_NUM_NODES',0)),
+                    "ppn" : int(os.environ.get('PBS_NUM_PPN',0)),
+                    "modules" : list(impts)}) + "\n")
+    fcntl.flock(lockfile, fcntl.LOCK_UN)
+    os.close(lockfile)
+
+def master_log_imports():
+    if 'ALPS_APP_PE' in os.environ:
+        if int(os.environ['ALPS_APP_PE']) is 0:
+            log_imports()
+    else:
+        log_imports()
+
+atexit.register(master_log_imports)
