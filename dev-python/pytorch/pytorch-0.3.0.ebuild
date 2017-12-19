@@ -26,7 +26,7 @@ RDEPEND="${DEPEND}"
 
 PYTHON_MODULES="pytorch"
 
-PATCHES=( "${FILESDIR}"/torch-0.3.0-old-nccl.patch )
+PATCHES=( "${FILESDIR}"/pytorch-0.3.0-old-nccl.patch )
 
 src_prepare() {
 	mv -fT "${WORKDIR}"/facebookincubator-gloo-${GLOO_COMMIT:0:7} ${S}/torch/lib/gloo || die
