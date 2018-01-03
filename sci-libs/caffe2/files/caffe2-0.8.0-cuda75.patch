@@ -1,0 +1,193 @@
+diff --git a/caffe2/utils/math_gpu.cu b/caffe2/utils/math_gpu.cu
+index 0cfc0b9..6deb226 100644
+--- a/caffe2/utils/math_gpu.cu
++++ b/caffe2/utils/math_gpu.cu
+@@ -147,60 +147,7 @@ void Gemm<float16, CUDAContext>(
+     float16* C,
+     CUDAContext* context,
+     TensorProto::DataType math_type) {
+-  // Note that cublas follows fortran order, so the order is different from
+-  // the cblas convention.
+-  int lda = (TransA == CblasNoTrans) ? K : M;
+-  int ldb = (TransB == CblasNoTrans) ? N : K;
+-  cublasOperation_t cuTransA =
+-      (TransA == CblasNoTrans) ? CUBLAS_OP_N : CUBLAS_OP_T;
+-  cublasOperation_t cuTransB =
+-      (TransB == CblasNoTrans) ? CUBLAS_OP_N : CUBLAS_OP_T;
+-  if (math_type == TensorProto_DataType_FLOAT) {
+-    CUBLAS_CHECK(cublasSgemmEx(
+-        context->cublas_handle(),
+-        cuTransB,
+-        cuTransA,
+-        N,
+-        M,
+-        K,
+-        &alpha,
+-        B,
+-        CUDA_R_16F,
+-        ldb,
+-        A,
+-        CUDA_R_16F,
+-        lda,
+-        &beta,
+-        C,
+-        CUDA_R_16F,
+-        N));
+-
+-  } else if (math_type == TensorProto_DataType_FLOAT16) {
+-    // convert alpha, beta from caffe2::float16 -> __half
+-    __half alpha_fp16;
+-    alpha_fp16.x = convert::To<float, float16>(alpha).x;
+-    __half beta_fp16;
+-    beta_fp16.x = convert::To<float, float16>(beta).x;
+-    // call cublasHgemm
+-    CUBLAS_CHECK(cublasHgemm(
+-        context->cublas_handle(),
+-        cuTransB,
+-        cuTransA,
+-        N,
+-        M,
+-        K,
+-        &alpha_fp16,
+-        (const __half*)B,
+-        ldb,
+-        (const __half*)A,
+-        lda,
+-        &beta_fp16,
+-        (__half*)C,
+-        N));
+-  } else {
+-    // fail
+-    CAFFE_THROW("Unsupported math type");
+-  }
++  CAFFE_THROW("Unsupported math type");
+ }
+ 
+ template <>
+@@ -322,59 +269,7 @@ void Gemv<float16, CUDAContext>(
+     float16* y,
+     CUDAContext* context,
+     TensorProto::DataType math_type) {
+-  cublasOperation_t cuTransA =
+-      (TransA == CblasNoTrans) ? CUBLAS_OP_T : CUBLAS_OP_N;
+-
+-  // sort out what we need to call cublasSgemmEx / cublasHgemm
+-  int m = (cuTransA == CUBLAS_OP_N) ? N : M;
+-  int k = (cuTransA == CUBLAS_OP_N) ? M : N;
+-  int LDA = (cuTransA == CUBLAS_OP_N) ? m : k;
+-  int LDC = m;
+-
+-  if (math_type == TensorProto_DataType_FLOAT) {
+-    CUBLAS_CHECK(cublasSgemmEx(
+-        context->cublas_handle(),
+-        cuTransA,
+-        CUBLAS_OP_N,
+-        m,
+-        1,
+-        k,
+-        &alpha,
+-        A,
+-        CUDA_R_16F,
+-        LDA,
+-        x,
+-        CUDA_R_16F,
+-        k,
+-        &beta,
+-        y,
+-        CUDA_R_16F,
+-        LDC));
+-  } else if (math_type == TensorProto_DataType_FLOAT16) {
+-    __half alpha_fp16;
+-    alpha_fp16.x = convert::To<float, float16>(alpha).x;
+-    __half beta_fp16;
+-    beta_fp16.x = convert::To<float, float16>(beta).x;
+-
+-    CUBLAS_CHECK(cublasHgemm(
+-        context->cublas_handle(),
+-        cuTransA,
+-        CUBLAS_OP_N,
+-        m,
+-        1,
+-        k,
+-        &alpha_fp16,
+-        (const __half*)A,
+-        LDA,
+-        (const __half*)x,
+-        k,
+-        &beta_fp16,
+-        (__half*)y,
+-        LDC));
+-  } else {
+-    // fail
+-    CAFFE_THROW("Unsupported math type");
+-  }
++  CAFFE_THROW("Unsupported math type");
+ }
+ 
+ namespace {
+@@ -513,21 +408,7 @@ void Dot<float16, CUDAContext>(
+     const float16* b,
+     float16* y,
+     CUDAContext* context) {
+-  float16 result;
+-  // execute with 32-bit math
+-  CUBLAS_CHECK(cublasDotEx(
+-      context->cublas_handle(),
+-      n,
+-      a,
+-      CUDA_R_16F,
+-      1,
+-      b,
+-      CUDA_R_16F,
+-      1,
+-      &result,
+-      CUDA_R_16F,
+-      CUDA_R_32F));
+-  context->Copy<float16, CPUContext, CUDAContext>(1, &result, y);
++  CAFFE_THROW("Unsupported math type");
+ }
+ 
+ // A previous version of caffe2 used Thrust but it turns out that thrust
+@@ -883,18 +764,7 @@ void Axpy<float16, CUDAContext>(
+     const float16* X,
+     float16* Y,
+     CUDAContext* context) {
+-  CUBLAS_CHECK(cublasAxpyEx(
+-      context->cublas_handle(),
+-      N,
+-      &alpha,
+-      CUDA_R_16F,
+-      X,
+-      CUDA_R_16F,
+-      1,
+-      Y,
+-      CUDA_R_16F,
+-      1,
+-      CUDA_R_32F));
++  CAFFE_THROW("Unsupported math type");
+ }
+ 
+ namespace {
+diff --git a/cmake/Cuda.cmake b/cmake/Cuda.cmake
+index 8bc5601..6d0914c 100644
+--- a/cmake/Cuda.cmake
++++ b/cmake/Cuda.cmake
+@@ -1,7 +1,7 @@
+ # Known NVIDIA GPU achitectures Caffe2 can be compiled for.
+ # This list will be used for CUDA_ARCH_NAME = All option
+-set(Caffe2_known_gpu_archs "20 21(20) 30 35 50 52 60 61")
+-set(Caffe2_known_gpu_archs7 "20 21(20) 30 35 50 52")
++set(Caffe2_known_gpu_archs "35 50 52 60 61")
++set(Caffe2_known_gpu_archs7 "35 50 52")
+ 
+ ################################################################################################
+ # A function for automatic detection of GPUs installed  (if autodetection is enabled)
+@@ -81,7 +81,7 @@ function(caffe2_select_nvcc_arch_flags out_variable)
+   endif()
+ 
+   if(${CUDA_ARCH_NAME} STREQUAL "Kepler")
+-    set(__cuda_arch_bin "30 35")
++    set(__cuda_arch_bin "35")
+   elseif(${CUDA_ARCH_NAME} STREQUAL "Maxwell")
+     set(__cuda_arch_bin "50")
+   elseif(${CUDA_ARCH_NAME} STREQUAL "Pascal")

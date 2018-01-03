@@ -1,0 +1,26 @@
+diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
+index 724ec52..116ed65 100644
+--- a/cmake/Dependencies.cmake
++++ b/cmake/Dependencies.cmake
+@@ -19,7 +19,7 @@ endif()
+ 
+ # ---[ BLAS
+ set(BLAS "Eigen" CACHE STRING "Selected BLAS library")
+-set_property(CACHE BLAS PROPERTY STRINGS "Eigen;ATLAS;OpenBLAS;MKL;vecLib")
++set_property(CACHE BLAS PROPERTY STRINGS "Eigen;ATLAS;OpenBLAS;MKL;vecLib;LibSci")
+ message(STATUS "The BLAS backend of choice:" ${BLAS})
+ 
+ if(BLAS STREQUAL "Eigen")
+@@ -44,6 +44,12 @@ elseif(BLAS STREQUAL "vecLib")
+   find_package(vecLib REQUIRED)
+   include_directories(SYSTEM ${vecLib_INCLUDE_DIR})
+   list(APPEND Caffe2_DEPENDENCY_LIBS ${vecLib_LINKER_LIBS})
++elseif(BLAS STREQUAL "LibSci")
++  include(FindPkgConfig)
++  pkg_check_modules(LIBSCI REQUIRED libsci)
++  link_directories(${LIBSCI_LIBRARY_DIRS})
++  include_directories(SYSTEM ${LIBSCI_INCLUDE_DIRS})
++  list(APPEND Caffe2_DEPENDENCY_LIBS ${LIBSCI_LIBRARIES})
+ else()
+   message(FATAL_ERROR "Unrecognized blas option:" ${BLAS})
+ endif()

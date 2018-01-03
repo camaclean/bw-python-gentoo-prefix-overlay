@@ -1,0 +1,86 @@
+diff --git a/caffe/proto/CMakeLists.txt b/caffe/proto/CMakeLists.txt
+index a6f1fc5..b330560 100644
+--- a/caffe/proto/CMakeLists.txt
++++ b/caffe/proto/CMakeLists.txt
+@@ -5,4 +5,5 @@ file(GLOB Caffe_PROTOBUF_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.proto")
+ caffe2_protobuf_generate_cpp_py(Caffe_PROTO_SRCS Caffe_PROTO_HEADERS Caffe_PROTO_PY ${Caffe_PROTOBUF_FILES})
+ 
+ add_library(Caffe_PROTO OBJECT ${Caffe_PROTO_HEADERS} ${Caffe_PROTO_SRCS})
+-install(FILES ${Caffe_PROTO_HEADERS} DESTINATION ${CMAKE_INSTALL_PREFIX}/include/caffe/proto)
++#conflicts with installed caffe
++install(FILES ${Caffe_PROTO_HEADERS} DESTINATION ${CMAKE_INSTALL_PREFIX}/include/caffe1/proto)
+diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
+index 94bf6b7..5a35851 100644
+--- a/caffe2/CMakeLists.txt
++++ b/caffe2/CMakeLists.txt
+@@ -153,6 +153,7 @@ endif()
+ 
+ if (BUILD_PYTHON)
+   # ---[ Python.
++  set(PYTHON_PREFIX "lib/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/site-packages")
+   add_library(caffe2_pybind11_state MODULE ${Caffe2_CPU_PYTHON_SRCS})
+   add_dependencies(caffe2_pybind11_state ${Caffe2_MAIN_LIBS_ORDER})
+   set_target_properties(caffe2_pybind11_state PROPERTIES PREFIX "")
+@@ -180,7 +181,7 @@ if (BUILD_PYTHON)
+   endif()
+   install(
+       TARGETS caffe2_pybind11_state DESTINATION
+-      ${CMAKE_INSTALL_PREFIX}/caffe2/python)
++      ${CMAKE_INSTALL_PREFIX}/${PYTHON_PREFIX}/caffe2)
+ 
+   if(USE_CUDA)
+     add_library(caffe2_pybind11_state_gpu MODULE ${Caffe2_GPU_PYTHON_SRCS})
+@@ -193,7 +194,7 @@ if (BUILD_PYTHON)
+     endif()
+     set_target_properties(
+         caffe2_pybind11_state_gpu PROPERTIES LIBRARY_OUTPUT_DIRECTORY
+-        ${CMAKE_BINARY_DIR}/caffe2/python)
++        ${CMAKE_BINARY_DIR}/${PYTHON_PREFIX}/caffe2)
+     target_link_libraries(
+         caffe2_pybind11_state_gpu ${Caffe2_MAIN_LIBS} ${Caffe2_DEPENDENCY_LIBS}
+         ${Caffe2_PYTHON_DEPENDENCY_LIBS})
+@@ -205,7 +206,7 @@ if (BUILD_PYTHON)
+     endif()
+     install(
+         TARGETS caffe2_pybind11_state_gpu DESTINATION
+-        ${CMAKE_INSTALL_PREFIX}/caffe2/python)
++        ${CMAKE_INSTALL_PREFIX}/${PYTHON_PREFIX}/caffe2)
+   endif()
+ 
+   if (MSVC)
+@@ -249,13 +250,13 @@ if (BUILD_PYTHON)
+ 
+   # Install commands
+   # Pick up static python files
+-  install(DIRECTORY ${CMAKE_BINARY_DIR}/caffe2 DESTINATION ${CMAKE_INSTALL_PREFIX}
++  install(DIRECTORY ${CMAKE_BINARY_DIR}/caffe2 DESTINATION ${CMAKE_INSTALL_PREFIX}/${PYTHON_PREFIX}/caffe2
+           FILES_MATCHING PATTERN "*.py")
+   # Caffe proto files
+-  install(DIRECTORY ${CMAKE_BINARY_DIR}/caffe DESTINATION ${CMAKE_INSTALL_PREFIX}
++  install(DIRECTORY ${CMAKE_BINARY_DIR}/caffe DESTINATION ${CMAKE_INSTALL_PREFIX}/${PYTHON_PREFIX}/caffe2
+           FILES_MATCHING PATTERN "*.py")
+   # Caffe2 proto files
+-  install(DIRECTORY ${CMAKE_BINARY_DIR}/caffe2 DESTINATION ${CMAKE_INSTALL_PREFIX}
++  install(DIRECTORY ${CMAKE_BINARY_DIR}/caffe2 DESTINATION ${CMAKE_INSTALL_PREFIX}/${PYTHON_PREFIX}/caffe2
+           FILES_MATCHING PATTERN "*.py")
+ endif()
+ 
+diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
+index 724ec52..116ed65 100644
+--- a/cmake/Dependencies.cmake
++++ b/cmake/Dependencies.cmake
+@@ -228,12 +228,8 @@ if(BUILD_PYTHON)
+ endif()
+ 
+ # ---[ pybind11
+-find_package(pybind11)
+-if(pybind11_FOUND)
+-  include_directories(SYSTEM ${pybind11_INCLUDE_DIRS})
+-else()
+-  include_directories(SYSTEM ${PROJECT_SOURCE_DIR}/third_party/pybind11/include)
+-endif()
++# Use bundled pybind11 always due to api changes in system version
++include_directories(${PROJECT_SOURCE_DIR}/third_party/pybind11/include)
+ 
+ # ---[ MPI
+ if(USE_MPI)
