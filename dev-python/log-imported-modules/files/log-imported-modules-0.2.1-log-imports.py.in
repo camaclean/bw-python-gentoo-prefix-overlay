@@ -40,8 +40,6 @@ def log_imports():
     import fcntl
     global pyversion
     global start_time
-    lockfile = os.open("@GENTOO_EPREFIX@/var/log/bwpy/locks/.%s%s.log.lock" % (platform.python_implementation(), pyversion), os.O_CREAT | os.O_RDWR)
-    fcntl.flock(lockfile, fcntl.LOCK_EX)
     modulename= "BWPY"
     try:
         with open("@GENTOO_EPREFIX@/.version","r") as bwpyversionfile:
@@ -59,9 +57,13 @@ def log_imports():
     duration = (end_time-start_time).total_seconds()
     with open("@GENTOO_EPREFIX@/var/log/bwpy/%s%s.log" % (platform.python_implementation(), pyversion), 'a') as log:
         import json
+        fcntl.flock(log.fileno(), fcntl.LOCK_EX)
+        if not hasattr(sys, 'argv'):
+            sys.argv  = []
         log.write(json.dumps({ "start_time" : start_time.strftime('%Y-%m-%d %H:%M:%S'),
                     "end_time" : end_time.strftime('%Y-%m-%d %H:%M:%S'),
                     "modulename" : modulename,
+                    "submodules" : filter(None, os.environ.get('BWPY_SUBMODULES','').split(':')),
                     "pid" : os.getpid(),
                     "username" : get_username(),
                     "jobid" : os.environ.get('PBS_JOBID',''),
@@ -72,8 +74,6 @@ def log_imports():
                     "gpu" : os.path.isfile('/dev/nvidiactl'),
                     "argv" : sys.argv,
                     "modules" : list(impts)}) + "\n")
-    fcntl.flock(lockfile, fcntl.LOCK_UN)
-    os.close(lockfile)
 
 def master_log_imports():
     if 'ALPS_APP_PE' in os.environ:
