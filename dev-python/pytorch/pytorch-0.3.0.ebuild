@@ -20,7 +20,7 @@ https://api.github.com/repos/pybind/pybind11/tarball/${PYBIND11_COMMIT} -> pybin
 LICENSE="BSD-3"
 SLOT="0"
 KEYWORDS="~x86 ~ppc ~amd64 ~amd64-linux"
-IUSE=""
+IUSE="cray mpi"
 DEPEND=""
 RDEPEND="${DEPEND}"
 
@@ -33,6 +33,20 @@ src_prepare() {
 	mv -fT "${WORKDIR}"/nanopb-nanopb-${NANOPB_COMMIT:0:7} ${S}/torch/lib/nanopb || die
 	mv -fT "${WORKDIR}"/pybind-pybind11-${PYBIND11_COMMIT:0:7} ${S}/torch/lib/pybind11 || die
 	distutils-r1_src_prepare
+}
+
+python_prepare() {
+	if use mpi; then
+		if use cray; then
+			export CC=cc
+			export CXX=CC
+			export CRAY_ADD_RPATH=yes
+			export CRAYPE_LINK_TYPE=dynamic
+		else
+			export cc=mpicc
+			export CC=mpicxx
+		fi
+	fi
 }
 
 src_compile() {
