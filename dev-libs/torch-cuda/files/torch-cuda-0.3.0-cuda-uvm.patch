@@ -1,0 +1,34 @@
+diff --git a/THCCachingAllocator.cpp b/THCCachingAllocator.cpp
+index 68e8875..a84f2ca 100644
+--- a/THCCachingAllocator.cpp
++++ b/THCCachingAllocator.cpp
+@@ -312,14 +312,14 @@ struct THCCachingAllocator
+   {
+     // Try cudaMalloc. If cudaMalloc fails, frees all non-split cached blocks
+     // and retries.
+-    cudaError_t err = cudaMalloc(devPtr, size);
++    cudaError_t err = cudaMallocManaged(devPtr, size, cudaMemAttachGlobal);
+     if (err != cudaSuccess) {
+       cudaGetLastError();
+       err = free_cached_blocks(device);
+       if (err != cudaSuccess) {
+         return err;
+       }
+-      err = cudaMalloc(devPtr, size);
++      err = cudaMallocManaged(devPtr, size, cudaMemAttachGlobal);
+       if (err != cudaSuccess) {
+         return err;
+       }
+diff --git a/THCGeneral.c b/THCGeneral.c
+index 5f33373..f47e6bf 100644
+--- a/THCGeneral.c
++++ b/THCGeneral.c
+@@ -37,7 +37,7 @@ void THCState_free(THCState* state)
+ 
+ static cudaError_t cudaMallocWrapper(void* ctx, void** devPtr, size_t size, cudaStream_t stream)
+ {
+-  return cudaMalloc(devPtr, size);
++  return cudaMallocManaged(devPtr, size, cudaMemAttachGlobal);
+ }
+ 
+ static cudaError_t cudaFreeWrapper(void* ctx, void* devPtr)
