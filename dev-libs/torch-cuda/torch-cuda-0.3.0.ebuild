@@ -4,7 +4,7 @@
 
 EAPI=6
 CMAKE_MAKEFILE_GENERATOR=ninja
-inherit cmake-utils cuda
+inherit cuda cmake-utils
 
 DESCRIPTION="Tensors and Dynamic neural networks in Python with strong GPU acceleration"
 HOMEPAGE="http://pytorch.org"
@@ -19,10 +19,13 @@ DEPEND="${RDEPEND}"
 
 S="${WORKDIR}"/pytorch-${PV}/torch/lib/THC
 
-PATCHES=( "${FILESDIR}"/torch-cuda-0.3.0-standalone.patch )
+PATCHES=( "${FILESDIR}"/torch-cuda-0.3.0-standalone.patch
+	  "${FILESDIR}"/torch-cuda-0.3.0-cuda-uvm.patch
+	)
 
 src_prepare() {
-	eapply "${PATCHES[@]}"
+	cmake-utils_src_prepare
+	cuda_src_prepare
 }
 
 src_configure() {
