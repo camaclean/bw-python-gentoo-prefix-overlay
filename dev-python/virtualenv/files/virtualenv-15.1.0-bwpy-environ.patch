@@ -1,0 +1,18 @@
+diff --git a/virtualenv.py b/virtualenv.py
+index 42cd1f4..5048049 100755
+--- a/virtualenv.py
++++ b/virtualenv.py
+@@ -1362,6 +1362,13 @@ def install_python(home_dir, lib_dir, inc_dir, bin_dir, site_packages, clear, sy
+             # Don't try to symlink to yourself.
+             required_symlinks.remove(py_executable_base)
+ 
++        shutil.move(join(bin_dir,py_executable_base),join(bin_dir,py_executable_base + '.venv'))
++        bwpy_version = os.environ.get('BWPY_VERSION','default')
++        with open(join(bin_dir,py_executable_base),'w') as mount_wrapper_file:
++            mount_wrapper_file.write('#!/bin/sh\n')
++            mount_wrapper_file.write('exec /sw/bw/bwpy/mnt/bin/bwpy-environ -v ' + bwpy_version + ' -- ' + join(bin_dir,py_executable_base + '.venv') + ' "$@" \n')
++        make_exe(join(bin_dir,py_executable_base))
++
+         for pth in required_symlinks:
+             full_pth = join(bin_dir, pth)
+             if os.path.exists(full_pth):
