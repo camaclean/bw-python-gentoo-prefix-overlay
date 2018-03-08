@@ -63,7 +63,7 @@ def log_imports():
         log.write(json.dumps({ "start_time" : start_time.strftime('%Y-%m-%d %H:%M:%S'),
                     "end_time" : end_time.strftime('%Y-%m-%d %H:%M:%S'),
                     "modulename" : modulename,
-                    "submodules" : filter(None, os.environ.get('BWPY_SUBMODULES','').split(':')),
+                    "submodules" : list(filter(None, os.environ.get('BWPY_SUBMODULES','').split(':'))),
                     "pid" : os.getpid(),
                     "username" : get_username(),
                     "jobid" : os.environ.get('PBS_JOBID',''),
@@ -71,7 +71,7 @@ def log_imports():
                     "ppn" : int(os.environ.get('PBS_NUM_PPN',0)),
                     "duration" : duration,
                     "kernel" : platform.uname()[2],
-                    "gpu" : os.path.isfile('/dev/nvidiactl'),
+                    "gpu" : os.path.exists('/dev/nvidiactl'),
                     "argv" : sys.argv,
                     "modules" : list(impts)}) + "\n")
 
