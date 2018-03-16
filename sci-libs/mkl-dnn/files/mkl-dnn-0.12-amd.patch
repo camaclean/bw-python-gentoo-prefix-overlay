@@ -1,0 +1,95 @@
+diff --git a/src/cpu/xbyak/xbyak_util.h b/src/cpu/xbyak/xbyak_util.h
+index 16cc433..bc38f59 100644
+--- a/src/cpu/xbyak/xbyak_util.h
++++ b/src/cpu/xbyak/xbyak_util.h
+@@ -135,31 +135,58 @@ class Cpu {
+ 	{
+ 		unsigned int data[4];
+ 
+-		if ((type_ & tINTEL) == 0) {
+-			fprintf(stderr, "ERR cache hierarchy querying is not supported\n");
+-			throw Error(ERR_INTERNAL);
++		if (type_ & tINTEL) {
++			/* Note: here we assume the first level of data cache is
++			 * not shared (which is the case for every existing
++			 * architecture) and use this to determine the SMT width */
++			unsigned int cache_type = 42;
++			unsigned int smt_width = 0;
++			for (int i = 0; ((cache_type != NO_CACHE) && (data_cache_levels < max_number_cache_levels)); i++) {
++				getCpuidEx(0x4, i, data);
++				cache_type = value_from_bits(data[0], 0, 4);
++				if ((cache_type == DATA_CACHE) || (cache_type == UNIFIED_CACHE)) {
++					int nb_logical_cores = value_from_bits(data[0], 14, 25) + 1;
++					data_cache_size[data_cache_levels] =
++						(value_from_bits(data[1], 22, 31) + 1)
++						* (value_from_bits(data[1], 12, 21) + 1)
++						* (value_from_bits(data[1], 0, 11) + 1)
++						* (data[2] + 1);
++					if ((cache_type == DATA_CACHE) && (smt_width == 0)) smt_width = nb_logical_cores;
++					assert(smt_width != 0);
++					cores_sharing_data_cache[data_cache_levels] = nb_logical_cores / smt_width;
++					data_cache_levels++;
++				}
++			}
+ 		}
++		else if (type_ & tAMD) {
++			getCpuidEx(0x8000001e,0,data);
++			unsigned nodes_per_socket = ((data[2] >> 8) & 7) + 1;
+ 
+-		/* Note: here we assume the first level of data cache is
+-		 * not shared (which is the case for every existing
+-		 * architecture) and use this to determine the SMT width */
+-		unsigned int cache_type = 42;
+-		unsigned int smt_width = 0;
+-		for (int i = 0; ((cache_type != NO_CACHE) && (data_cache_levels < max_number_cache_levels)); i++) {
+-			getCpuidEx(0x4, i, data);
+-			cache_type = value_from_bits(data[0], 0, 4);
+-			if ((cache_type == DATA_CACHE) || (cache_type == UNIFIED_CACHE)) {
+-				int nb_logical_cores = value_from_bits(data[0], 14, 25) + 1;
+-				data_cache_size[data_cache_levels] =
+-					(value_from_bits(data[1], 22, 31) + 1)
+-					* (value_from_bits(data[1], 12, 21) + 1)
+-					* (value_from_bits(data[1], 0, 11) + 1)
+-					* (data[2] + 1);
+-				if ((cache_type == DATA_CACHE) && (smt_width == 0)) smt_width = nb_logical_cores;
+-				assert(smt_width != 0);
+-				cores_sharing_data_cache[data_cache_levels] = nb_logical_cores / smt_width;
+-				data_cache_levels++;
+-			}
++			getCpuidEx(0x80000005, 0, data );
++			data_cache_size[0] = value_from_bits(data[2],24,31)*1024;
++			if (data_cache_size[0] != 0)
++				++data_cache_levels;
++			getCpuidEx(0x80000006, 0, data );
++			data_cache_size[1] = value_from_bits(data[2],16,31)*1024;
++			data_cache_size[2] = value_from_bits(data[3],18,31)*512*1024/nodes_per_socket;
++			if (data_cache_size[1] != 0)
++				++data_cache_levels;
++			if (data_cache_size[2] != 0)
++				++data_cache_levels;
++
++			getCpuidEx(0x8000001d, 0, data );
++			if (data_cache_size[0] != 0)
++				cores_sharing_data_cache[0] = value_from_bits(data[0],14,25) + 1;
++			getCpuidEx(0x8000001d, 2, data );
++			if (data_cache_size[1] != 0)
++				cores_sharing_data_cache[1] = value_from_bits(data[0],14,25) + 1;
++			getCpuidEx(0x8000001d, 3, data );
++			if (data_cache_size[2] != 0)
++				cores_sharing_data_cache[2] = value_from_bits(data[0],14,25) + 1;
++		}
++		else {
++			fprintf(stderr, "ERR cache hierarchy querying is not supported\n");
++			throw Error(ERR_INTERNAL);
+ 		}
+ 	}
+ #undef value_from_bits
+@@ -346,7 +373,7 @@ public:
+ 			if (data[2] & (1U << 0)) type_ |= tPREFETCHWT1;
+ 		}
+ 		setFamily();
+-		if ((type_ & tINTEL) == tINTEL)
++		if ((type_ & tINTEL) == tINTEL || (type_ & tAMD) == tAMD)
+ 			setCacheHierarchy();
+ 	}
+ 	void putFamily() const
