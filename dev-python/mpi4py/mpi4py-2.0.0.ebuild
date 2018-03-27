@@ -24,11 +24,9 @@ DEPEND="${RDEPEND}
 	virtual/mpi[romio] )"
 DISTUTILS_IN_SOURCE_BUILD=1
 
-if use cray; then
-	ENVMOD="-acml"
-	export CRAYPE_LINK_TYPE=dynamic
-	export CRAY_ADD_RPATH=yes
-fi
+ENVMOD="-acml"
+export CRAYPE_LINK_TYPE=dynamic
+export CRAY_ADD_RPATH=yes
 
 python_prepare_all() {
 	# not needed on install

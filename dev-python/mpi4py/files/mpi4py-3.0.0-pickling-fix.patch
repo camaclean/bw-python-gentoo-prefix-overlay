@@ -1,0 +1,26 @@
+From 0a0dce8af4403083f7bf5363ffd0847657b6d5eb Mon Sep 17 00:00:00 2001
+From: Lisandro Dalcin <dalcinl@gmail.com>
+Date: Thu, 8 Mar 2018 10:46:56 +0300
+Subject: [PATCH] Issue #94: Fix scatter() and other collectives corrupting
+ input send list
+
+---
+ src/mpi4py/MPI/msgpickle.pxi | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/src/mpi4py/MPI/msgpickle.pxi b/src/mpi4py/MPI/msgpickle.pxi
+index bdbe86b..8c224b4 100644
+--- a/src/mpi4py/MPI/msgpickle.pxi
++++ b/src/mpi4py/MPI/msgpickle.pxi
+@@ -113,9 +113,8 @@ cdef class Pickle:
+     cdef object dumpv(self, object obj, void **p, int n, int cnt[], int dsp[]):
+         cdef Py_ssize_t i=0, m=n
+         cdef object items
+-        if is_list(obj):  items = obj
+-        elif obj is None: items = [None] * m
+-        else:             items = list(obj)
++        if obj is None: items = [None] * m
++        else:           items = list(obj)
+         m = len(items)
+         if m != n: raise ValueError(
+             "expecting %d items, got %d" % (n, m))

@@ -26,11 +26,9 @@ DISTUTILS_IN_SOURCE_BUILD=1
 
 PATCHES=( "${FILESDIR}"/${P}-py3-test-backport-1.patch "${FILESDIR}"/${P}-ldshared.patch )
 
-if use cray; then
-	ENVMOD="-acml"
-	export CRAYPE_LINK_TYPE=dynamic
-	export CRAY_ADD_RPATH=yes
-fi
+ENVMOD="-acml"
+export CRAYPE_LINK_TYPE=dynamic
+export CRAY_ADD_RPATH=yes
 
 python_prepare_all() {
 	# not needed on install
