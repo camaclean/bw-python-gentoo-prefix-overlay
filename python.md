@@ -45,7 +45,7 @@ And the version reported by Python should be the latest version of the Python2 b
 
     :::bash
     $ python --version
-    Python 2.7.14
+    Python 3.5.4
 
 ### Entering the full bwpy environment with `bwpy-environ`
 
@@ -189,7 +189,7 @@ latest release are:
 programs should be migrated to Python 3!***
 
 These can be accessed via `python`, `python2`, `python3`, `python2.7`, `python3.5`, 
-`python3.6`, `pypy`, `pypy3`. The default `python` is Python 2 and the default
+`python3.6`, `pypy`, `pypy3`. The default `python` is Python 3 and the default
 `python3` is 3.5. 
 
 The default `python` version can be changed by exporting `EPYTHON=pythonver`.  This is also
@@ -197,11 +197,11 @@ reflected in the execution of interpreted programs of bwpy, such as `jupyter-not
 
     :::bash
     $ python --version
-    Python 2.7.14
-    $ EPYTHON="python3.5" python --version
     Python 3.5.4
-    $ jupyter-notebook                   # Python 2.7 notebook
-    $ EPYTHON="python3.5" jupyter-notebook # Python 3.5 notebook
+    $ EPYTHON="python2.7" python --version
+    Python 2.7.14
+    $ jupyter-notebook                   # Python 3.5 notebook
+    $ EPYTHON="python2.7" jupyter-notebook # Python 2.7 notebook
 
 It is recommended to use `#!/usr/bin/env python`, `#!/usr/bin/env python2` or 
 `#!/usr/bin/env python3` for your shebangs depending on your code compatibility.
