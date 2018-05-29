@@ -1,0 +1,31 @@
+diff --git a/sysdeps/unix/sysv/linux/configure b/sysdeps/unix/sysv/linux/configure
+index cace758..3a44036 100644
+--- a/sysdeps/unix/sysv/linux/configure
++++ b/sysdeps/unix/sysv/linux/configure
+@@ -14,7 +14,7 @@ else
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+ #include <linux/version.h>
+-#if !defined LINUX_VERSION_CODE || LINUX_VERSION_CODE <  (3 *65536+ 2 *256+ 0) /* 3.2.0 */
++#if !defined LINUX_VERSION_CODE || LINUX_VERSION_CODE <  (2 *65536+ 6 *256+ 32) /* 3.2.0 */
+ # error kernel headers missing or too old
+ #endif
+ int
+@@ -26,7 +26,7 @@ main ()
+ }
+ _ACEOF
+ if ac_fn_c_try_compile "$LINENO"; then :
+-  libc_cv_linux320='3.2.0 or later'
++  libc_cv_linux320='2.6.32 or later'
+ else
+   libc_cv_linux320='missing or too old!'
+ fi
+@@ -34,7 +34,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+ fi
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $libc_cv_linux320" >&5
+ $as_echo "$libc_cv_linux320" >&6; }
+-if test "$libc_cv_linux320" != '3.2.0 or later'; then
++if test "$libc_cv_linux320" != '2.6.32 or later'; then
+   as_fn_error $? "GNU libc requires kernel header files from
+ Linux 3.2.0 or later to be installed before configuring.
+ The kernel header files are found usually in /usr/include/asm and
