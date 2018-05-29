@@ -28,6 +28,7 @@ RDEPEND="
 	dev-python/nbformat[${PYTHON_USEDEP}]
 	>=dev-python/nbconvert-4.2.0[${PYTHON_USEDEP}]
 	dev-python/ipykernel[${PYTHON_USEDEP}]
+	dev-python/send2trash[${PYTHON_USEDEP}]
 	"
 DEPEND="${RDEPEND}
 	dev-python/setuptools[${PYTHON_USEDEP}]
