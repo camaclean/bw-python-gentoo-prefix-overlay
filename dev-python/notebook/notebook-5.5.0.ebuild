@@ -29,6 +29,7 @@ RDEPEND="
 	>=dev-python/nbconvert-4.2.0[${PYTHON_USEDEP}]
 	dev-python/ipykernel[${PYTHON_USEDEP}]
 	dev-python/send2trash[${PYTHON_USEDEP}]
+	>=dev-python/pyzmq-17.0.0[${PYTHON_USEDEP}]
 	"
 DEPEND="${RDEPEND}
 	dev-python/setuptools[${PYTHON_USEDEP}]
