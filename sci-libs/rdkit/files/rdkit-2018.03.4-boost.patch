@@ -1,0 +1,39 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index c0f22d4..d717d1d 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -184,23 +184,18 @@ if(RDK_BUILD_PYTHON_WRAPPERS)
+   find_package(NumPy REQUIRED)
+   target_include_directories(rdkit_base INTERFACE ${PYTHON_NUMPY_INCLUDE_PATH})
+ 
+-  if(PYTHON_VERSION_MAJOR EQUAL 3)
+-    # Find boost-python3 using name specified as command line option then fall back to commonly used names
+-    set(RDK_BOOST_PYTHON3_NAME "python3" CACHE STRING "Name of the boost python3 library. If installed as libboost_python-xxx.so, use python-xxx.")
+-    foreach(Boost_Python_Lib "${RDK_BOOST_PYTHON3_NAME}" "python-py3${PYTHON_VERSION_MINOR}" "python3")
+-      find_package(Boost 1.56.0 COMPONENTS "${Boost_Python_Lib}" QUIET)
+-      if(Boost_FOUND)
+-        break()
+-      endif()
+-    endforeach()
+-    # If boost-python3 not found, just find boost-python and hope that it is compatible with python3
+-    if(NOT Boost_FOUND)
+-      find_package(Boost 1.56.0 COMPONENTS python REQUIRED)
++  # Find boost-python using name specified as command line option then fall back to commonly used names
++  set(RDK_BOOST_PYTHON_NAME "python" CACHE STRING "Name of the boost python library. If installed as libboost_python-xxx.so, use python-xxx.")
++  foreach(Boost_Python_Lib "${RDK_BOOST_PYTHON_NAME}" "python-py3${PYTHON_VERSION_MINOR}" "python3")
++    find_package(Boost 1.56.0 COMPONENTS "${Boost_Python_Lib}" QUIET)
++    if(Boost_FOUND)
++      break()
+     endif()
+-  else(PYTHON_VERSION_MAJOR EQUAL 3)
+-     find_package(Boost 1.56.0 COMPONENTS python REQUIRED)
+-  endif(PYTHON_VERSION_MAJOR EQUAL 3)
+-
++  endforeach()
++  # If boost-python3 not found, just find boost-python and hope that it is compatible with python3
++  if(NOT Boost_FOUND)
++    find_package(Boost 1.56.0 COMPONENTS python REQUIRED)
++  endif()
+ 
+   if(RDK_INSTALL_INTREE)
+     set(RDKit_PythonDir "${CMAKE_SOURCE_DIR}/rdkit")
