@@ -25,5 +25,8 @@ DEPEND="${RDEPEND}
 S=${WORKDIR}
 
 src_install() {
-	dohostsyms /usr/bin/flex /usr/bin/flex++ /usr/bin/lex
+	local i
+	for i in /usr/bin/flex /usr/bin/flex++ /usr/bin/lex; do
+		dohostsym ${i} ${i}
+	done
 }

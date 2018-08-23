@@ -26,5 +26,8 @@ DEPEND="${RDEPEND}
 S=${WORKDIR}
 
 src_install() {
-	dohostsyms /bin/grep /bin/egrep /bin/fgrep
+	local i
+	for i in /bin/grep /bin/egrep /bin/fgrep; do
+		dohostsym ${i} ${i}
+	done
 }

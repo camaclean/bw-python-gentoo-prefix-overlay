@@ -23,5 +23,5 @@ DEPEND="${RDEPEND}
 S=${WORKDIR}
 
 src_install() {
-	dohostsyms /bin/tar
+	dohostsym /bin/tar /bin/tar
 }

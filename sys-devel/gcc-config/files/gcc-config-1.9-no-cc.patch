@@ -1,0 +1,25 @@
+diff --git a/wrapper.c.in b/wrapper.c.in
+index afa03bc..1e58b87 100644
+--- a/wrapper.c
++++ b/wrapper.c
+@@ -44,7 +44,6 @@ static const struct {
+ 	const char *alias;
+ 	const char *target;
+ } wrapper_aliases[] = {
+-	{ "cc",  "gcc" },
+ 	{ "f77", "gfortran" },
+ 	{ "f95", "gfortran" },
+ };
+diff --git a/gcc-config b/gcc-config
+index 13e0093..a4a4480 100755
+--- a/gcc-config
++++ b/gcc-config
+@@ -238,7 +238,7 @@ update_wrappers() {
+ 	if ! is_cross_compiler ; then
+ 		all_wrappers+=( "${new_wrappers[@]}" )
+ 		# There are a few fun extra progs which we have to handle #412319
+-		all_wrappers+=( cc:gcc f77:g77 )
++		all_wrappers+=( f77:g77 )
+ 	fi
+ 
+ 	# Then install wrappers for anything new to this profile.

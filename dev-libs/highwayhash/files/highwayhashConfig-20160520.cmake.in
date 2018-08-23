@@ -1,0 +1,14 @@
+# Find the HIGHWAYHASH includes and library
+#
+# HIGHWAYHASH_INCLUDE_DIR -- where to find the includes
+# HIGHWAYHASH_LIBRARIES -- list of libraries to link against
+# HIGHWAYHASH_FOUND -- set to 1 if found
+
+SET(HIGHWAYHASH_FOUND 1)
+SET(HIGHWAYHASH_INCLUDE_DIR "@HIGHWAYHASH_INCLUDE_DIR@")
+
+if(NOT TARGET highwayhash AND NOT highwayhash_BINARY_DIR)
+   include("${CMAKE_INSTALL_PREFIX}/share/highwayhash/cmake/highwayhashTargets.cmake")
+endif()
+
+SET(HIGHWAYHASH_LIBRARIES highwayhash)

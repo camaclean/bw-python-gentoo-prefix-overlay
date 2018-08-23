@@ -22,6 +22,6 @@ DEPEND="${RDEPEND}
 S=${WORKDIR}
 
 src_install() {
-	dohostsyms /usr/bin/find /usr/bin/xargs
-	dohostoptsyms /usr/bin/oldfind
+	dohostsym /usr/bin/find /usr/bin/find
+	dohostsym /usr/bin/xargs /usr/bin/xargs
 }

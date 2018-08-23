@@ -14,7 +14,7 @@ KEYWORDS="~amd64-linux ~ppc-aix ~ia64-hpux ~x86-interix ~x86-linux ~sparc-solari
 IUSE="cray"
 
 DEPEND=""
-RDEPEND="sys-devel/gcc-config"
+RDEPEND=""
 
 src_install() {
 	cp "${FILESDIR}"/*.in "${T}"

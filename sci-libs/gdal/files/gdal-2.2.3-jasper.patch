@@ -1,0 +1,12 @@
+diff --git a/frmts/jpeg2000/jpeg2000_vsil_io.h b/frmts/jpeg2000/jpeg2000_vsil_io.h
+index 284604d..7606f54 100644
+--- a/frmts/jpeg2000/jpeg2000_vsil_io.h
++++ b/frmts/jpeg2000/jpeg2000_vsil_io.h
+@@ -30,6 +30,7 @@
+ #ifndef JPEG2000_VSIL_IO_H
+ #define JPEG2000_VSIL_IO_H
+ 
++#include <sys/types.h>
+ #include <jasper/jasper.h>
+ 
+ jas_stream_t *JPEG2000_VSIL_fopen(const char *filename, const char *mode);

@@ -37,7 +37,11 @@ src_prepare() {
 		export F90=ftn
 		export F95=ftn
 		export F08=ftn
+		export LDFLAGS="-Wl,--as-needed ${LDFLAGS} -lz"
 	fi
+	module list
+	echo $HDF5_DIR
+	echo $PKG_CONFIG_PATH
 }
 
 python_test() {

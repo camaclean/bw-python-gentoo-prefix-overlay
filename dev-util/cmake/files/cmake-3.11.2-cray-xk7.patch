@@ -1,0 +1,38 @@
+diff --git a/Modules/FindCUDA/select_compute_arch.cmake b/Modules/FindCUDA/select_compute_arch.cmake
+index b604a17..445c030 100644
+--- a/Modules/FindCUDA/select_compute_arch.cmake
++++ b/Modules/FindCUDA/select_compute_arch.cmake
+@@ -17,30 +17,9 @@
+ #      More info on CUDA architectures: https://en.wikipedia.org/wiki/CUDA
+ #
+ 
+-# This list will be used for CUDA_ARCH_NAME = All option
+-set(CUDA_KNOWN_GPU_ARCHITECTURES  "Fermi" "Kepler" "Maxwell")
+-
+-# This list will be used for CUDA_ARCH_NAME = Common option (enabled by default)
+-set(CUDA_COMMON_GPU_ARCHITECTURES "3.0" "3.5" "5.0")
+-
+-if (CUDA_VERSION VERSION_GREATER "6.5")
+-  list(APPEND CUDA_KNOWN_GPU_ARCHITECTURES "Kepler+Tegra" "Kepler+Tesla" "Maxwell+Tegra")
+-  list(APPEND CUDA_COMMON_GPU_ARCHITECTURES "5.2")
+-endif ()
+-
+-if (CUDA_VERSION VERSION_GREATER "7.5")
+-  list(APPEND CUDA_KNOWN_GPU_ARCHITECTURES "Pascal")
+-  list(APPEND CUDA_COMMON_GPU_ARCHITECTURES "6.0" "6.1")
+-else()
+-  list(APPEND CUDA_COMMON_GPU_ARCHITECTURES "5.2+PTX")
+-endif ()
+-
+-if (CUDA_VERSION VERSION_GREATER "8.5")
+-  list(APPEND CUDA_KNOWN_GPU_ARCHITECTURES "Volta")
+-  list(APPEND CUDA_COMMON_GPU_ARCHITECTURES "7.0" "7.0+PTX")
+-else()
+-  list(APPEND CUDA_COMMON_GPU_ARCHITECTURES "6.1+PTX")
+-endif()
++# Hardcode for Cray XK7
++set(CUDA_KNOWN_GPU_ARCHITECTURES "Kepler")
++set(CUDA_COMMON_GPU_ARCHITECTURES "3.5")
+ 
+ ################################################################################################
+ # A function for automatic detection of GPUs installed  (if autodetection is enabled)

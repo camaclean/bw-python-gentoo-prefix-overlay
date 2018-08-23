@@ -1,0 +1,15 @@
+diff --git a/libsrc/CMakeLists.txt b/libsrc/CMakeLists.txt
+index adfdc29..f70a00a 100644
+--- a/libsrc/CMakeLists.txt
++++ b/libsrc/CMakeLists.txt
+@@ -505,8 +505,8 @@ IF(XDMF_WRAP_PYTHON)
+       RENAME Xdmf.py) # always named the same regardless of build with or without mpi
+ 
+   # Compile Byte Code
+-  INSTALL(CODE "EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE} ${Xdmf_SOURCE_DIR}/CMake/CompileXdmfByteCode.py 
+-    ${CMAKE_INSTALL_PREFIX}/${XDMF_WRAP_PYTHON_INSTALL_PY_DIR})")
++  #INSTALL(CODE "EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE} ${Xdmf_SOURCE_DIR}/CMake/CompileXdmfByteCode.py 
++  #  ${CMAKE_INSTALL_PREFIX}/${XDMF_WRAP_PYTHON_INSTALL_PY_DIR})")
+   
+ ENDIF(XDMF_WRAP_PYTHON)
+ 

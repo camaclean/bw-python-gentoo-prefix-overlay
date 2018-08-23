@@ -1,0 +1,179 @@
+# Minimum CMake required
+cmake_minimum_required(VERSION 3.5)
+
+# Project
+project(TensorflowMPI C CXX)
+
+# Set C++14 as standard for the whole project
+set(CMAKE_CXX_STANDARD 14)
+
+# Actual source is the ../../.. directory
+get_filename_component(tf_contrib_source_dir ${TensorflowMPI_SOURCE_DIR} PATH)
+get_filename_component(tf_tf_source_dir ${tf_contrib_source_dir} PATH)
+get_filename_component(tensorflow_source_dir ${tf_tf_source_dir} PATH)
+
+# [CLEANUP] Not sure if this is needed (copied from Protobuf)
+# CMake policies
+#cmake_policy(SET CMP0022 NEW)
+
+get_property(LIB64 GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS)
+
+if ("${LIB64}" STREQUAL "TRUE")
+    set(LIBSUFFIX 64)
+else()
+    set(LIBSUFFIX "")
+endif()
+
+set(TENSORFLOW_LIB_VERSION 1.4.1)
+set(TENSORFLOW_LIB_SOVERSION 1)
+
+add_definitions(-DTENSORFLOW_USE_MPI)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+set(protobuf_MODULE_COMPATIBLE TRUE)
+find_package(Protobuf REQUIRED)
+message("Protobuf_PROTOC_EXECUTABLE: ${Protobuf_PROTOC_EXECUTABLE}")
+find_package(Tensorflow REQUIRED)
+find_package(MPI REQUIRED)
+find_package(Eigen3Tensorflow REQUIRED CONFIG)
+
+include_directories(
+    ${TENSORFLOW_INCLUDE_DIR}
+    ${tensorflow_source_dir}
+    ${EIGEN3_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_BINARY_DIR}
+)
+message("${TENSORFLOW_INCLUDE_DIR}")
+
+get_target_property(PROTO_TEXT_CONFIGS proto_text IMPORTED_CONFIGURATIONS)
+string(TOUPPER "${CMAKE_BUILD_TYPE}" TRY_CONFIG_TYPE)
+list(INSERT PROTO_TEXT_CONFIGS 0 "${TRY_CONFIG_TYPE}")
+set(PROTO_TEXT_EXE "PROTO_TEXT_EXE-NOTFOUND")
+foreach(PROTO_TEXT_CONFIG ${PROTO_TEXT_CONFIGS})
+  if("${PROTO_TEXT_EXE}" STREQUAL "PROTO_TEXT_EXE-NOTFOUND")
+    get_target_property(PROTO_TEXT_EXE proto_text IMPORTED_LOCATION_GENTOO)
+    message("PROTO_TEXT_EXE: ${PROTO_TEXT_EXE} ${CMAKE_BUILD_TYPE} ${CMAKE_CONFIGURATION_TYPES} ${PROTO_TEXT_CONFIG}")
+  endif()
+endforeach()
+
+function(RELATIVE_PROTOBUF_GENERATE_CPP SRCS HDRS ROOT_DIR)
+  if(NOT ARGN)
+    message(SEND_ERROR "Error: RELATIVE_PROTOBUF_GENERATE_CPP() called without any proto files")
+    return()
+  endif()
+  message("Protobuf_PROTOC_EXECUTABLE: ${Protobuf_PROTOC_EXECUTABLE}")
+
+  set(${SRCS})
+  set(${HDRS})
+  foreach(FIL ${ARGN})
+    set(ABS_FIL ${ROOT_DIR}/${FIL})
+    get_filename_component(FIL_WE ${FIL} NAME_WE)
+    get_filename_component(FIL_DIR ${ABS_FIL} PATH)
+    file(RELATIVE_PATH REL_DIR ${ROOT_DIR} ${FIL_DIR})
+
+    list(APPEND ${SRCS} "${CMAKE_CURRENT_BINARY_DIR}/${REL_DIR}/${FIL_WE}.pb.cc")
+    list(APPEND ${HDRS} "${CMAKE_CURRENT_BINARY_DIR}/${REL_DIR}/${FIL_WE}.pb.h")
+
+    add_custom_command(
+      OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${REL_DIR}/${FIL_WE}.pb.cc"
+             "${CMAKE_CURRENT_BINARY_DIR}/${REL_DIR}/${FIL_WE}.pb.h"
+      COMMAND  ${Protobuf_PROTOC_EXECUTABLE}
+      ARGS --cpp_out  ${CMAKE_CURRENT_BINARY_DIR} -I ${ROOT_DIR} ${ABS_FIL} -I ${PROTOBUF_INCLUDE_DIRS}
+      DEPENDS ${ABS_FIL}
+      COMMENT "Running C++ protocol buffer compiler on ${FIL}"
+      VERBATIM )
+  endforeach()
+
+  set_source_files_properties(${${SRCS}} ${${HDRS}} PROPERTIES GENERATED TRUE)
+  set(${SRCS} ${${SRCS}} PARENT_SCOPE)
+  set(${HDRS} ${${HDRS}} PARENT_SCOPE)
+endfunction()
+
+function(RELATIVE_PROTOBUF_TEXT_GENERATE_CPP SRCS HDRS ROOT_DIR)
+  if(NOT ARGN)
+      message(SEND_ERROR "Error: RELATIVE_PROTOBUF_TEXT_GENERATE_CPP() called without any proto files")
+    return()
+  endif()
+
+  set(${SRCS})
+  set(${HDRS})
+  foreach(FIL ${ARGN})
+    set(ABS_FIL ${ROOT_DIR}/${FIL})
+    get_filename_component(FIL_WE ${FIL} NAME_WE)
+    get_filename_component(FIL_DIR ${ABS_FIL} PATH)
+    file(RELATIVE_PATH REL_DIR ${ROOT_DIR} ${FIL_DIR})
+
+    list(APPEND ${SRCS} "${CMAKE_CURRENT_BINARY_DIR}/${REL_DIR}/${FIL_WE}.pb_text.cc")
+    list(APPEND ${HDRS} "${CMAKE_CURRENT_BINARY_DIR}/${REL_DIR}/${FIL_WE}.pb_text.h")
+
+    add_custom_command(
+      OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${REL_DIR}/${FIL_WE}.pb_text.cc"
+             "${CMAKE_CURRENT_BINARY_DIR}/${REL_DIR}/${FIL_WE}.pb_text.h"
+      COMMAND ${PROTO_TEXT_EXE}
+      ARGS "${CMAKE_CURRENT_BINARY_DIR}/${REL_DIR}" ${REL_DIR} ${ABS_FIL} "${ROOT_DIR}/tensorflow/tools/proto_text/placeholder.txt"
+      DEPENDS ${ABS_FIL} ${PROTO_TEXT_EXE}
+      COMMENT "Running C++ protocol buffer text compiler (${PROTO_TEXT_EXE}) on ${FIL}"
+      VERBATIM )
+  endforeach()
+
+  set_source_files_properties(${${SRCS}} ${${HDRS}} PROPERTIES GENERATED TRUE)
+  set(${SRCS} ${${SRCS}} PARENT_SCOPE)
+  set(${HDRS} ${${HDRS}} PARENT_SCOPE)
+endfunction()
+
+file(GLOB_RECURSE tf_core_protos_cc_srcs RELATIVE ${tensorflow_source_dir}
+    "${tensorflow_source_dir}/tensorflow/core/protobuf/*.proto"
+    "${tensorflow_source_dir}/tensorflow/core/framework/*.proto"
+    "${tensorflow_source_dir}/tensorflow/core/lib/*.proto"
+)
+RELATIVE_PROTOBUF_GENERATE_CPP(CORE_PROTO_SRCS CORE_PROTO_HDRS
+    ${tensorflow_source_dir} ${tf_core_protos_cc_srcs}
+)
+
+set(tf_core_text_protos_cc_srcs
+    "tensorflow/core/framework/device_attributes.proto"
+    "tensorflow/core/framework/tensor.proto"
+)
+
+RELATIVE_PROTOBUF_TEXT_GENERATE_CPP(CORE_TEXT_PROTO_SRCS CORE_TEXT_PROTO_HDRS
+    ${tensorflow_source_dir} ${tf_core_text_protos_cc_srcs}
+)
+
+file(GLOB_RECURSE tf_contrib_protos_cc_srcs RELATIVE ${tensorflow_source_dir}
+    "${tensorflow_source_dir}/tensorflow/contrib/mpi/*.proto"
+)
+
+
+RELATIVE_PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS
+    ${tensorflow_source_dir} ${tf_contrib_protos_cc_srcs}
+)
+add_custom_target(core_proto_hdrs DEPENDS ${CORE_PROTO_HDRS})
+
+add_custom_target(text_proto_hdrs DEPENDS ${CORE_TEXT_PROTO_HDRS})
+add_dependencies(text_proto_hdrs core_proto_hdrs)
+
+add_library(mpi_proto_objs OBJECT ${PROTO_HDRS} ${PROTO_SRCS})
+add_dependencies(mpi_proto_objs core_proto_hdrs text_proto_hdrs)
+
+add_library(tensorflow_mpi SHARED
+    "${tensorflow_source_dir}/tensorflow/contrib/mpi/mpi_utils.cc"
+    "${tensorflow_source_dir}/tensorflow/contrib/mpi/mpi_server_lib.cc"
+    "${tensorflow_source_dir}/tensorflow/contrib/mpi/mpi_rendezvous_mgr.cc"
+    $<TARGET_OBJECTS:mpi_proto_objs>
+)
+target_link_libraries(tensorflow_mpi PRIVATE tensorflow_framework MPI::MPI_C protobuf::libprotobuf)
+set_target_properties(tensorflow_mpi PROPERTIES
+    VERSION ${TENSORFLOW_LIB_VERSION}
+    SOVERSION ${TENSORFLOW_LIB_SOVERSION}
+)
+install(TARGETS tensorflow_mpi
+    EXPORT TensorflowMPITargets
+    LIBRARY DESTINATION "lib${LIBSUFFIX}")
+
+# Create TensorflowMPIConfig.cmake
+EXPORT(TARGETS ${tensorflow_libs} FILE "${CMAKE_CURRENT_BINARY_DIR}/TensorflowMPITargets.cmake")
+INSTALL(EXPORT TensorflowMPITargets DESTINATION "share/tensorflowmpi/cmake")
+
+EXPORT(PACKAGE TensorflowMPI)
+CONFIGURE_FILE(TensorflowMPIConfig.cmake.in "${PROJECT_BINARY_DIR}/TensorflowMPIConfig.cmake")
+INSTALL(FILES "${PROJECT_BINARY_DIR}/TensorflowMPIConfig.cmake" DESTINATION "share/tensorflowmpi/cmake")

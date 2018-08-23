@@ -21,10 +21,6 @@ S="${WORKDIR}"/pytorch-${PV}/torch/lib/THS
 
 PATCHES=( "${FILESDIR}"/torch-sparse-0.3.0-standalone.patch )
 
-src_prepare() {
-	eapply "${PATCHES[@]}"
-}
-
 src_configure() {
 	export CXXFLAGS="-std=c++11 ${CXXFLAGS}"
 	local mycmakeargs=( 

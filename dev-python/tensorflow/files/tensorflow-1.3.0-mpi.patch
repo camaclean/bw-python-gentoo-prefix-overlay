@@ -1,0 +1,27 @@
+diff --git a/tensorflow/contrib/mpi/mpi_utils.h b/tensorflow/contrib/mpi/mpi_utils.h
+index 45e21f2..2c9e777 100644
+--- a/tensorflow/contrib/mpi/mpi_utils.h
++++ b/tensorflow/contrib/mpi/mpi_utils.h
+@@ -24,7 +24,7 @@ limitations under the License.
+ 
+ #include "tensorflow/core/lib/strings/str_util.h"
+ 
+-#include "third_party/mpi/mpi.h"
++#include <mpi.h>
+ #define MPI_CHECK(cmd)                                                \
+   do {                                                                \
+     int mpi_errno = cmd;                                              \
+diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
+index ccf0985..f0494f1 100644
+--- a/tensorflow/contrib/cmake/CMakeLists.txt
++++ b/tensorflow/contrib/cmake/CMakeLists.txt
+@@ -96,7 +96,7 @@ if(WIN32)
+ endif()
+ 
+ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -std=c++11")
++  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+ endif()
+ 
+ if (tensorflow_OPTIMIZE_FOR_NATIVE_ARCH)
+

@@ -1,0 +1,14 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 4c06343..bd02cb5 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -291,8 +291,7 @@ IF(XDMF_BUILD_MPI)
+     IF (MPI_LIBRARY)
+       SET(XDMF_MPI_LIBRARIES ${XDMF_MPI_LIBRARIES} ${MPI_LIBRARY})
+     ELSE (MPI_LIBRARY)
+-      MESSAGE(FATAL_ERROR 
+-        "Could not find the required MPI libraries, install MPI, or set MPI_INCLUDE_PATH and MPI_LIBRARY and MPI_EXTRA_LIBRARY, or turn XDMF_BUILD_MPI to OFF")
++      SET(MPI_LIBRARY "")
+     ENDIF (MPI_LIBRARY)
+     IF (MPI_EXTRA_LIBRARY)
+       SET(XDMF_MPI_LIBRARIES ${XDMF_MPI_LIBRARIES} ${MPI_EXTRA_LIBRARY})

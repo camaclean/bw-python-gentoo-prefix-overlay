@@ -19,5 +19,5 @@ RDEPEND="!sys-libs/glibc[vanilla(+)]"
 S=${WORKDIR}
 
 src_install() {
-	dohostdirsym /usr/share/zoneinfo
+	dohostsym /usr/share/zoneinfo /usr/share/zoneinfo
 }

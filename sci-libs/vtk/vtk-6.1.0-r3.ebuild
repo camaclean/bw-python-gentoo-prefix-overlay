@@ -5,7 +5,7 @@
 EAPI=6
 
 PYTHON_COMPAT=( python2_7 )
-CMAKE_MAKEFILE_GENERATOR=ninja
+#CMAKE_MAKEFILE_GENERATOR=ninja
 WEBAPP_OPTIONAL=yes
 WEBAPP_MANUAL_SLOT=yes
 
@@ -74,7 +74,7 @@ RDEPEND="
 	ffmpeg? ( virtual/ffmpeg )
 	gdal? ( sci-libs/gdal )
 	java? ( >=virtual/jre-1.5:* )
-	kaapi? ( <sci-libs/xkaapi-3 )
+	kaapi? ( sci-libs/xkaapi )
 	mpi? (
 		virtual/mpi[cxx,romio]
 		python? ( dev-python/mpi4py[${PYTHON_USEDEP}] )
@@ -125,6 +125,7 @@ PATCHES=(
 	"${FILESDIR}"/${P}-glext.patch
 	"${FILESDIR}"/${P}-memset.patch
 	"${FILESDIR}"/${P}-gdal2.patch
+	"${FILESDIR}"/vtk-7.1.0-hdf5-1.10.patch
 	)
 
 RESTRICT=test
@@ -217,7 +218,7 @@ src_configure() {
 		-DVTK_USE_LARGE_DATA=ON
 		-DVTK_USE_PARALLEL=ON
 		-DNVCtrlLib_INCLUDE_DIR=$(get_eprefix media-video/nvidia-settings)/usr/include/NVCtrl
-		-DNVCtrlLib_LIBRARY="$(get_eprefix media-video/nvidia-settings)/usr/lib/libXNVCtrl.a;-lX11;-lXext"
+		-DNVCtrlLib_LIBRARY="$(get_eprefix media-video/nvidia-settings RDEPEND)/usr/lib/libXNVCtrl.a;$(get_eprefix x11-libs/libX11 RDEPEND)/usr/lib/libX11.so;$(get_eprefix x11-libs/libXext RDEPEND)/usr/lib/libXext.so"
 	)
 
 	mycmakeargs+=(
@@ -363,6 +364,11 @@ src_configure() {
 	fi
 
 	cmake-utils_src_configure
+}
+
+src_compile() {
+	export LD_LIBRARY_PATH="${BUILD_DIR}/lib:${LD_LIBRARY_PATH}"
+	cmake-utils_src_compile
 }
 
 src_test() {

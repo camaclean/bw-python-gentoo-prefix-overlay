@@ -23,6 +23,12 @@ S="${WORKDIR}"/pytorch-${PV}/torch/lib/THD
 
 PATCHES=( "${FILESDIR}"/${PN}-0.3.0-standalone.patch )
 
+src_unpack() {
+	default
+	git init .
+	git add .
+}
+
 src_configure() {
 	if use cray; then
 		export CC=cc

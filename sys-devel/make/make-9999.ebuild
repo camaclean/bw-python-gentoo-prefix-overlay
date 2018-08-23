@@ -23,5 +23,8 @@ RDEPEND="${CDEPEND}
 S=${WORKDIR}
 
 src_install() {
-	dohostsyms /usr/bin/gmake /usr/bin/make
+	local i
+	for i in /usr/bin/gmake /usr/bin/make; do
+		dohostsym $i ${i}
+	done
 }

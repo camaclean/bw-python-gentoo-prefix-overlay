@@ -1,0 +1,452 @@
+diff --git a/Makefile b/Makefile
+index ab8130a..8f9b6ed 100644
+--- a/Makefile
++++ b/Makefile
+@@ -92,7 +92,7 @@ INCLUDEPATH+=$(PROTOBUF_PATH)/include
+ # COMMON_FLAGS include settings that are passed both to NVCC and C++ compilers.
+ COMMON_FLAGS:= -DHAS_MPI=$(HAS_MPI) -D_POSIX_SOURCE -D_XOPEN_SOURCE=600 -D__USE_XOPEN2K -std=c++11
+ CPPFLAGS:= 
+-CXXFLAGS:= $(SSE_FLAGS) -std=c++0x -fopenmp -fpermissive -fPIC -Werror -fcheck-new
++CXXFLAGS:= $(SSE_FLAGS) -std=c++0x -fopenmp -fpermissive -fPIC -fcheck-new
+ LIBPATH:=
+ LIBS_LIST:=
+ LDFLAGS:=
+@@ -168,9 +168,12 @@ endif
+ 
+ ifeq ("$(MATHLIB)","mkl")
+   INCLUDEPATH += $(MKL_PATH)/include
+-  LIBS_LIST += m iomp5 pthread mklml_intel
+-  MKL_LIB_PATH := $(MKL_PATH)/lib
++  LIBS_LIST += m pthread mkl_core mkl_gnu_thread mkl_intel_lp64
++  #LIBS_LIST += m iomp5 pthread mkldnn mkl_core mkl_intel_lp64 mkl_gnu_thread
++  MKL_LIB_PATH := $(MKL_PATH)/lib/intel64
++  INTEL_LIB_PATH= /opt/intel/lib/intel64
+   LIBPATH += $(MKL_LIB_PATH)
++  LIBPATH += $(INTEL_LIB_PATH)
+   COMMON_FLAGS += -DUSE_MKL
+ endif
+ 
+@@ -537,7 +540,7 @@ $(CNTKLIBRARY_LIB): $(CNTKLIBRARY_OBJ) | $(CNTKMATH_LIB)
+ 	@echo $(SEPARATOR)
+ 	@mkdir -p $(dir $@)
+ 	@echo building $@ for $(ARCH) with build type $(BUILDTYPE)
+-	$(CXX) $(LDFLAGS) -shared $(patsubst %,-L%, $(LIBDIR) $(LIBPATH) $(GDK_NVML_LIB_PATH)) $(patsubst %,$(RPATH)%, $(ORIGINDIR) $(LIBPATH))  -o $@ $^ $(LIBS) -l$(CNTKMATH) $(PROTOBUF_PATH)/lib/libprotobuf.a -ldl -fopenmp
++	$(CXX) $(LDFLAGS) -shared $(patsubst %,-L%, $(LIBDIR) $(LIBPATH) $(GDK_NVML_LIB_PATH)) $(patsubst %,$(RPATH)%, $(ORIGINDIR) $(LIBPATH))  -o $@ $^ $(LIBS) -l$(CNTKMATH) $(PROTOBUF_PATH)/lib/libprotobuf.so -ldl -fopenmp
+ 
+ 
+ ########################################
+@@ -646,7 +649,7 @@ $(EVAL_LIB): $(EVAL_OBJ) | $(CNTKMATH_LIB)
+ 	@echo $(SEPARATOR)
+ 	@mkdir -p $(dir $@)
+ 	@echo Building $(EVAL_LIB) for $(ARCH) with build type $(BUILDTYPE)
+-	$(CXX) $(LDFLAGS) -shared $(patsubst %,-L%, $(LIBDIR) $(LIBPATH) $(GDK_NVML_LIB_PATH)) $(patsubst %,$(RPATH)%, $(ORIGINDIR) $(LIBPATH)) -o $@ $^ $(LIBS) -l$(CNTKMATH) -ldl $(lMULTIVERSO) $(PROTOBUF_PATH)/lib/libprotobuf.a
++	$(CXX) $(LDFLAGS) -shared $(patsubst %,-L%, $(LIBDIR) $(LIBPATH) $(GDK_NVML_LIB_PATH)) $(patsubst %,$(RPATH)%, $(ORIGINDIR) $(LIBPATH)) -o $@ $^ $(LIBS) -l$(CNTKMATH) -ldl $(lMULTIVERSO) $(PROTOBUF_PATH)/lib/libprotobuf.so
+ 
+ ########################################
+ # Eval Sample clients
+@@ -1063,7 +1066,7 @@ ifeq (,$(wildcard Source/Multiverso/include/multiverso/*.h))
+   $(error Build with Multiverso was requested but cannot find the code. Please check https://docs.microsoft.com/en-us/cognitive-toolkit/Multiple-GPUs-and-machines#8-data-parallel-training-with-parameter-server to learn more.)
+ endif
+ 
+-lMULTIVERSO:=-lmultiverso
++lMULTIVERSO:= -L$(SOURCEDIR)/Multiverso/build/$(BUILDTYPE)/src -lmultiverso
+ 
+ INCLUDEPATH += $(SOURCEDIR)/Multiverso/include
+ COMMON_FLAGS += -DASGD_PARALLEL_SUPPORT
+@@ -1085,15 +1088,6 @@ $(MULTIVERSO_LIB):
+ 	@mkdir -p $(BINDIR)
+ 	@mkdir -p $(SOURCEDIR)/Multiverso/build/$(BUILDTYPE)
+ 	@cmake -DCMAKE_VERBOSE_MAKEFILE=TRUE \
+-		-DCMAKE_CXX_COMPILER=$(CXX) \
+-		-DOpenMP_CXX_FLAGS="" \
+-		-DOpenMP_C_FLAGS="" \
+-		-DBoost_NO_BOOST_CMAKE=TRUE \
+-		-DBoost_NO_SYSTEM_PATHS=TRUE \
+-		-DBOOST_ROOT:PATHNAME=$(BOOST_PATH) \
+-		-DBOOST_LIBRARY_DIRS:FILEPATH=$(BOOST_PATH) \
+-		-DLIBRARY_OUTPUT_PATH=$(shell readlink -f $(LIBDIR)) \
+-		-DEXECUTABLE_OUTPUT_PATH=$(shell readlink -f $(BINDIR)) \
+ 		-DCMAKE_BUILD_TYPE=$(MULTIVERSO_CMAKE_BUILDTYPE) \
+ 		-B./Source/Multiverso/build/$(BUILDTYPE) -H./Source/Multiverso
+ 	@make VERBOSE=1 -C ./Source/Multiverso/build/$(BUILDTYPE) -j multiverso
+@@ -1157,7 +1151,7 @@ $(CNTK): $(CNTK_OBJ) | $(READER_LIBS) $(MULTIVERSO_LIB)
+ 	@echo $(SEPARATOR)
+ 	@mkdir -p $(dir $@)
+ 	@echo building $@ for $(ARCH) with build type $(BUILDTYPE)
+-	$(CXX) $(LDFLAGS) $(patsubst %,-L%, $(LIBDIR) $(LIBPATH) $(GDK_NVML_LIB_PATH)) $(patsubst %,$(RPATH)%, $(ORIGINLIBDIR) $(LIBPATH)) -o $@ $^ $(LIBS) $(L_READER_LIBS) $(lMULTIVERSO) -ldl -fopenmp $(PROTOBUF_PATH)/lib/libprotobuf.a
++	$(CXX) $(LDFLAGS) $(patsubst %,-L%, $(LIBDIR) $(LIBPATH) $(GDK_NVML_LIB_PATH)) $(patsubst %,$(RPATH)%, $(ORIGINLIBDIR) $(LIBPATH)) -o $@ $^ $(LIBS) $(L_READER_LIBS) $(lMULTIVERSO) -ldl -fopenmp $(PROTOBUF_PATH)/lib/libprotobuf.so
+ 
+ # deployable resources: standard library of BS
+ CNTK_CORE_BS:=$(BINDIR)/cntk.core.bs
+@@ -1297,7 +1291,7 @@ $(UNITTEST_NETWORK): $(UNITTEST_NETWORK_OBJ) | $(READER_LIBS) $(CNTKTEXTFORMATRE
+ 	@echo $(SEPARATOR)
+ 	@mkdir -p $(dir $@)
+ 	@echo building $@ for $(ARCH) with build type $(BUILDTYPE)
+-	$(CXX) $(LDFLAGS) $(patsubst %,-L%, $(LIBDIR) $(LIBPATH) $(GDK_NVML_LIB_PATH) $(BOOSTLIB_PATH)) $(patsubst %, $(RPATH)%, $(ORIGINLIBDIR) $(LIBPATH) $(BOOSTLIB_PATH)) -o $@ $^ $(BOOSTLIBS) $(LIBS) $(lMULTIVERSO) $(L_READER_LIBS) -ldl -fopenmp  $(PROTOBUF_PATH)/lib/libprotobuf.a  
++	$(CXX) $(LDFLAGS) $(patsubst %,-L%, $(LIBDIR) $(LIBPATH) $(GDK_NVML_LIB_PATH) $(BOOSTLIB_PATH)) $(patsubst %, $(RPATH)%, $(ORIGINLIBDIR) $(LIBPATH) $(BOOSTLIB_PATH)) -o $@ $^ $(BOOSTLIBS) $(LIBS) $(lMULTIVERSO) $(L_READER_LIBS) -ldl -fopenmp  $(PROTOBUF_PATH)/lib/libprotobuf.so
+ 
+ UNITTEST_MATH_SRC = \
+ 	$(SOURCEDIR)/../Tests/UnitTests/MathTests/BatchNormalizationEngineTests.cpp \
+diff --git a/Source/CNTKv2LibraryDll/API/CNTKLibrary.h b/Source/CNTKv2LibraryDll/API/CNTKLibrary.h
+index 81e9d8c..e4affee 100644
+--- a/Source/CNTKv2LibraryDll/API/CNTKLibrary.h
++++ b/Source/CNTKv2LibraryDll/API/CNTKLibrary.h
+@@ -2977,7 +2977,7 @@ namespace CNTK
+         /// The forwardPropValuesToSave is an optional map of forward compute values saved for later use during back propagation of gradients
+         /// in the backward call that 'this' BackPropState object is used.
+         ///
+-        BackPropState(const FunctionPtr& function, const DeviceDescriptor& computeDevice, const std::unordered_map<Variable, ValuePtr>& forwardPropValuesToSave = {})
++        BackPropState(const FunctionPtr& function, const DeviceDescriptor& computeDevice, const std::unordered_map<Variable, ValuePtr>& forwardPropValuesToSave = std::unordered_map<Variable, ValuePtr>())
+             : m_function(function), m_forwardComputeDevice(computeDevice), m_savedForwardPropValues(forwardPropValuesToSave)
+         {}
+ 
+@@ -3111,8 +3111,8 @@ namespace CNTK
+         CNTK_API BackPropStatePtr Forward(const std::unordered_map<Variable, ValuePtr>& arguments,
+                                           std::unordered_map<Variable, ValuePtr>& outputs,
+                                           const DeviceDescriptor& computeDevice = DeviceDescriptor::UseDefaultDevice(),
+-                                          const std::unordered_set<Variable>& outputsToRetainBackwardStateFor = {},
+-                                          const std::unordered_set<Variable>& inputsToExcludeGradientsFor = {});
++                                          const std::unordered_set<Variable>& outputsToRetainBackwardStateFor = std::unordered_set<Variable>(),
++                                          const std::unordered_set<Variable>& inputsToExcludeGradientsFor = std::unordered_set<Variable>());
+ 
+         ///
+         /// Backpropagates supplied 'rootGradientValues' for one or more of the output variables of the Function, to produce gradient Values
+@@ -3147,7 +3147,7 @@ namespace CNTK
+         virtual BackPropStatePtr Forward(const std::vector<ValuePtr>& inputValues,
+                                          std::unordered_map<Variable, ValuePtr>& outputs,
+                                          const DeviceDescriptor& computeDevice = DeviceDescriptor::UseDefaultDevice(),
+-                                         const std::unordered_set<Variable>& outputsToRetainBackwardStateFor = {}) = 0;
++                                         const std::unordered_set<Variable>& outputsToRetainBackwardStateFor = std::unordered_set<Variable>()) = 0;
+ 
+         ///
+         /// Infers the shape, data type and dynamic axes of the outputs of 'this' function based on the
+@@ -3225,7 +3225,7 @@ namespace CNTK
+                        std::unordered_map<Variable, ValuePtr>& gradients,
+                        const DeviceDescriptor& computeDevice = DeviceDescriptor::UseDefaultDevice())
+         {
+-            std::unordered_map<Variable, ValuePtr> outputsToEvaluate = {};
++            std::unordered_map<Variable, ValuePtr> outputsToEvaluate = std::unordered_map<Variable, ValuePtr>{};
+             return Gradients(arguments, gradients, outputsToEvaluate, computeDevice);
+         }
+ 
+@@ -3241,7 +3241,7 @@ namespace CNTK
+         /// Clones 'this' Function. The parameters of the Function are either cloned, shared or frozen as specified by the parameterCloneMethod argument and
+         /// any variable replacements requested are applied in the cloned Function instance.
+         ///
+-        CNTK_API FunctionPtr Clone(ParameterCloningMethod parameterCloneMethod = ParameterCloningMethod::Clone, const std::unordered_map<Variable, Variable>& replacements = {}) const;
++        CNTK_API FunctionPtr Clone(ParameterCloningMethod parameterCloneMethod = ParameterCloningMethod::Clone, const std::unordered_map<Variable, Variable>& replacements = std::unordered_map<Variable, Variable>()) const;
+ 
+         ///
+         /// Clones 'this' Function with flattening(removing all block functions). Parameters as above.
+@@ -5869,7 +5869,7 @@ namespace CNTK
+             size_t crossValidationFrequency = std::numeric_limits<size_t>::max(),
+             DataUnit crossValidationFrequencyUnit = DataUnit::Sample,
+             size_t maxSamples = std::numeric_limits<size_t>::max(),
+-            const std::unordered_map<Variable, StreamInformation>& inputVarToStream = {});
++            const std::unordered_map<Variable, StreamInformation>& inputVarToStream = std::unordered_map<Variable, StreamInformation>());
+ 
+     private:
+         friend class TrainingSession;
+@@ -5922,7 +5922,7 @@ namespace CNTK
+         ///
+         CNTK_API TestConfig(const MinibatchSourcePtr& source,
+             const MinibatchSizeSchedule& schedule = MinibatchSizeSchedule(64),
+-            const std::unordered_map<Variable, StreamInformation>& inputVarToStream = {});
++            const std::unordered_map<Variable, StreamInformation>& inputVarToStream = std::unordered_map<Variable, StreamInformation>());
+ 
+     private:
+         friend class TrainingSession;
+diff --git a/Source/CNTKv2LibraryDll/BackCompat.cpp b/Source/CNTKv2LibraryDll/BackCompat.cpp
+index 0441e18..47f7161 100644
+--- a/Source/CNTKv2LibraryDll/BackCompat.cpp
++++ b/Source/CNTKv2LibraryDll/BackCompat.cpp
+@@ -667,10 +667,10 @@ namespace CNTK
+             switch (dataType)
+             {
+             case DataType::Float:
+-                std::tie(computationNetwork, dummyVariableToNodeMap) = CompositeFunction::CreateComputationNetwork<float>(rootFunction, device, {}, {}, {}, /*useMangledNamesForComputationNodes =*/ true);
++                std::tie(computationNetwork, dummyVariableToNodeMap) = CompositeFunction::CreateComputationNetwork<float>(rootFunction, device, std::unordered_set<Variable>{}, std::unordered_map<Variable, Variable>{}, std::unordered_set<Variable>{}, /*useMangledNamesForComputationNodes =*/ true);
+                 break;
+             case DataType::Double:
+-                std::tie(computationNetwork, dummyVariableToNodeMap) = CompositeFunction::CreateComputationNetwork<double>(rootFunction, device, {}, {}, {}, /*useMangledNamesForComputationNodes =*/ true);
++                std::tie(computationNetwork, dummyVariableToNodeMap) = CompositeFunction::CreateComputationNetwork<double>(rootFunction, device, std::unordered_set<Variable>{}, std::unordered_map<Variable, Variable>{}, std::unordered_set<Variable>{}, /*useMangledNamesForComputationNodes =*/ true);
+ 
+                 break;
+             default:
+diff --git a/Source/CNTKv2LibraryDll/Evaluator.cpp b/Source/CNTKv2LibraryDll/Evaluator.cpp
+index 62e7aba..0514fd1 100644
+--- a/Source/CNTKv2LibraryDll/Evaluator.cpp
++++ b/Source/CNTKv2LibraryDll/Evaluator.cpp
+@@ -88,13 +88,13 @@ namespace CNTK
+ 
+     double Evaluator::TestMinibatch(const std::unordered_map<Variable, MinibatchData>& arguments, const DeviceDescriptor& computeDevice /*= DeviceDescriptor::UseDefaultDevice()*/, bool distributed /*= false*/)
+     {
+-        std::unordered_map<Variable, ValuePtr> outputsToFetch = {};
++        std::unordered_map<Variable, ValuePtr> outputsToFetch = std::unordered_map<Variable, ValuePtr>{};
+         return TestMinibatch(GetInputs(arguments), outputsToFetch, computeDevice, distributed);
+     }
+ 
+     double Evaluator::TestMinibatch(const std::unordered_map<Variable, ValuePtr>& arguments, const DeviceDescriptor& computeDevice /*= DeviceDescriptor::UseDefaultDevice()*/, bool distributed /*= false*/)
+     {
+-        std::unordered_map<Variable, ValuePtr> outputsToFetch = {};
++        std::unordered_map<Variable, ValuePtr> outputsToFetch = std::unordered_map<Variable, ValuePtr>{};
+         return TestMinibatch(arguments, outputsToFetch, computeDevice, distributed);
+     }
+ 
+@@ -112,7 +112,7 @@ namespace CNTK
+ 
+     bool Evaluator::TestMinibatch(const std::unordered_map<Variable, ValuePtr>& arguments, std::pair<ValuePtr, size_t>& result, const DeviceDescriptor& computeDevice, bool distributed)
+     {
+-        std::unordered_map<Variable, ValuePtr> outputsToFetch = {};
++        std::unordered_map<Variable, ValuePtr> outputsToFetch = std::unordered_map<Variable, ValuePtr>{};
+         return TestMinibatch(arguments, outputsToFetch, result, computeDevice, distributed);
+     }
+ 
+diff --git a/Source/CNTKv2LibraryDll/Function.cpp b/Source/CNTKv2LibraryDll/Function.cpp
+index 48e9b08..2d5aa5a 100755
+--- a/Source/CNTKv2LibraryDll/Function.cpp
++++ b/Source/CNTKv2LibraryDll/Function.cpp
+@@ -453,7 +453,7 @@ namespace CNTK
+                             std::unordered_map<Variable, ValuePtr>& outputs,
+                             const DeviceDescriptor& computeDevice /*= DeviceDescriptor::UseDefaultDevice()*/)
+     {
+-        Forward(arguments, outputs, computeDevice, {});
++        Forward(arguments, outputs, computeDevice, std::unordered_set<Variable>{});
+     }
+ 
+     void Function::Save(std::vector<unsigned char> &vectorBuf)
+@@ -921,7 +921,7 @@ namespace CNTK
+ 
+     FunctionPtr Function::CloneFlattened(ParameterCloningMethod parameterCloneMethod) const
+     {
+-        return CloneImpl(parameterCloneMethod, {}, FlattenFunction);
++        return CloneImpl(parameterCloneMethod, std::unordered_map<Variable, Variable>{}, FlattenFunction);
+     }
+ 
+     FunctionPtr Function::CloneImpl(
+@@ -1746,7 +1746,7 @@ namespace CNTK
+         auto combinedFunction = Combine({ unormalizedNoisePriorEntropy, reshapedLogNoisePrior, importanceWeights, noiseDistribution });
+         auto outputs = combinedFunction->Outputs();
+         auto outputMap = std::unordered_map<Variable, ValuePtr>{ { outputs[0], nullptr}, { outputs[1], nullptr }, { outputs[2], nullptr }, { outputs[3], nullptr } };
+-        combinedFunction->Forward({}, outputMap, noiseWeights.Value()->Device(), {}, {});
++        combinedFunction->Forward(std::unordered_map<Variable, ValuePtr>{}, outputMap, noiseWeights.Value()->Device(), std::unordered_set<Variable>{}, std::unordered_set<Variable>{});
+         auto noisePriorEntropy = Constant(outputMap.at(outputs[0])->Data(), L"noisePriorEntropy");
+         auto logNoisePrior = Constant(outputMap.at(outputs[1])->Data(), L"logNoisePrior");
+         auto importances = Constant(outputMap.at(outputs[2])->Data(), L"importanceWeights");
+diff --git a/Source/CNTKv2LibraryDll/Learner.cpp b/Source/CNTKv2LibraryDll/Learner.cpp
+index 2b77ed7..f09abb0 100644
+--- a/Source/CNTKv2LibraryDll/Learner.cpp
++++ b/Source/CNTKv2LibraryDll/Learner.cpp
+@@ -1123,7 +1123,7 @@ namespace CNTK
+         if (trainingSampleCount == 0)
+             InvalidArgument("Learner::Update() cannot perform an update with an empty minibatch.");
+         
+-        static const std::unordered_map<Variable, ValuePtr> m_empty = {};
++        static const std::unordered_map<Variable, ValuePtr> m_empty = std::unordered_map<Variable, ValuePtr>{};
+ 
+         for (const auto& parameter : Parameters())
+         {
+diff --git a/Source/CNTKv2LibraryDll/Trainer.cpp b/Source/CNTKv2LibraryDll/Trainer.cpp
+index d7af43f..abb7218 100644
+--- a/Source/CNTKv2LibraryDll/Trainer.cpp
++++ b/Source/CNTKv2LibraryDll/Trainer.cpp
+@@ -148,7 +148,7 @@ namespace CNTK
+ 
+     bool Trainer::TrainMinibatch(const std::unordered_map<Variable, MinibatchData>& arguments, const DeviceDescriptor& computeDevice /*= DeviceDescriptor::UseDefaultDevice()*/)
+     {
+-        std::unordered_map<Variable, ValuePtr> outputsToFetch = {};
++        std::unordered_map<Variable, ValuePtr> outputsToFetch = std::unordered_map<Variable, ValuePtr>{};
+         return TrainMinibatch(arguments, outputsToFetch, computeDevice);
+     }
+ 
+@@ -170,7 +170,7 @@ namespace CNTK
+ 
+     bool Trainer::TrainMinibatch(const std::unordered_map<Variable, ValuePtr>& arguments, bool isSweepEndInArguments, const DeviceDescriptor& computeDevice /*= DeviceDescriptor::UseDefaultDevice()*/)
+     {
+-        std::unordered_map<Variable, ValuePtr> outputsToFetch = {};
++        std::unordered_map<Variable, ValuePtr> outputsToFetch = std::unordered_map<Variable, ValuePtr>{};
+         return TrainMinibatch(arguments, isSweepEndInArguments, outputsToFetch, computeDevice);
+     }
+ 
+diff --git a/Source/Common/CrossProcessMutex.h b/Source/Common/CrossProcessMutex.h
+index 2f3ce70..f2a9e37 100644
+--- a/Source/Common/CrossProcessMutex.h
++++ b/Source/Common/CrossProcessMutex.h
+@@ -128,7 +128,7 @@ class CrossProcessMutex
+ public:
+     CrossProcessMutex(const std::string& name)
+         : m_fd(-1),
+-          m_fileName("/var/lock/" + name)
++          m_fileName("/tmp/" + name)
+     {
+     }
+ 
+diff --git a/Source/Multiverso/Test/CMakeLists.txt b/Source/Multiverso/Test/CMakeLists.txt
+index 53fee77..1aaf555 100644
+--- a/Source/Multiverso/Test/CMakeLists.txt
++++ b/Source/Multiverso/Test/CMakeLists.txt
+@@ -7,8 +7,8 @@ SET(CMAKE_CXX_COMPILER mpicxx)
+ LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
+ 
+ 
+-MESSAGE(${MPI_LIBRARIES})
+-MESSAGE(${MPI_CXX_LIBRARIES})
++MESSAGE("${MPI_LIBRARIES}")
++MESSAGE("${MPI_CXX_LIBRARIES}")
+ 
+ ENABLE_TESTING()
+ 
+diff --git a/Source/Multiverso/src/CMakeLists.txt b/Source/Multiverso/src/CMakeLists.txt
+index 1e1c973..ba3fecb 100644
+--- a/Source/Multiverso/src/CMakeLists.txt
++++ b/Source/Multiverso/src/CMakeLists.txt
+@@ -20,12 +20,14 @@ set(MULTIVERSO_SRC actor.cpp communicator.cpp controller.cpp dashboard.cpp multi
+ add_library(multiverso SHARED ${MULTIVERSO_SRC})
+ #add_library(imultiverso ${MULTIVERSO_SRC})
+ if (NOT USE_ZMQ)
+-    target_link_libraries(multiverso ${MPI_LIBRARY})
++    if (MPI_LIBRARY)
++        target_link_libraries(multiverso ${MPI_LIBRARY})
++    endif()
+ else()
+     target_link_libraries(multiverso zmq)
+ endif()
+ 
+ install (TARGETS multiverso DESTINATION lib)
+-if (UNIX)
+-    install(CODE "execute_process(COMMAND ldconfig)")  # run ldconfig. Otherwise ld.so.cache won't be created.
+-endif()
++#if (UNIX)
++#    install(CODE "execute_process(COMMAND ldconfig)")  # run ldconfig. Otherwise ld.so.cache won't be created.
++#endif()
+diff --git a/Source/Multiverso/src/table/array_table.cpp b/Source/Multiverso/src/table/array_table.cpp
+index e6fe857..e32ffcd 100644
+--- a/Source/Multiverso/src/table/array_table.cpp
++++ b/Source/Multiverso/src/table/array_table.cpp
+@@ -11,7 +11,7 @@ template <typename T>
+ ArrayWorker<T>::ArrayWorker(size_t size) : WorkerTable(), size_(size) {
+   num_server_ = MV_NumServers();
+   server_offsets_.push_back(0);
+-  CHECK(size_ > MV_NumServers());
++  CHECK(size_ > (size_t) MV_NumServers());
+   integer_t length = static_cast<integer_t>(size_) / MV_NumServers();
+   for (auto i = 1; i < MV_NumServers(); ++i) {
+     server_offsets_.push_back(i * length); // may not balance
+diff --git a/Tests/EndToEndTests/CNTKv2Library/EndToEndTests/Seq2Seq.cpp b/Tests/EndToEndTests/CNTKv2Library/EndToEndTests/Seq2Seq.cpp
+index 596217b..85b4350 100644
+--- a/Tests/EndToEndTests/CNTKv2Library/EndToEndTests/Seq2Seq.cpp
++++ b/Tests/EndToEndTests/CNTKv2Library/EndToEndTests/Seq2Seq.cpp
+@@ -141,11 +141,11 @@ void TrainSequenceToSequenceTranslator(const DeviceDescriptor& device, bool useS
+ 
+         auto combinedFunc = Combine({ z, ce, errs });
+         auto clonedFunctionWithParametersCloned = combinedFunc->Clone();
+-        CompareFunctions(combinedFunc, clonedFunctionWithParametersCloned, ParameterCloningMethod::Clone, {}, visitedFunctions);
++        CompareFunctions(combinedFunc, clonedFunctionWithParametersCloned, ParameterCloningMethod::Clone, std::unordered_map<Variable, Variable>{}, visitedFunctions);
+ 
+         visitedFunctions.clear();
+         auto clonedFunctionWithParametersShared = clonedFunctionWithParametersCloned->Clone(ParameterCloningMethod::Share);
+-        CompareFunctions(clonedFunctionWithParametersCloned, clonedFunctionWithParametersShared, ParameterCloningMethod::Share, {}, visitedFunctions);
++        CompareFunctions(clonedFunctionWithParametersCloned, clonedFunctionWithParametersShared, ParameterCloningMethod::Share, std::unordered_map<Variable, Variable>{}, visitedFunctions);
+     }
+ 
+     if (testSaveAndReLoad)
+diff --git a/Tests/UnitTests/V2LibraryTests/FunctionTests.cpp b/Tests/UnitTests/V2LibraryTests/FunctionTests.cpp
+index a6e397e..d7853f9 100644
+--- a/Tests/UnitTests/V2LibraryTests/FunctionTests.cpp
++++ b/Tests/UnitTests/V2LibraryTests/FunctionTests.cpp
+@@ -304,11 +304,11 @@ void TestRecurrentFunctionCloning()
+     std::unordered_set<FunctionPtr> visitedFunctions;
+ 
+     auto clonedFunctionWithParametersCloned = rootFuncOriginal->Clone();
+-    CompareFunctions(rootFuncOriginal, clonedFunctionWithParametersCloned, ParameterCloningMethod::Clone, {}, visitedFunctions);
++    CompareFunctions(rootFuncOriginal, clonedFunctionWithParametersCloned, ParameterCloningMethod::Clone, std::unordered_map<Variable, Variable>{}, visitedFunctions);
+ 
+     visitedFunctions.clear();
+     auto clonedFunctionWithParametersShared = clonedFunctionWithParametersCloned->Clone(ParameterCloningMethod::Share);
+-    CompareFunctions(clonedFunctionWithParametersCloned, clonedFunctionWithParametersShared, ParameterCloningMethod::Share, {}, visitedFunctions);
++    CompareFunctions(clonedFunctionWithParametersCloned, clonedFunctionWithParametersShared, ParameterCloningMethod::Share, std::unordered_map<Variable, Variable>{}, visitedFunctions);
+ 
+     visitedFunctions.clear();
+     auto replacementInputVar = InputVariable({ inputDim }, true, DataType::Float, true, L"input2");
+diff --git a/bindings/python/setup.py b/bindings/python/setup.py
+index 1e4fcf7..15720fc 100644
+--- a/bindings/python/setup.py
++++ b/bindings/python/setup.py
+@@ -120,12 +120,12 @@ else:
+     extra_compile_args += [
+         '--std=c++11',
+     ]
+-    extra_link_args = []
++    extra_link_args = ['-L' + os.path.join(os.environ.get('WORKDIR','../../../'),'cntk-build/lib')]
+ 
+     # Expecting the dependent libs (libcntklibrary-2.3.1.so, etc.) inside
+     # site-packages/cntk/libs.
+     runtime_library_dirs = ['$ORIGIN/cntk/libs']
+-    os.environ["CXX"] = "mpic++"
++    os.environ["CXX"] = "CC"
+ 
+ cntkV2LibraryInclude = os.path.join(CNTK_SOURCE_PATH, "CNTKv2LibraryDll", "API")
+ cntkBindingCommon = os.path.join(CNTK_PATH, "bindings", "common")
+diff --git a/configure b/configure
+index aa91051..352eadd 100755
+--- a/configure
++++ b/configure
+@@ -111,7 +111,7 @@ default_use_asgd=yes
+ enable_asgd=$default_use_asgd
+ 
+ # List from best to worst choice
+-default_path_list="/usr /usr/local /opt /opt/local /lib /usr/lib"
++default_path_list="${EPREFIX}/usr ${EPREFIX}/usr/local /opt /opt/local ${EPREFIX}/lib ${EPREFIX}/usr/lib"
+ 
+ # List from best to worst choice
+ default_mkls="mklml/$mklml_version"
+@@ -299,9 +299,15 @@ function check_python ()
+     # Required version: exact match against major and minor version
+     local required_version="$1"
+     local py_dir="$2"
+-    local py_bin="$py_dir/$py_check"
++    local exe_version
++    [[ $required_version == 27 ]] && exe_version=2.7
++    [[ $required_version == 34 ]] && exe_version=3.4
++    [[ $required_version == 35 ]] && exe_version=3.5
++    [[ $required_version == 36 ]] && exe_version=3.6
++    local py_bin="$py_dir/$py_check$exe_version"
++    echo "$py_bin" >&2
+     [ -x "$py_bin" ] || return 1
+-    local py_version=$("$py_bin" -c "import sys; sys.stdout.write('{0}{1}'.format(sys.version_info.major,sys.version_info.minor))")
++    local py_version=$("$py_bin" -c "import sys; sys.stdout.write('{0}{1}'.format(sys.version_info[0],sys.version_info[1]))")
+     [ "$?" = "0" ] && [ -x "$py_bin" ] && [ "$py_version" = "$required_version" ] && {
+         echo $py_dir
+         return 0
+@@ -313,7 +319,11 @@ function check_python ()
+ function find_python ()
+ {
+     local required_version="$1"
++    echo $required_version >&2
++    [[ required_version == 35 ]] && required_version="3.5"
+     local py_dir=$(find_dir "" "$py_check")
++    echo $py_dir >&2
++    [[ required_version == 3.5 ]] && required_version="35"
+     check_python "$required_version" "$py_dir"
+ }
+ 
+@@ -493,6 +503,8 @@ do
+                 show_help
+                 exit 1
+             else
++                IFS_bak=$IFS
++                IFS=","
+                 for ver in $optarg
+                 do
+                     case $ver in
+@@ -504,8 +516,9 @@ do
+                             exit
+                     esac
+                 done
++                IFS=$IFS_bak
+                 # TODO filter duplicates?
+-                py_versions="$optarg"
++                py_versions="$(echo "$optarg" | tr ',' ' ')"
+             fi
+             ;;
+ 

@@ -24,11 +24,10 @@ DEPEND="${RDEPEND}
 	virtual/mpi[romio] )"
 DISTUTILS_IN_SOURCE_BUILD=1
 
-ENVMOD="-acml"
-export CRAYPE_LINK_TYPE=dynamic
-export CRAY_ADD_RPATH=yes
-
 python_prepare_all() {
+	export CRAYPE_LINK_TYPE=dynamic
+	export CRAY_ADD_RPATH=yes
+
 	# not needed on install
 	rm -r docs/source || die
 	export FFLAGS="$(echo "$FFLAGS" | sed -e "s/-O2//" -e "s/-march=bdver1//")"

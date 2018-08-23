@@ -1,0 +1,15 @@
+diff --git a/caffe2/contrib/nccl/cuda_nccl_gpu.cc b/caffe2/contrib/nccl/cuda_nccl_gpu.cc
+index db21129..88bf815 100644
+--- a/caffe2/contrib/nccl/cuda_nccl_gpu.cc
++++ b/caffe2/contrib/nccl/cuda_nccl_gpu.cc
+@@ -223,9 +223,9 @@ void NCCL<T>::AllGather(const NCCLExecution& ex) {
+         ctx.dst->template mutable_data<T>();
+         CAFFE_NCCL_CHECK(ncclAllGather(
+             ctx.src->raw_data(),
++            ctx.dst->raw_mutable_data(),
+             ctx.src->size(),
+             ncclTypeWrapper<T>::type,
+-            ctx.dst->raw_mutable_data(),
+             comm,
+             stream));
+       });

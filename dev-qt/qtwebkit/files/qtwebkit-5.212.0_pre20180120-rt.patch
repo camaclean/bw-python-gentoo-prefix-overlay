@@ -1,0 +1,12 @@
+diff --git a/Source/WTF/wtf/CMakeLists.txt b/Source/WTF/wtf/CMakeLists.txt
+index 09b848c..0c8445e 100644
+--- a/Source/WTF/wtf/CMakeLists.txt
++++ b/Source/WTF/wtf/CMakeLists.txt
+@@ -239,6 +239,7 @@ set(WTF_INCLUDE_DIRECTORIES
+ 
+ set(WTF_LIBRARIES
+     ${CMAKE_DL_LIBS}
++    rt
+ )
+ 
+ if (CMAKE_SYSTEM_NAME MATCHES "Darwin")

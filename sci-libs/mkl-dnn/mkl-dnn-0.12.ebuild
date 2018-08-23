@@ -21,7 +21,7 @@ DEPEND="
 RDEPEND="
 "
 
-PATCHES=( "${FILESDIR}"/${P}-amd.patch )
+PATCHES=( "${FILESDIR}"/${PN}-0.12-amd.patch )
 
 src_configure()
 {

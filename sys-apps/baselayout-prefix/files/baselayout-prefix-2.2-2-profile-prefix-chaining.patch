@@ -2,7 +2,7 @@
 --- etc/profile	Tue Sep 15 08:33:54 2015
 ***************
 *** 4,9 ****
---- 4,67 ----
+--- 4,75 ----
   # environment for login shells.
   #
   
@@ -29,6 +29,14 @@
 + 
 + [[ -z "${_ro_recursion_level}" ]] && _ro_recursion_level=0
 + ((++_ro_recursion_level))
++
++ if [[ ! -z "${_ro_root}" ]]; then
++ 	if [[ -z "$READONLY_EPREFIXES" ]]; then
++ 		export READONLY_EPREFIXES="${_ro_root}"
++ 	else
++ 		export READONLY_EPREFIXES="$READONLY_EPREFIXES:${_ro_root}"
++ 	fi
++ fi
 + 
 + for _ro_backup_var in _ro_root _ro_deps; do
 + 	eval "_ro_b${_ro_recursion_level}_${_ro_backup_var}=\${${_ro_backup_var}}"
@@ -69,7 +77,7 @@
   if [ -e "@GENTOO_PORTAGE_EPREFIX@"/etc/profile.env ] ; then
 *************** if [ -n "${BASH_VERSION}" ] ; then
 *** 47,55 ****
---- 105,142 ----
+--- 113,153 ----
   		# it in the user's dot-files), but it shouldn't make any 
   		# difference.
   		. "@GENTOO_PORTAGE_EPREFIX@"/etc/bash/bashrc
@@ -93,11 +101,14 @@
 + 	if [ ${_ro_recursion_level} == 0 ]; then
 + 		# we're in the last prefix of the chain here.
 + 		_ro_name="@GENTOO_PORTAGE_EPREFIX@"
-+ 		if [[ $_ro_name =~ ([^/]+)/+([0-9\.]+)/*$ ]]; then
-+ 			_ro_name="${BASH_REMATCH[1]}-${BASH_REMATCH[2]}"
++ 		if [[ $_ro_name =~ ([^/]+)/+([0-9\.]+)/([^/]+)/*$ ]]; then
++ 			_ro_name="${BASH_REMATCH[1]}-${BASH_REMATCH[2]}-${BASH_REMATCH[3]}"
 + 		else
 + 		_ro_name="${_ro_name##*/}"
 + 		fi
++ 
++ 		findmnt -T "@GENTOO_PORTAGE_EPREFIX@" -O ro >/dev/null 2>&1 && _mount_type=" (read-only)"
++ 		[ -f "@GENTOO_PORTAGE_EPREFIX@/../version" ] && _ro_name="$(cat "@GENTOO_PORTAGE_EPREFIX@/../version") ${_ro_name}${_mount_type}"
 + 
 + 		# use color only if the prompt already contains color escapes
 + 		case "${PS1}" in
@@ -110,7 +121,7 @@
   	# on color and non-color terminals, as well as shells that don't
 *************** else
 *** 57,63 ****
---- 144,184 ----
+--- 155,199 ----
   	PS1="${USER:-$(whoami 2>/dev/null)}@$(uname -n 2>/dev/null) \$ "
   fi
   
@@ -141,6 +152,7 @@
 + if [[ -z "${EPREFIX}" && ${_ro_recursion_level} == 0 ]]; then
 + 	if [[ ! -x "@GENTOO_PORTAGE_EPREFIX@"/usr/bin/emerge ]]; then
 + 		export EPREFIX="@GENTOO_PORTAGE_EPREFIX@"
++ 		export PORTAGE_EPREFIXES="${EPREFIX}:${READONLY_EPREFIXES}"
 + 	fi
 + elif [[ "${EPREFIX}" != "@GENTOO_PORTAGE_EPREFIX@" && ${_ro_recursion_level} == 0 ]]; then
 + 	echo "WARNING: EPREFIX is set from environment to \"${EPREFIX}\"."
@@ -150,6 +162,8 @@
 + 
 + mkdir -p $(. "@GENTOO_PORTAGE_EPREFIX@"/usr/share/portage/config/make.globals && . "@GENTOO_PORTAGE_EPREFIX@"/etc/portage/make.conf && echo $PORTAGE_TMPDIR) 2>/dev/null || true
 + 
++ unset _mount_type
 + unset _ro_root
 + unset _ro_deps
 + unset _ro_chained_path_vars
++ unset _ro_name

@@ -2,9 +2,9 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Header: $
 
-EAPI=5
+EAPI=6
 
-PYTHON_COMPAT=( python2_7 python3_{4,5} )
+PYTHON_COMPAT=( python2_7 python3_{4,5,6} )
 
 inherit multilib-build eutils python-r1 distutils-r1 cmake-utils
 
@@ -24,6 +24,7 @@ RDEPEND="dev-libs/nccl
 	 ~dev-libs/protobuf-3.1.0[${PYTHON_USEDEP}]
          >=sci-libs/scipy-0.15.0[${PYTHON_USEDEP}]
 	 dev-python/six[${PYTHON_USEDEP}]
+	 $(python_gen_cond_dep 'dev-python/backports-weakref[${PYTHON_USEDEP}]' python2_7)
          cuda? ( !cray? ( dev-util/nvidia-cuda-toolkit ) )
 	 graphviz? ( >=dev-python/pydot-1.2.3 )
 "
@@ -34,9 +35,13 @@ PATCHES=( "${FILESDIR}"/tensorflow-${MY_PV}.patch )
 
 S="${WORKDIR}/tensorflow-${MY_PV}"
 
+CMAKE_USE_DIR="${S}"/tensorflow/contrib/cmake/
+
 ENVMOD_REQUIRE="cudatoolkit"
 
 src_prepare() {
+	mkdir -p "${S}"/tensorflow/contrib/cmake/patches/eigen || die
+	cp "${FILESDIR}"/${P}-Macros.h tensorflow/contrib/cmake/patches/eigen/Macros.h || die
 	cmake-utils_src_prepare
 }
 
@@ -80,8 +85,8 @@ src_configure() {
 				       "-DMKL_INCLUDE_DIR=/opt/intel/mkl/include"
 			)
 		fi
+		mycmakeargs+=( "-Dtensorflow_BUILD_SHARED_LIB=ON" )
 	
-		CMAKE_USE_DIR="${S}"/tensorflow/contrib/cmake/
 		cmake-utils_src_configure || die
 	}
 	python_foreach_impl python_configure
@@ -93,7 +98,9 @@ src_compile() {
 	python_compile() {
 		export LDFLAGS="${LDFLAGS_BAK} -Wl,--rpath=${EPREFIX}/usr/lib/${EPYTHON}/site-packages/tensorflow"
 		cd "${BUILD_DIR}"
-		VERBOSE=1 emake tf_python_build_pip_package || die
+		VERBOSE=1 emake tf_python_package_and_slibs || die
+		#VERBOSE=1 emake tensorflow || die
+		#VERBOSE=1 emake tf_python_build_pip_package || die
 		cd tf_python || die
 		esetup.py build || die
 	}
@@ -102,9 +109,9 @@ src_compile() {
 
 src_install() {
 	python_install() {
-		cd "${BUILD_DIR}/tf_python" || die;
+		cd "${BUILD_DIR}/tf_python" || die
 		distutils-r1_python_install
-	};
+	}
 	python_foreach_impl python_install
 }
 

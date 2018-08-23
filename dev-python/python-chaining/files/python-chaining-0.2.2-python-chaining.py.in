@@ -1,0 +1,78 @@
+import site
+import os
+import sys
+
+# Modified version of addsitedir from site module.
+# Prepends rather than appends to path, so that
+# chained python prefixes override parent prefix site
+# directories.
+def addsitedir(sitedir, known_paths=None):
+    """Add 'sitedir' argument to sys.path if missing and handle .pth files in
+    'sitedir'"""
+    if known_paths is None:
+        known_paths = site._init_pathinfo()
+        reset = 1
+    else:
+        reset = 0
+    sitedir, sitedircase = site.makepath(sitedir)
+    if not sitedircase in known_paths:
+        index = sys.path.index('@EPREFIX@/usr/lib/@PYTHON@/site-packages')
+        sys.path.insert(index,sitedir)        # Add path component
+    try:
+        names = os.listdir(sitedir)
+    except os.error:
+        return
+    dotpth = os.extsep + "pth"
+    names = [name for name in names if name.endswith(dotpth)]
+    for name in sorted(names):
+        site.addpackage(sitedir, name, known_paths)
+    if reset:
+        known_paths = None
+    return known_paths
+
+# Can't use site.getsitepackages() with virtualenv
+def getsitepackages():
+    """Returns a list containing all global site-packages directories
+    (and possibly site-python).
+
+    For each directory present in the global ``PREFIXES``, this function
+    will find its `site-packages` subdirectory depending on the system
+    environment, and will return a list of full paths.
+    """
+    sitepackages = []
+    seen = set()
+
+    for prefix in site.PREFIXES:
+        if not prefix or prefix in seen:
+            continue
+        seen.add(prefix)
+
+        if sys.platform in ('os2emx', 'riscos'):
+            sitepackages.append(os.path.join(prefix, "Lib", "site-packages"))
+        elif os.sep == '/':
+            sitepackages.append(os.path.join(prefix, "lib",
+                                        "python" + sys.version[:3],
+                                        "site-packages"))
+            sitepackages.append(os.path.join(prefix, "lib", "site-python"))
+        else:
+            sitepackages.append(prefix)
+            sitepackages.append(os.path.join(prefix, "lib", "site-packages"))
+    return sitepackages
+
+eprefix = os.environ.get('EPREFIX')
+if eprefix is not None:
+    path = os.path.join(eprefix, 'usr')
+    if path not in site.PREFIXES:
+        site.PREFIXES.insert(0, path)
+    addsitedir(getsitepackages()[0])
+
+prefixes = os.environ.get('EXTRA_PYTHON_EPREFIXES')
+if prefixes is not None:
+    for p in reversed(prefixes.split(':')):
+        path = os.path.join(p, 'usr/lib/@PYTHON@/site-packages')
+        addsitedir(path)
+
+pythonpath = os.environ.get('PYTHONPATH')
+if pythonpath is not None:
+    for p in reversed(pythonpath.split(':')):
+        sys.path.insert(0,p)

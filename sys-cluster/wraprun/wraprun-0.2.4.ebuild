@@ -23,7 +23,7 @@ RDEPEND="${DEPEND}"
 
 PY_S="$S/python"
 
-ENVMOD="-darshan"
+ENVMOD_REQUIRE="-darshan"
 
 src_prepare()
 {

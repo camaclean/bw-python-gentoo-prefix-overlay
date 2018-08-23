@@ -1,0 +1,27 @@
+diff --git a/xmlto.in b/xmlto.in
+index aed5458..851701f 100755
+--- a/xmlto.in
++++ b/xmlto.in
+@@ -19,7 +19,7 @@
+ # Utilities that we need that aren't everywhere
+ FIND=@FIND@     # This must be GNU find (need -maxdepth)
+ MKTEMP=@MKTEMP@ # See http://www.mktemp.org if missing on your system
+-BASH=@BASH@     # GNU bash, for running the format scripts
++BASH=/bin/bash  # GNU bash, for running the format scripts
+ GETOPT=@GETOPT@ # a getopt that supports --longoptions
+ TAIL=@TAIL@     # a tail that supports -n (posix)
+ GREP=@GREP@     # GNU grep, for searching patterns
+@@ -274,11 +274,11 @@ fi
+ 
+ LINKS_PATH=@LINKS@
+ W3M_PATH=@W3M@
+-LYNX_PATH=@LYNX@
++LYNX_PATH=lynx
+ GCP_PATH=@GCP@
+ SED_PATH=@SED@
+ GREP_PATH=@GREP@
+-ZIP_PATH=@ZIP@
++ZIP_PATH=/usr/bin/zip
+ 
+ # Process any options
+ ARGS=$(${GETOPT} \

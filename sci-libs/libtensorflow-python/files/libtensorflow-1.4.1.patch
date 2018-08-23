@@ -1,0 +1,2542 @@
+diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
+index 8744fc4..a58a82d 100644
+--- a/tensorflow/contrib/cmake/CMakeLists.txt
++++ b/tensorflow/contrib/cmake/CMakeLists.txt
+@@ -16,9 +16,23 @@ get_filename_component(tensorflow_source_dir ${tf_tf_source_dir} PATH)
+ # CMake policies
+ cmake_policy(SET CMP0022 NEW)
+ 
++get_property(LIB64 GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS)
++
++if ("${LIB64}" STREQUAL "TRUE")
++    set(LIBSUFFIX 64)
++else()
++    set(LIBSUFFIX "")
++endif()
++
++set(TENSORFLOW_LIB_VERSION 1.4.1)
++set(TENSORFLOW_LIB_SOVERSION 1)
++
+ # Options
+ option(tensorflow_VERBOSE "Enable for verbose output" OFF)
+ option(tensorflow_ENABLE_GPU "Enable GPU support" OFF)
++option(tensorflow_CUDA_30 "Build for CUDA 3.0 compute capability" ON)
++option(tensorflow_CUDA_35 "Build for CUDA 3.5 compute capability" ON)
++option(tensorflow_CUDA_52 "Build for CUDA 5.2 compute capability" ON)
+ option(tensorflow_ENABLE_SSL_SUPPORT "Enable boringssl support" OFF)
+ option(tensorflow_ENABLE_GRPC_SUPPORT "Enable gRPC support" ON)
+ option(tensorflow_ENABLE_HDFS_SUPPORT "Enable HDFS support" OFF)
+@@ -34,6 +48,26 @@ option(tensorflow_BUILD_SHARED_LIB "Build TensorFlow as a shared library" OFF)
+ option(tensorflow_OPTIMIZE_FOR_NATIVE_ARCH "Enable compiler optimizations for the native processor architecture (if available)" ON)
+ option(tensorflow_WIN_CPU_SIMD_OPTIONS "Enables CPU SIMD instructions")
+ option(tensorflow_ENABLE_SNAPPY_SUPPORT "Enable SNAPPY compression support" ON)
++option(tensorflow_ENABLE_MPI "Enable MPI support" OFF)
++option(tensorflow_USE_MKL OFF)
++option(LIBTENSORFLOW_MODULE ON)
++
++if (LIBTENSORFLOW_MODULE)
++    set(tensorflow_BUILD_PYTHON_BINDINGS OFF)
++    set(tensorflow_BUILD_SHARED_LIB "Build TensorFlow as a shared library" ON)
++endif()
++
++if(tensorflow_USE_MKL)
++    add_definitions(-DINTEL_MKL=1 -fopenmp)
++    include_directories("${MKL_INCLUDE_DIR}")
++endif()
++
++if(UNIX)
++    set(CMAKE_EXE_LINKER_FLAGS "$ENV{LDFLAGS}")
++    set(CMAKE_SHARED_LINKER_FLAGS "$ENV{LDFLAGS}")
++    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
++    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
++endif()
+ 
+ if (NOT WIN32)
+   # Threads: defines CMAKE_THREAD_LIBS_INIT and adds -pthread compile option
+@@ -111,58 +145,55 @@ if (tensorflow_ENABLE_JEMALLOC_SUPPORT)
+ endif()
+ 
+ # External dependencies
+-include(zlib)
+-include(gif)
+-include(png)
+-include(jpeg)
+-include(lmdb)
+-include(eigen)
++include(FindPkgConfig)
++find_package(ZLIB REQUIRED)
++find_package(GIF REQUIRED)
++find_package(PNG REQUIRED)
++find_package(JPEG REQUIRED)
++find_package(LMDB REQUIRED)
++find_package(Eigen3Tensorflow REQUIRED CONFIG)
++find_package(jsoncpp)
+ include(gemmlowp)
+-include(jsoncpp)
++#include(jsoncpp)
+ include(farmhash)
+ include(fft2d)
+-include(highwayhash)
+-include(nsync)
+-include(protobuf)
+-include(re2)
++find_package(highwayhash REQUIRED)
++find_package(nsync REQUIRED)
++set(protobuf_MODULE_COMPATIBLE ON)
++find_package(protobuf REQUIRED)
++#include(re2)
++pkg_check_modules(RE2 REQUIRED re2)
+ include(cub)
+-include(sqlite)
++include(sqlite) #done
+ if (tensorflow_BUILD_CC_TESTS)
+   include(googletest)
+ endif()
+ 
+ set(tensorflow_EXTERNAL_LIBRARIES
+-    ${zlib_STATIC_LIBRARIES}
+-    ${gif_STATIC_LIBRARIES}
+-    ${png_STATIC_LIBRARIES}
+-    ${jpeg_STATIC_LIBRARIES}
+-    ${lmdb_STATIC_LIBRARIES}
+-    ${jsoncpp_STATIC_LIBRARIES}
++    ZLIB::ZLIB
++    ${GIF_LIBRARIES}
++    PNG::PNG
++    ${JPEG_LIBRARIES}
++    LMDB::LMDB
++    Eigen3::Eigen
++    nsync
++    highwayhash
++    #${jsoncpp_STATIC_LIBRARIES}
++    jsoncpp_lib
+     ${farmhash_STATIC_LIBRARIES}
+     ${fft2d_STATIC_LIBRARIES}
+-    ${highwayhash_STATIC_LIBRARIES}
+     ${nsync_STATIC_LIBRARIES}
+-    ${protobuf_STATIC_LIBRARIES}
+-    ${re2_STATIC_LIBRARIES}
++    protobuf::libprotobuf
++    ${RE2_LIBRARIES}
+     ${sqlite_STATIC_LIBRARIES}
++    ${MKL_LIBRARIES}
+ )
+ set(tensorflow_EXTERNAL_DEPENDENCIES
+-    zlib_copy_headers_to_destination
+-    gif_copy_headers_to_destination
+-    png_copy_headers_to_destination
+-    jpeg_copy_headers_to_destination
+-    lmdb_copy_headers_to_destination
+     jsoncpp
+     farmhash_copy_headers_to_destination
+-    highwayhash_copy_headers_to_destination
+-    nsync_copy_headers_to_destination
+-    protobuf
+-    eigen
+     gemmlowp
+     cub
+     fft2d
+-    re2
+-    sqlite_copy_headers_to_destination
+ )
+ 
+ include_directories(
+@@ -170,20 +201,19 @@ include_directories(
+     ${tensorflow_source_dir}
+     ${CMAKE_CURRENT_BINARY_DIR}
+     # External dependencies.
+-    ${zlib_INCLUDE_DIR}
+-    ${gif_INCLUDE_DIR}
+-    ${png_INCLUDE_DIR}
+-    ${jpeg_INCLUDE_DIR}
+-    ${lmdb_INCLUDE_DIR}
+-    ${eigen_INCLUDE_DIRS}
++    #${ZLIB_INCLUDE_DIRS}
++    ${GIF_INCLUDE_DIR}
++    ${JPEG_INCLUDE_DIR}
++    ${EIGEN3_INCLUDE_DIRS}
+     ${gemmlowp_INCLUDE_DIR}
+     ${jsoncpp_INCLUDE_DIR}
+     ${farmhash_INCLUDE_DIR}
+-    ${highwayhash_INCLUDE_DIR}
++    ${HIGHWAYHASH_INCLUDE_DIR}
+     ${cub_INCLUDE_DIR}
+-    ${nsync_INCLUDE_DIR}
+-    ${PROTOBUF_INCLUDE_DIRS}
+-    ${re2_INCLUDE_DIR}
++    ${NSYNC_INCLUDE_DIR}
++    #${PROTOBUF_INCLUDE_DIRS}
++    #${re2_INCLUDE_DIR}
++    ${RE2_INCLUDE_DIRS}
+     ${sqlite_INCLUDE_DIR}
+ )
+ 
+@@ -196,8 +226,6 @@ endif()
+ if(tensorflow_ENABLE_GRPC_SUPPORT)
+   include(grpc)
+   list(APPEND tensorflow_EXTERNAL_LIBRARIES ${grpc_STATIC_LIBRARIES})
+-  list(APPEND tensorflow_EXTERNAL_DEPENDENCIES grpc)
+-  include_directories(${GRPC_INCLUDE_DIRS})
+ endif()
+ if(tensorflow_ENABLE_JEMALLOC_SUPPORT)
+   include(jemalloc)
+@@ -218,19 +246,82 @@ if(UNIX)
+   list(APPEND tensorflow_EXTERNAL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
+ endif()
+ 
++function(JOIN VALUES GLUE OUTPUT)
++  string (REGEX REPLACE "([^\\]|^);" "\\1${GLUE}" _TMP_STR "${VALUES}")
++  string (REGEX REPLACE "[\\](.)" "\\1" _TMP_STR "${_TMP_STR}") #fixes escaping
++  set (${OUTPUT} "${_TMP_STR}" PARENT_SCOPE)
++endfunction()
++
++if(NOT (tensorflow_CUDA_30 OR tensorflow_CUDA_35 OR tensorflow_CUDA_52))
++    set(tensorflow_ENABLE_GPU FALSE)
++endif()
++
+ if (tensorflow_ENABLE_GPU)
+-  if (WIN32)
+-    find_package(CUDA 8.0 REQUIRED)
++  find_package(CUDA 7.5 REQUIRED)
++  set(CUDA_TOOLKIT_TARGET_DIR "${CUDA_TOOLKIT_ROOT_DIR}" CACHE STRING "")
+ 
+-    # by default we assume compute cabability 3.5 and 5.2. If you change this change it in
+-    # CUDA_NVCC_FLAGS and cuda_config.h below
+-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_30,code=\"sm_30,compute_30\";-gencode arch=compute_35,code=\"sm_35,compute_35\";-gencode arch=compute_52,code=\"sm_52,compute_52\")
+-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};--include-path ${PROJECT_BINARY_DIR}/$\{build_configuration\};--expt-relaxed-constexpr)
+-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-ftz=true)  # Flush denormals to zero
+-    set(CUDA_INCLUDE ${CUDA_TOOLKIT_TARGET_DIR} ${CUDA_TOOLKIT_TARGET_DIR}/extras/CUPTI/include)
+-    include_directories(${CUDA_INCLUDE})
+-    add_definitions(-DGOOGLE_CUDA=1 -DTF_EXTRA_CUDA_CAPABILITIES=3.0,3.5,5.2)
++  # by default we assume compute cabability 3.5 and 5.2. If you change this change it in
++  # CUDA_NVCC_FLAGS and cuda_config.h below
++  set(TF_EXTRA_CUDA_CAPABILITIES_30 "3.0")
++  set(TF_EXTRA_CUDA_CAPABILITIES_35 "3.5")
++  set(TF_EXTRA_CUDA_CAPABILITIES_52 "5.2")
++  set(CUDA_NVCC_FLAGS_30 "-gencode arch=compute_30,code=\"sm_30,compute_30\"")
++  set(CUDA_NVCC_FLAGS_35 "-gencode arch=compute_35,code=\"sm_35,compute_35\"")
++  set(CUDA_NVCC_FLAGS_52 "-gencode arch=compute_52,code=\"sm_30,compute_52\"")
++  set(TF_CUDA_CAPABILITIES_30 "CudaVersion(\"3.0\")")
++  set(TF_CUDA_CAPABILITIES_35 "CudaVersion(\"3.5\")")
++  set(TF_CUDA_CAPABILITIES_52 "CudaVersion(\"5.2\")")
++  if(tensorflow_CUDA_30)
++    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} ${CUDA_NVCC_FLAGS_30})
++    set(TF_CUDA_CAPABILITIES_LIST ${TF_CUDA_CAPABILITIES_LIST} ${TF_CUDA_CAPABILITIES_30})
++    set(TF_EXTRA_CUDA_CAPABILITIES_LIST ${TF_EXTRA_CUDA_CAPABILITIES_LIST} ${TF_EXTRA_CUDA_CAPABILITIES_30})
++  endif()
++  if(tensorflow_CUDA_35)
++    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} ${CUDA_NVCC_FLAGS_35})
++    set(TF_CUDA_CAPABILITIES_LIST ${TF_CUDA_CAPABILITIES_LIST} ${TF_CUDA_CAPABILITIES_35})
++    set(TF_EXTRA_CUDA_CAPABILITIES_LIST ${TF_EXTRA_CUDA_CAPABILITIES_LIST} ${TF_EXTRA_CUDA_CAPABILITIES_35})
++  endif()
++  if(tensorflow_CUDA_52)
++    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} ${CUDA_NVCC_FLAGS_52})
++    set(TF_CUDA_CAPABILITIES_LIST ${TF_CUDA_CAPABILITIES_LIST} ${TF_CUDA_CAPABILITIES_52})
++    set(TF_EXTRA_CUDA_CAPABILITIES_LIST ${TF_EXTRA_CUDA_CAPABILITIES_LIST} ${TF_EXTRA_CUDA_CAPABILITIES_52})
++  endif()
++  join("${TF_CUDA_CAPABILITIES_LIST}" "," TF_CUDA_CAPABILITIES)
++  join("${TF_EXTRA_CUDA_CAPABILITIES_LIST}" "," TF_EXTRA_CUDA_CAPABILITIES)
++  
++  if(${CUDA_VERSION} STREQUAL "7.5")
++    if(WIN32)
++      set(TF_CUDA_VERSION "64_75")
++    else()
++      set(TF_CUDA_VERSION "7.5")
++    endif()
++  elseif(${CUDA_VERSION} STREQUAL "8.0")
++    if(WIN32)
++      set(TF_CUDA_VERSION "64_80")
++    else()
++      set(TF_CUDA_VERSION "8.0")
++    endif()
++  endif()
++  if(NOT CUDNN_VERSION)
++    set(CUDNN_VERSION "5")
++  endif(NOT CUDNN_VERSION)
++  if(WIN32)
++    set(TF_CUDNN_VERSION "64_${CUDNN_VERSION}")
++  else()
++    set(TF_CUDNN_VERSION "${CUDNN_VERSION}")
++  endif()
+ 
++  set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};--include-path ${PROJECT_BINARY_DIR}/$\{build_configuration\};--expt-relaxed-constexpr)
++  set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-ftz=true)  # Flush denormals to zero
++  if(UNIX)
++    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--rpath=${CUDA_TOOLKIT_TARGET_DIR}/lib64 -Wl,--rpath=${CUDA_TOOLKIT_TARGET_DIR}/extras/CUPTI/lib64")
++    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--rpath=${CUDA_TOOLKIT_TARGET_DIR}/lib64 -Wl,--rpath=${CUDA_TOOLKIT_TARGET_DIR}/extras/CUPTI/lib64")
++    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-Xcompiler;-fPIC)
++  endif(UNIX)
++  set(CUDA_INCLUDE ${CUDA_TOOLKIT_TARGET_DIR}/include ${CUDA_TOOLKIT_TARGET_DIR}/extras/CUPTI/include)
++  include_directories(${CUDA_INCLUDE})
++  add_definitions(-DGOOGLE_CUDA=1 -DTF_EXTRA_CUDA_CAPABILITIES=${TF_EXTRA_CUDA_CAPABILITIES})
++  if (WIN32)
+     # add cudnn
+     if(NOT CUDNN_HOME)
+       set(CUDNN_HOME ${CUDA_TOOLKIT_TARGET_DIR})
+@@ -238,48 +329,35 @@ if (tensorflow_ENABLE_GPU)
+     include_directories(${CUDNN_HOME})
+     set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDA_CUDA_LIBRARY} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_CUFFT_LIBRARIES}
+       ${CUDA_curand_LIBRARY} ${CUDA_cupti_LIBRARY} ${CUDA_cusolver_LIBRARY} ${CUDNN_HOME}/lib/x64/cudnn.lib)
++  elseif(UNIX)
++    set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDA_CUDA_LIBRARY} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_CUFFT_LIBRARIES}
++      ${CUDA_curand_LIBRARY} ${CUDA_cupti_LIBRARY} ${CUDA_cusolver_LIBRARY} ${CUDNN_HOME}/lib/libcudnn.so)
++  endif()
++
++  # create cuda_config.h
++  configure_file(cuda_config.h.in ${tensorflow_source_dir}/third_party/gpus/cuda/cuda_config.h)
++  install(FILES ${tensorflow_source_dir}/third_party/gpus/cuda/cuda_config.h DESTINATION "include/tensorflow/cuda")
++
++  if(UNIX)
++   execute_process(COMMAND ln -snf "${CUDA_TOOLKIT_TARGET_DIR}/extras" "${tensorflow_source_dir}/third_party/gpus/cuda/")
++  endif(UNIX)
+ 
+-    # create cuda_config.h
+-    FILE(WRITE ${tensorflow_source_dir}/third_party/gpus/cuda/cuda_config.h
+-      "#ifndef CUDA_CUDA_CONFIG_H_\n"
+-      "#define CUDA_CUDA_CONFIG_H_\n"
+-      "#define TF_CUDA_CAPABILITIES CudaVersion(\"3.0\"),CudaVersion(\"3.5\"),CudaVersion(\"5.2\")\n"
+-      "#define TF_CUDA_VERSION \"64_80\"\n"
+-      "#define TF_CUDNN_VERSION \"64_6\"\n"
+-      "#define TF_CUDA_TOOLKIT_PATH \"${CUDA_TOOLKIT_ROOT_DIR}\"\n"
+-      "#endif  // CUDA_CUDA_CONFIG_H_\n"
+-    )
+-
+-    # tf assumes in various places header files to be in cuda/include. On windows the cuda sdk
+-    # installs them under cuda/version/include and to avoid that we need to change tf we copy a
+-    # few files to cuda/include
+-    FILE(COPY
+-      ${CUDA_TOOLKIT_TARGET_DIR}/include/cuda.h ${CUDA_TOOLKIT_TARGET_DIR}/include/cuComplex.h
+-      ${CUDA_TOOLKIT_TARGET_DIR}/include/cublas_v2.h ${CUDNN_HOME}/include/cudnn.h
+-      ${CUDA_TOOLKIT_TARGET_DIR}/include/cufft.h ${CUDA_TOOLKIT_TARGET_DIR}/include/curand.h
+-      ${CUDA_TOOLKIT_TARGET_DIR}/include/cuda_runtime_api.h
+-      ${CUDA_TOOLKIT_TARGET_DIR}/include/cusolverDn.h
+-      DESTINATION ${tensorflow_source_dir}/third_party/gpus/cuda/include
+-    )
+-    include_directories(${tensorflow_source_dir}/third_party/gpus)
+-    # add cuda libraries to tensorflow_EXTERNAL_LIBRARIES
+-    list(APPEND tensorflow_EXTERNAL_LIBRARIES ${CUDA_LIBRARIES})
+-
+-    # NOTE(mrry): Update these flags when the version of CUDA or cuDNN used
+-    # in the default build is upgraded.
+-    set(tensorflow_BUILD_INFO_FLAGS --build_config cuda --key_value
+-      msvcp_dll_name=msvcp140.dll
+-      cudart_dll_name=cudart64_80.dll
+-      cuda_version_number=8.0
+-      nvcuda_dll_name=nvcuda.dll
+-      cudnn_dll_name=cudnn64_6.dll
+-      cudnn_version_number=6)
+-  else(WIN32)
+-    message(FATAL_ERROR "CMake GPU build is currently only supported on Windows.")
+-  endif(WIN32)
+-else(tensorflow_ENABLE_GPU)
+-  set(tensorflow_BUILD_INFO_FLAGS --build_config cpu --key_value
+-    msvcp_dll_name=msvcp140.dll)
++  # tf assumes in various places header files to be in cuda/include. On windows the cuda sdk
++  # installs them under cuda/version/include and to avoid that we need to change tf we copy a
++  # few files to cuda/include
++  FILE(COPY
++    ${CUDA_TOOLKIT_TARGET_DIR}/include/cuda.h ${CUDA_TOOLKIT_TARGET_DIR}/include/cuComplex.h
++    ${CUDA_TOOLKIT_TARGET_DIR}/include/cublas_v2.h ${CUDNN_HOME}/include/cudnn.h
++    ${CUDA_TOOLKIT_TARGET_DIR}/include/cufft.h ${CUDA_TOOLKIT_TARGET_DIR}/include/curand.h
++    ${CUDA_TOOLKIT_TARGET_DIR}/include/cuda_runtime_api.h
++    ${CUDA_TOOLKIT_TARGET_DIR}/include/cusolverDn.h
++    DESTINATION ${tensorflow_source_dir}/third_party/gpus/cuda/include
++  )
++  include_directories(${tensorflow_source_dir}/third_party/gpus)
++  FILE(COPY
++    ${NCCL_INCLUDES}
++    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/external/nccl_archive/src/
++  )
+ endif(tensorflow_ENABLE_GPU)
+ 
+ # Find python executable
+@@ -293,9 +371,7 @@ include(tf_core_framework.cmake)
+ # NOTE: Disabled until issue #3996 is fixed.
+ # include(tf_stream_executor.cmake)
+ if (tensorflow_ENABLE_GPU)
+-  if (WIN32)
+-    include(tf_stream_executor.cmake)
+-  endif()
++  include(tf_stream_executor.cmake)
+ endif()
+ 
+ include(tf_core_cpu.cmake)
+@@ -305,10 +381,12 @@ include(tf_core_kernels.cmake)
+ if(tensorflow_ENABLE_GRPC_SUPPORT)
+   include(tf_core_distributed_runtime.cmake)
+ endif()
++if(tensorflow_ENABLE_MPI)
++  include(tf_core_mpi.cmake)
++endif()
+ # We include tf_cc_ops first, because tf_c depends on tf_cc.
+ include(tf_cc_ops.cmake)
+ include(tf_c.cmake)
+-include(tf_grappler.cmake)
+ include(tf_core_profiler.cmake)
+ if(tensorflow_BUILD_CC_EXAMPLE)
+   include(tf_tutorials.cmake)
+@@ -316,11 +394,26 @@ if(tensorflow_BUILD_CC_EXAMPLE)
+ endif()
+ include(tf_tools.cmake)
+ if(tensorflow_BUILD_PYTHON_BINDINGS)
++  include(tf_grappler.cmake)
+   include(tf_python.cmake)
+ endif()
+-if(tensorflow_BUILD_SHARED_LIB)
+-  include(tf_shared_lib.cmake)
+-endif()
++include(tf_shared_lib.cmake)
+ if(tensorflow_BUILD_CC_TESTS OR tensorflow_BUILD_PYTHON_TESTS)
+   include(tf_tests.cmake)
+ endif()
++
++EXPORT(PACKAGE Tensorflow)
++SET(TENSORFLOW_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include/tensorflow")
++CONFIGURE_FILE(TensorflowConfig.cmake.in "${PROJECT_BINARY_DIR}/TensorflowConfig.cmake")
++INSTALL(FILES "${PROJECT_BINARY_DIR}/TensorflowConfig.cmake" DESTINATION "share/tensorflow/cmake")
++
++MESSAGE(STATUS "<<< Gentoo configuration >>>
++Build type      ${CMAKE_BUILD_TYPE}
++Install path    ${CMAKE_INSTALL_PREFIX}
++Compiler flags:
++C               ${CMAKE_C_FLAGS}
++C++             ${CMAKE_CXX_FLAGS}
++Linker flags:
++Executable      ${CMAKE_EXE_LINKER_FLAGS}
++Module          ${CMAKE_MODULE_LINKER_FLAGS}
++Shared          ${CMAKE_SHARED_LINKER_FLAGS}\n")
+diff --git a/tensorflow/contrib/cmake/external/eigen.cmake b/tensorflow/contrib/cmake/external/eigen.cmake
+index 45a0096..c7213ec 100644
+--- a/tensorflow/contrib/cmake/external/eigen.cmake
++++ b/tensorflow/contrib/cmake/external/eigen.cmake
+@@ -45,6 +45,7 @@ ExternalProject_Add(eigen
+     URL ${eigen_URL}
+     DOWNLOAD_DIR "${DOWNLOAD_LOCATION}"
+     INSTALL_DIR "${eigen_INSTALL}"
++    PATCH_COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/patches/eigen/Macros.h ${eigen_BUILD}/Eigen/src/Core/util/Macros.h
+     CMAKE_CACHE_ARGS
+         -DCMAKE_BUILD_TYPE:STRING=Release
+         -DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF
+diff --git a/tensorflow/contrib/cmake/external/grpc.cmake b/tensorflow/contrib/cmake/external/grpc.cmake
+index 464aad7..09ad0b7 100644
+--- a/tensorflow/contrib/cmake/external/grpc.cmake
++++ b/tensorflow/contrib/cmake/external/grpc.cmake
+@@ -14,50 +14,17 @@
+ # ==============================================================================
+ include (ExternalProject)
+ 
+-set(GRPC_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/include)
++set(GRPC_INCLUDE_DIRS /mnt/bwpy/single/usr/include/grpc)
+ set(GRPC_URL https://github.com/grpc/grpc.git)
+ set(GRPC_BUILD ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc)
+ set(GRPC_TAG 781fd6f6ea03645a520cd5c675da67ab61f87e4b)
+ 
+-if(WIN32)
+-  set(grpc_STATIC_LIBRARIES
+-      ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/Release/grpc++_unsecure.lib
+-      ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/Release/grpc_unsecure.lib
+-      ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/Release/gpr.lib)
+-else()
+-  set(grpc_STATIC_LIBRARIES
+-      ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/libgrpc++_unsecure.a
+-      ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/libgrpc_unsecure.a
+-      ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/libgpr.a
+-      ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/third_party/cares/libcares.a)
+-endif()
++find_package(gRPC)
++set(GRPC_BUILD /mnt/bwpy/single/usr/bin)
+ 
+-ExternalProject_Add(grpc
+-    PREFIX grpc
+-    DEPENDS protobuf zlib
+-    GIT_REPOSITORY ${GRPC_URL}
+-    GIT_TAG ${GRPC_TAG}
+-    DOWNLOAD_DIR "${DOWNLOAD_LOCATION}"
+-    BUILD_IN_SOURCE 1
+-    # TODO(jhseu): Remove this PATCH_COMMAND once grpc removes the dependency
+-    # on "grpc" from the "grpc++_unsecure" rule.
+-    PATCH_COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/patches/grpc/CMakeLists.txt ${GRPC_BUILD}
+-    BUILD_COMMAND ${CMAKE_COMMAND} --build . --config Release --target grpc++_unsecure
+-    COMMAND ${CMAKE_COMMAND} --build . --config Release --target grpc_cpp_plugin
+-    INSTALL_COMMAND ""
+-    CMAKE_CACHE_ARGS
+-        -DCMAKE_BUILD_TYPE:STRING=Release
+-        -DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF
+-        -DPROTOBUF_INCLUDE_DIRS:STRING=${PROTOBUF_INCLUDE_DIRS}
+-        -DPROTOBUF_LIBRARIES:STRING=${protobuf_STATIC_LIBRARIES}
+-        -DZLIB_ROOT:STRING=${ZLIB_INSTALL}
+-	-DgRPC_SSL_PROVIDER:STRING=NONE
+-)
+-
+-# grpc/src/core/ext/census/tracing.c depends on the existence of openssl/rand.h.
+-ExternalProject_Add_Step(grpc copy_rand
+-    COMMAND ${CMAKE_COMMAND} -E copy
+-    ${CMAKE_SOURCE_DIR}/patches/grpc/rand.h ${GRPC_BUILD}/include/openssl/rand.h
+-    DEPENDEES patch
+-    DEPENDERS build
++set(grpc_STATIC_LIBRARIES
++    gRPC::grpc++_unsecure
++    gRPC::grpc_unsecure
++    gRPC::gpr
++    /mnt/bwpy/single/usr/lib/libcares.so
+ )
+diff --git a/tensorflow/contrib/cmake/external/png.cmake b/tensorflow/contrib/cmake/external/png.cmake
+index 2b2bd47..4b6a1d0 100644
+--- a/tensorflow/contrib/cmake/external/png.cmake
++++ b/tensorflow/contrib/cmake/external/png.cmake
+@@ -12,51 +12,53 @@
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+ # ==============================================================================
+-include (ExternalProject)
++#include (ExternalProject)
+ 
+-set(png_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/external/png_archive)
+-set(png_URL https://storage.googleapis.com/libpng-public-archive/libpng-1.2.53.tar.gz)
+-set(png_HASH SHA256=e05c9056d7f323088fd7824d8c6acc03a4a758c4b4916715924edc5dd3223a72)
+-set(png_BUILD ${CMAKE_BINARY_DIR}/png/src/png)
+-set(png_INSTALL ${CMAKE_BINARY_DIR}/png/install)
++find_package(PNG)
+ 
+-if(WIN32)
+-  set(png_STATIC_LIBRARIES 
+-    debug ${CMAKE_BINARY_DIR}/png/install/lib/libpng12_staticd.lib
+-    optimized ${CMAKE_BINARY_DIR}/png/install/lib/libpng12_static.lib)
+-else()
+-  set(png_STATIC_LIBRARIES ${CMAKE_BINARY_DIR}/png/install/lib/libpng12.a)
+-endif()
++#set(png_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/external/png_archive)
++#set(png_URL https://storage.googleapis.com/libpng-public-archive/libpng-1.2.53.tar.gz)
++#set(png_HASH SHA256=e05c9056d7f323088fd7824d8c6acc03a4a758c4b4916715924edc5dd3223a72)
++#set(png_BUILD ${CMAKE_BINARY_DIR}/png/src/png)
++#set(png_INSTALL ${CMAKE_BINARY_DIR}/png/install)
+ 
+-set(png_HEADERS
+-    "${png_INSTALL}/include/libpng12/png.h"
+-    "${png_INSTALL}/include/libpng12/pngconf.h"
+-)
++#if(WIN32)
++#  set(png_STATIC_LIBRARIES 
++#    debug ${CMAKE_BINARY_DIR}/png/install/lib/libpng12_staticd.lib
++#    optimized ${CMAKE_BINARY_DIR}/png/install/lib/libpng12_static.lib)
++#else()
++#  set(png_STATIC_LIBRARIES ${CMAKE_BINARY_DIR}/png/install/lib/libpng12.a)
++#endif()
+ 
+-ExternalProject_Add(png
+-    PREFIX png
+-    DEPENDS zlib
+-    URL ${png_URL}
+-    URL_HASH ${png_HASH}
+-    INSTALL_DIR ${png_INSTALL}
+-    DOWNLOAD_DIR "${DOWNLOAD_LOCATION}"
+-    CMAKE_CACHE_ARGS
+-        -DCMAKE_BUILD_TYPE:STRING=Release
+-        -DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF
+-        -DCMAKE_INSTALL_PREFIX:STRING=${png_INSTALL}
+-	-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
+-	-DZLIB_ROOT:STRING=${ZLIB_INSTALL}
+-)
++#set(png_HEADERS
++#    "${png_INSTALL}/include/libpng12/png.h"
++#    "${png_INSTALL}/include/libpng12/pngconf.h"
++#)
+ 
+-## put png includes in the directory where they are expected
+-add_custom_target(png_create_destination_dir
+-    COMMAND ${CMAKE_COMMAND} -E make_directory ${png_INCLUDE_DIR}
+-    DEPENDS png)
+-
+-add_custom_target(png_copy_headers_to_destination
+-    DEPENDS png_create_destination_dir)
++#ExternalProject_Add(png
++#    PREFIX png
++#    DEPENDS zlib
++#    URL ${png_URL}
++#    URL_HASH ${png_HASH}
++#    INSTALL_DIR ${png_INSTALL}
++#    DOWNLOAD_DIR "${DOWNLOAD_LOCATION}"
++#    CMAKE_CACHE_ARGS
++#        -DCMAKE_BUILD_TYPE:STRING=Release
++#        -DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF
++#        -DCMAKE_INSTALL_PREFIX:STRING=${png_INSTALL}
++#	-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
++#	-DZLIB_ROOT:STRING=${ZLIB_INSTALL}
++#)
+ 
+-foreach(header_file ${png_HEADERS})
+-  add_custom_command(TARGET png_copy_headers_to_destination PRE_BUILD
+-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${header_file} ${png_INCLUDE_DIR}/)
+-endforeach()
++## put png includes in the directory where they are expected
++#add_custom_target(png_create_destination_dir
++#    COMMAND ${CMAKE_COMMAND} -E make_directory ${png_INCLUDE_DIR}
++#    DEPENDS png)
++#
++#add_custom_target(png_copy_headers_to_destination
++#    DEPENDS png_create_destination_dir)
++#
++#foreach(header_file ${png_HEADERS})
++#  add_custom_command(TARGET png_copy_headers_to_destination PRE_BUILD
++#      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${header_file} ${png_INCLUDE_DIR}/)
++#endforeach()
+diff --git a/tensorflow/contrib/cmake/external/protobuf.cmake b/tensorflow/contrib/cmake/external/protobuf.cmake
+index d600d8c..f7e1fa8 100644
+--- a/tensorflow/contrib/cmake/external/protobuf.cmake
++++ b/tensorflow/contrib/cmake/external/protobuf.cmake
+@@ -12,40 +12,47 @@
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+ # ==============================================================================
+-include (ExternalProject)
++#include (ExternalProject)
+ 
+-set(PROTOBUF_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/src)
+-set(PROTOBUF_URL https://github.com/mrry/protobuf.git)  # Includes MSVC fix.
+-set(PROTOBUF_TAG 1d2c7b6c7376f396c8c7dd9b6afd2d4f83f3cb05)
++#set(PROTOBUF_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/src)
++#set(PROTOBUF_URL https://github.com/mrry/protobuf.git)  # Includes MSVC fix.
++#set(PROTOBUF_TAG 1d2c7b6c7376f396c8c7dd9b6afd2d4f83f3cb05)
+ 
+-if(WIN32)
+-  set(protobuf_STATIC_LIBRARIES 
+-    debug ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/$(Configuration)/libprotobufd.lib
+-    optimized ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/$(Configuration)/libprotobuf.lib)
+-  set(PROTOBUF_PROTOC_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/$(Configuration)/protoc.exe)
+-  set(PROTOBUF_ADDITIONAL_CMAKE_OPTIONS	-Dprotobuf_MSVC_STATIC_RUNTIME:BOOL=OFF -A x64)
+-else()
+-  set(protobuf_STATIC_LIBRARIES ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/libprotobuf.a)
+-  set(PROTOBUF_PROTOC_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/protoc)
+-endif()
++set(protobuf_MODULE_COMPATIBLE ON)
++find_package(protobuf REQUIRED)
++#get_target_property(Protobuf_PROTOC_EXECUTABLE protobuf::protoc
++#  IMPORTED_LOCATION_RELEASE)
+ 
+-ExternalProject_Add(protobuf
+-    PREFIX protobuf
+-    DEPENDS zlib
+-    GIT_REPOSITORY ${PROTOBUF_URL}
+-    GIT_TAG ${PROTOBUF_TAG}
+-    DOWNLOAD_DIR "${DOWNLOAD_LOCATION}"
+-    BUILD_IN_SOURCE 1
+-    SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf
+-    CONFIGURE_COMMAND ${CMAKE_COMMAND} cmake/
+-        -Dprotobuf_BUILD_TESTS=OFF
+-        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+-        -DZLIB_ROOT=${ZLIB_INSTALL}
+-        ${PROTOBUF_ADDITIONAL_CMAKE_OPTIONS}
+-    INSTALL_COMMAND ""
+-    CMAKE_CACHE_ARGS
+-        -DCMAKE_BUILD_TYPE:STRING=Release
+-        -DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF
+-        -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
+-        -DZLIB_ROOT:STRING=${ZLIB_INSTALL}
+-)
++#if(WIN32)
++#  set(protobuf_STATIC_LIBRARIES 
++#    debug ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/$(Configuration)/libprotobufd.lib
++#    optimized ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/$(Configuration)/libprotobuf.lib)
++#  set(PROTOBUF_PROTOC_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/$(Configuration)/protoc.exe)
++#  set(PROTOBUF_ADDITIONAL_CMAKE_OPTIONS	-Dprotobuf_MSVC_STATIC_RUNTIME:BOOL=OFF -A x64)
++#else()
++#  set(protobuf_STATIC_LIBRARIES /mnt/bwpy/single/usr/lib/libprotobuf.a)
++#  set(PROTOBUF_PROTOC_EXECUTABLE /mnt/bwpy/single/usr/bin/protoc)
++#  #set(protobuf_STATIC_LIBRARIES ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/libprotobuf.a)
++#  #set(PROTOBUF_PROTOC_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/protoc)
++#endif()
++
++#ExternalProject_Add(protobuf
++#    PREFIX protobuf
++#    DEPENDS zlib
++#    GIT_REPOSITORY ${PROTOBUF_URL}
++#    GIT_TAG ${PROTOBUF_TAG}
++#    DOWNLOAD_DIR "${DOWNLOAD_LOCATION}"
++#    BUILD_IN_SOURCE 1
++#    SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf
++#    CONFIGURE_COMMAND ${CMAKE_COMMAND} cmake/
++#        -Dprotobuf_BUILD_TESTS=OFF
++#        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
++#        -DZLIB_ROOT=${ZLIB_INSTALL}
++#        ${PROTOBUF_ADDITIONAL_CMAKE_OPTIONS}
++#    INSTALL_COMMAND ""
++#    CMAKE_CACHE_ARGS
++#        -DCMAKE_BUILD_TYPE:STRING=Release
++#        -DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF
++#        -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
++#        -DZLIB_ROOT:STRING=${ZLIB_INSTALL}
++#)
+diff --git a/tensorflow/contrib/cmake/external/re2.cmake b/tensorflow/contrib/cmake/external/re2.cmake
+index cb4ec9c..48450a9 100644
+--- a/tensorflow/contrib/cmake/external/re2.cmake
++++ b/tensorflow/contrib/cmake/external/re2.cmake
+@@ -41,4 +41,4 @@ ExternalProject_Add(re2
+         -DCMAKE_BUILD_TYPE:STRING=Release
+         -DCMAKE_INSTALL_PREFIX:STRING=${re2_INSTALL}
+         -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
+-)
+\ No newline at end of file
++)
+diff --git a/tensorflow/contrib/cmake/external/sqlite.cmake b/tensorflow/contrib/cmake/external/sqlite.cmake
+index 6fa3a57..bf3bfba 100644
+--- a/tensorflow/contrib/cmake/external/sqlite.cmake
++++ b/tensorflow/contrib/cmake/external/sqlite.cmake
+@@ -14,7 +14,7 @@
+ # ==============================================================================
+ include (ExternalProject)
+ 
+-set(sqlite_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/external/sqlite)
++set(sqlite_INCLUDE_DIR "")
+ set(sqlite_URL http://www.sqlite.org/2017/sqlite-amalgamation-3200000.zip)
+ set(sqlite_HASH SHA256=208780b3616f9de0aeb50822b7a8f5482f6515193859e91ed61637be6ad74fd4)
+ set(sqlite_BUILD ${CMAKE_CURRENT_BINARY_DIR}/sqlite/src/sqlite)
+@@ -23,53 +23,7 @@ set(sqlite_INSTALL ${CMAKE_CURRENT_BINARY_DIR}/sqlite/install)
+ if(WIN32)
+   set(sqlite_STATIC_LIBRARIES ${sqlite_INSTALL}/lib/sqlite.lib)
+ else()
+-  set(sqlite_STATIC_LIBRARIES ${sqlite_INSTALL}/lib/libsqlite.a)
++  #set(sqlite_STATIC_LIBRARIES ${sqlite_INSTALL}/lib/libsqlite.a)
++  set(sqlite_STATIC_LIBRARIES /mnt/bwpy/single/usr/lib/libsqlite3.so)
+ endif()
+ 
+-set(sqlite_HEADERS
+-    "${sqlite_BUILD}/sqlite3.h"
+-)
+-
+-if (WIN32)
+-    ExternalProject_Add(sqlite
+-        PREFIX sqlite
+-        URL ${sqlite_URL}
+-        URL_HASH ${sqlite_HASH}
+-        PATCH_COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/patches/sqlite/CMakeLists.txt ${sqlite_BUILD}
+-        INSTALL_DIR ${sqlite_INSTALL}
+-        DOWNLOAD_DIR "${DOWNLOAD_LOCATION}"
+-        CMAKE_CACHE_ARGS
+-            -DCMAKE_BUILD_TYPE:STRING=Release
+-            -DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF
+-            -DCMAKE_INSTALL_PREFIX:STRING=${sqlite_INSTALL}
+-    )
+-
+-else()
+-    ExternalProject_Add(sqlite
+-        PREFIX sqlite
+-        URL ${sqlite_URL}
+-        URL_HASH ${sqlite_HASH}
+-        PATCH_COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/patches/sqlite/CMakeLists.txt ${sqlite_BUILD}
+-        INSTALL_DIR ${sqlite_INSTALL}
+-        DOWNLOAD_DIR "${DOWNLOAD_LOCATION}"
+-        CMAKE_CACHE_ARGS
+-            -DCMAKE_BUILD_TYPE:STRING=Release
+-            -DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF
+-            -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
+-            -DCMAKE_INSTALL_PREFIX:STRING=${sqlite_INSTALL}
+-    )
+-
+-endif()
+-
+-# put sqlite includes in the directory where they are expected
+-add_custom_target(sqlite_create_destination_dir
+-    COMMAND ${CMAKE_COMMAND} -E make_directory ${sqlite_INCLUDE_DIR}
+-    DEPENDS sqlite)
+-
+-add_custom_target(sqlite_copy_headers_to_destination
+-    DEPENDS sqlite_create_destination_dir)
+-
+-foreach(header_file ${sqlite_HEADERS})
+-    add_custom_command(TARGET sqlite_copy_headers_to_destination PRE_BUILD
+-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${header_file} ${sqlite_INCLUDE_DIR})
+-endforeach()
+diff --git a/tensorflow/contrib/cmake/external/zlib.cmake b/tensorflow/contrib/cmake/external/zlib.cmake
+index c8af611..55aa728 100644
+--- a/tensorflow/contrib/cmake/external/zlib.cmake
++++ b/tensorflow/contrib/cmake/external/zlib.cmake
+@@ -14,7 +14,7 @@
+ # ==============================================================================
+ include (ExternalProject)
+ 
+-set(zlib_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/external/zlib_archive)
++set(zlib_INCLUDE_DIR "")
+ set(ZLIB_URL https://github.com/madler/zlib)
+ set(ZLIB_BUILD ${CMAKE_CURRENT_BINARY_DIR}/zlib/src/zlib)
+ set(ZLIB_INSTALL ${CMAKE_CURRENT_BINARY_DIR}/zlib/install)
+@@ -26,36 +26,6 @@ if(WIN32)
+       optimized ${CMAKE_CURRENT_BINARY_DIR}/zlib/install/lib/zlibstatic.lib)
+ else()
+   set(zlib_STATIC_LIBRARIES
+-      ${CMAKE_CURRENT_BINARY_DIR}/zlib/install/lib/libz.a)
++      /mnt/bwpy/single/usr/lib/libz.so)
+ endif()
+ 
+-set(ZLIB_HEADERS
+-    "${ZLIB_INSTALL}/include/zconf.h"
+-    "${ZLIB_INSTALL}/include/zlib.h"
+-)
+-
+-ExternalProject_Add(zlib
+-    PREFIX zlib
+-    GIT_REPOSITORY ${ZLIB_URL}
+-    GIT_TAG ${ZLIB_TAG}
+-    INSTALL_DIR ${ZLIB_INSTALL}
+-    BUILD_IN_SOURCE 1
+-    DOWNLOAD_DIR "${DOWNLOAD_LOCATION}"
+-    CMAKE_CACHE_ARGS
+-        -DCMAKE_BUILD_TYPE:STRING=Release
+-        -DCMAKE_INSTALL_PREFIX:STRING=${ZLIB_INSTALL}
+-	-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
+-)
+-
+-# put zlib includes in the directory where they are expected
+-add_custom_target(zlib_create_destination_dir
+-    COMMAND ${CMAKE_COMMAND} -E make_directory ${zlib_INCLUDE_DIR}
+-    DEPENDS zlib)
+-
+-add_custom_target(zlib_copy_headers_to_destination
+-    DEPENDS zlib_create_destination_dir)
+-
+-foreach(header_file ${ZLIB_HEADERS})
+-    add_custom_command(TARGET zlib_copy_headers_to_destination PRE_BUILD
+-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${header_file} ${zlib_INCLUDE_DIR})
+-endforeach()
+diff --git a/tensorflow/contrib/cmake/patches/nsync/CMakeLists.txt b/tensorflow/contrib/cmake/patches/nsync/CMakeLists.txt
+index fbd89ba..ed222f3 100644
+--- a/tensorflow/contrib/cmake/patches/nsync/CMakeLists.txt
++++ b/tensorflow/contrib/cmake/patches/nsync/CMakeLists.txt
+@@ -269,6 +269,7 @@ foreach (t IN ITEMS "nsync" "nsync_test" ${NSYNC_TESTS})
+     target_link_libraries (${t} "${CMAKE_THREAD_LIBS_INIT}")
+   endif ()
+ endforeach (t)
++target_link_libraries(pingpong_test /lib64/librt.so.1)
+ 
+ foreach (t IN ITEMS ${NSYNC_TESTS})
+   target_link_libraries (${t} nsync_test nsync)
+diff --git a/tensorflow/contrib/cmake/tf_c.cmake b/tensorflow/contrib/cmake/tf_c.cmake
+index c5a1018..743cfa5 100644
+--- a/tensorflow/contrib/cmake/tf_c.cmake
++++ b/tensorflow/contrib/cmake/tf_c.cmake
+@@ -35,7 +35,7 @@ add_dependencies(
+   tf_cc_framework
+   tf_cc_while_loop
+   tf_core_lib
+-  tf_protos_cc)
++  tensorflow_protos)
+ 
+ add_library(tf_c_python_api OBJECT
+   "${tensorflow_source_dir}/tensorflow/c/python_api.cc"
+@@ -45,4 +45,4 @@ add_dependencies(
+   tf_c_python_api
+   tf_c
+   tf_core_lib
+-  tf_protos_cc)
++  tensorflow_protos)
+diff --git a/tensorflow/contrib/cmake/tf_cc_ops.cmake b/tensorflow/contrib/cmake/tf_cc_ops.cmake
+index a5f5ae5..6679d02 100644
+--- a/tensorflow/contrib/cmake/tf_cc_ops.cmake
++++ b/tensorflow/contrib/cmake/tf_cc_ops.cmake
+@@ -69,8 +69,9 @@ foreach(tf_cc_op_lib_name ${tf_cc_op_lib_names})
+     )
+ 
+     target_link_libraries(${tf_cc_op_lib_name}_gen_cc PRIVATE
+-        tf_protos_cc
++        tensorflow_protos
+         ${tensorflow_EXTERNAL_LIBRARIES}
++        ${MKL_LIBRARIES}
+     )
+ 
+     set(cc_ops_include_internal 0)
+@@ -148,42 +149,10 @@ list(REMOVE_ITEM tf_cc_srcs ${tf_cc_test_srcs})
+ add_library(tf_cc OBJECT ${tf_cc_srcs})
+ add_dependencies(tf_cc tf_cc_framework tf_cc_ops)
+ 
++if(WIN32)
+ set (pywrap_tensorflow_lib "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/pywrap_tensorflow_internal.lib")
+-add_custom_target(tf_extension_ops)
+-
+-function(AddUserOps)
+-  cmake_parse_arguments(_AT "" "" "TARGET;SOURCES;GPUSOURCES;DEPENDS;DISTCOPY" ${ARGN})
+-  if (tensorflow_ENABLE_GPU AND _AT_GPUSOURCES)
+-    # if gpu build is enabled and we have gpu specific code,
+-    # hint to cmake that this needs to go to nvcc
+-    set (gpu_source ${_AT_GPUSOURCES})
+-    set (gpu_lib "${_AT_TARGET}_gpu")
+-    set_source_files_properties(${gpu_source} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+-    cuda_compile(gpu_lib ${gpu_source})
+-  endif()
+-  # create shared library from source and cuda obj
+-  add_library(${_AT_TARGET} SHARED ${_AT_SOURCES} ${gpu_lib})
+-  target_link_libraries(${_AT_TARGET} ${pywrap_tensorflow_lib})
+-  if(WIN32)
+-    if (tensorflow_ENABLE_GPU AND _AT_GPUSOURCES)
+-        # some ops call out to cuda directly; need to link libs for the cuda dlls
+-        target_link_libraries(${_AT_TARGET} ${CUDA_LIBRARIES})
+-    endif()
+-    if (_AT_DISTCOPY)
+-        add_custom_command(TARGET ${_AT_TARGET} POST_BUILD
+-            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${_AT_TARGET}> ${_AT_DISTCOPY}/)
+-    endif()
+-  endif()
+-  if (_AT_DEPENDS)
+-    add_dependencies(${_AT_TARGET} ${_AT_DEPENDS})
+-  endif()
+-  # make sure TF_COMPILE_LIBRARY is not defined for this target
+-  get_target_property(target_compile_flags  ${_AT_TARGET} COMPILE_FLAGS)
+-  if(target_compile_flags STREQUAL "target_compile_flags-NOTFOUND")
+-    set(target_compile_flags "/UTF_COMPILE_LIBRARY")
+-  else()
+-    set(target_compile_flags "${target_compile_flags} /UTF_COMPILE_LIBRARY")
+-  endif()
+-  set_target_properties(${_AT_TARGET} PROPERTIES COMPILE_FLAGS ${target_compile_flags})
+-  add_dependencies(tf_extension_ops ${_AT_TARGET})
+-endfunction(AddUserOps)
++else(WIN32)
++#set (pywrap_tensorflow_lib "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/libpywrap_tensorflow_internal.so")
++set (pywrap_tensorflow_lib "")
++endif(WIN32)
++
+diff --git a/tensorflow/contrib/cmake/tf_core_distributed_runtime.cmake b/tensorflow/contrib/cmake/tf_core_distributed_runtime.cmake
+index 2c1b6d1..a4692ec 100644
+--- a/tensorflow/contrib/cmake/tf_core_distributed_runtime.cmake
++++ b/tensorflow/contrib/cmake/tf_core_distributed_runtime.cmake
+@@ -32,32 +32,36 @@ list(REMOVE_ITEM tf_core_distributed_runtime_srcs ${tf_core_distributed_runtime_
+ add_library(tf_core_distributed_runtime OBJECT ${tf_core_distributed_runtime_srcs})
+ 
+ add_dependencies(tf_core_distributed_runtime
+-    tf_core_cpu grpc
++    tf_core_cpu
++    gRPC::grpc++_unsecure
++    gRPC::grpc_unsecure
++    gRPC::gpr
+ )
+ 
+ ########################################################
+ # grpc_tensorflow_server executable
+ ########################################################
+-set(grpc_tensorflow_server_srcs
+-    "${tensorflow_source_dir}/tensorflow/core/distributed_runtime/rpc/grpc_tensorflow_server.cc"
+-)
++#set(grpc_tensorflow_server_srcs
++#    "${tensorflow_source_dir}/tensorflow/core/distributed_runtime/rpc/grpc_tensorflow_server.cc"
++#)
+ 
+-add_executable(grpc_tensorflow_server
+-    ${grpc_tensorflow_server_srcs}
+-    $<TARGET_OBJECTS:tf_core_lib>
+-    $<TARGET_OBJECTS:tf_core_cpu>
+-    $<TARGET_OBJECTS:tf_core_framework>
+-    $<TARGET_OBJECTS:tf_core_kernels>
+-    $<TARGET_OBJECTS:tf_cc_framework>
+-    $<TARGET_OBJECTS:tf_cc_ops>
+-    $<TARGET_OBJECTS:tf_core_ops>
+-    $<TARGET_OBJECTS:tf_core_direct_session>
+-    $<TARGET_OBJECTS:tf_core_distributed_runtime>
+-    $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_stream_executor>>
+-)
++#add_executable(grpc_tensorflow_server
++#    ${grpc_tensorflow_server_srcs}
++#    $<TARGET_OBJECTS:tf_core_lib>
++#    $<TARGET_OBJECTS:tf_core_cpu>
++#    $<TARGET_OBJECTS:tf_core_framework>
++#    $<TARGET_OBJECTS:tf_core_kernels>
++#    $<TARGET_OBJECTS:tf_cc_framework>
++#    $<TARGET_OBJECTS:tf_cc_ops>
++#    $<TARGET_OBJECTS:tf_core_ops>
++#    $<TARGET_OBJECTS:tf_core_direct_session>
++#    $<TARGET_OBJECTS:tf_core_distributed_runtime>
++#    $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_stream_executor>>
++#)
+ 
+-target_link_libraries(grpc_tensorflow_server PUBLIC
+-    tf_protos_cc
+-    ${tf_core_gpu_kernels_lib}
+-    ${tensorflow_EXTERNAL_LIBRARIES}
+-)
++#target_link_libraries(grpc_tensorflow_server PUBLIC
++#    tf_protos_cc
++#    ${tf_core_gpu_kernels_lib}
++#    ${tensorflow_EXTERNAL_LIBRARIES}
++#    ${MKL_LIBRARIES}
++#)
+diff --git a/tensorflow/contrib/cmake/tf_core_framework.cmake b/tensorflow/contrib/cmake/tf_core_framework.cmake
+index 1b64a52..59af1ed 100644
+--- a/tensorflow/contrib/cmake/tf_core_framework.cmake
++++ b/tensorflow/contrib/cmake/tf_core_framework.cmake
+@@ -22,6 +22,7 @@ function(RELATIVE_PROTOBUF_GENERATE_CPP SRCS HDRS ROOT_DIR)
+     message(SEND_ERROR "Error: RELATIVE_PROTOBUF_GENERATE_CPP() called without any proto files")
+     return()
+   endif()
++  message("Protobuf_PROTOC_EXECUTABLE: ${Protobuf_PROTOC_EXECUTABLE}")
+ 
+   set(${SRCS})
+   set(${HDRS})
+@@ -37,9 +38,10 @@ function(RELATIVE_PROTOBUF_GENERATE_CPP SRCS HDRS ROOT_DIR)
+     add_custom_command(
+       OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${REL_DIR}/${FIL_WE}.pb.cc"
+              "${CMAKE_CURRENT_BINARY_DIR}/${REL_DIR}/${FIL_WE}.pb.h"
+-      COMMAND  ${PROTOBUF_PROTOC_EXECUTABLE}
++      #COMMAND  ${PROTOBUF_PROTOC_EXECUTABLE}
++      COMMAND  ${Protobuf_PROTOC_EXECUTABLE}
+       ARGS --cpp_out  ${CMAKE_CURRENT_BINARY_DIR} -I ${ROOT_DIR} ${ABS_FIL} -I ${PROTOBUF_INCLUDE_DIRS}
+-      DEPENDS ${ABS_FIL} protobuf
++      DEPENDS ${ABS_FIL}
+       COMMENT "Running C++ protocol buffer compiler on ${FIL}"
+       VERBATIM )
+   endforeach()
+@@ -76,7 +78,7 @@ if(NOT WIN32)
+                "${CMAKE_CURRENT_BINARY_DIR}/${REL_DIR}/${FIL_WE}.pb.h"
+         COMMAND ${PROTOBUF_PROTOC_EXECUTABLE}
+         ARGS --grpc_out ${CMAKE_CURRENT_BINARY_DIR} --cpp_out ${CMAKE_CURRENT_BINARY_DIR} --plugin protoc-gen-grpc=${GRPC_BUILD}/grpc_cpp_plugin -I ${ROOT_DIR} ${ABS_FIL} -I ${PROTOBUF_INCLUDE_DIRS}
+-        DEPENDS ${ABS_FIL} protobuf grpc
++        DEPENDS ${ABS_FIL}
+         COMMENT "Running C++ protocol buffer grpc compiler on ${FIL}"
+         VERBATIM )
+     endforeach()
+@@ -173,7 +175,7 @@ RELATIVE_PROTOBUF_TEXT_GENERATE_CPP(PROTO_TEXT_SRCS PROTO_TEXT_HDRS
+ )
+ 
+ if(WIN32)
+-  add_library(tf_protos_cc ${PROTO_SRCS} ${PROTO_HDRS})
++  add_library(tensorflow_protos ${PROTO_SRCS} ${PROTO_HDRS})
+ else()
+   file(GLOB_RECURSE tf_protos_grpc_cc_srcs RELATIVE ${tensorflow_source_dir}
+       "${tensorflow_source_dir}/tensorflow/core/debug/*.proto"
+@@ -181,7 +183,7 @@ else()
+   RELATIVE_PROTOBUF_GENERATE_GRPC_CPP(PROTO_GRPC_SRCS PROTO_GRPC_HDRS
+       ${tensorflow_source_dir} ${tf_protos_grpc_cc_srcs}
+   )
+-  add_library(tf_protos_cc ${PROTO_GRPC_SRCS} ${PROTO_GRPC_HDRS} ${PROTO_SRCS} ${PROTO_HDRS})
++  add_library(tensorflow_protos ${PROTO_GRPC_SRCS} ${PROTO_GRPC_HDRS} ${PROTO_SRCS} ${PROTO_HDRS})
+ endif()
+ 
+ ########################################################
+@@ -262,7 +264,7 @@ file(GLOB_RECURSE tf_core_lib_test_srcs
+ list(REMOVE_ITEM tf_core_lib_srcs ${tf_core_lib_test_srcs})
+ 
+ add_library(tf_core_lib OBJECT ${tf_core_lib_srcs})
+-add_dependencies(tf_core_lib ${tensorflow_EXTERNAL_DEPENDENCIES} tf_protos_cc)
++add_dependencies(tf_core_lib ${tensorflow_EXTERNAL_DEPENDENCIES} tensorflow_protos)
+ 
+ # Tricky setup to force always rebuilding
+ # force_rebuild always runs forcing ${VERSION_INFO_CC} target to run
+@@ -270,12 +272,10 @@ add_dependencies(tf_core_lib ${tensorflow_EXTERNAL_DEPENDENCIES} tf_protos_cc)
+ # target.
+ set(VERSION_INFO_CC ${tensorflow_source_dir}/tensorflow/core/util/version_info.cc)
+ add_custom_target(force_rebuild_target ALL DEPENDS ${VERSION_INFO_CC})
+-add_custom_command(OUTPUT __force_rebuild COMMAND ${CMAKE_COMMAND} -E echo)
+ add_custom_command(OUTPUT
+     ${VERSION_INFO_CC}
+     COMMAND ${PYTHON_EXECUTABLE} ${tensorflow_source_dir}/tensorflow/tools/git/gen_git_source.py
+-    --raw_generate ${VERSION_INFO_CC}
+-    DEPENDS __force_rebuild)
++    --raw_generate ${VERSION_INFO_CC})
+ set(tf_version_srcs ${tensorflow_source_dir}/tensorflow/core/util/version_info.cc)
+ 
+ ########################################################
+diff --git a/tensorflow/contrib/cmake/tf_core_kernels.cmake b/tensorflow/contrib/cmake/tf_core_kernels.cmake
+index 3a2fe35..b74977a 100644
+--- a/tensorflow/contrib/cmake/tf_core_kernels.cmake
++++ b/tensorflow/contrib/cmake/tf_core_kernels.cmake
+@@ -38,7 +38,7 @@ else(tensorflow_BUILD_ALL_KERNELS)
+   )
+ endif(tensorflow_BUILD_ALL_KERNELS)
+ 
+-if(tensorflow_BUILD_CONTRIB_KERNELS)
++if(tensorflow_BUILD_CONTRIB_KERNELS AND WIN32)
+   set(tf_contrib_kernels_srcs
+       "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/kernels/model_ops.cc"
+       "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/kernels/prediction_ops.cc"
+@@ -121,7 +121,7 @@ if(tensorflow_BUILD_CONTRIB_KERNELS)
+       "${tensorflow_source_dir}/tensorflow/contrib/tpu/ops/tpu_configuration_ops.cc"
+     )
+   list(APPEND tf_core_kernels_srcs ${tf_contrib_kernels_srcs})
+-endif(tensorflow_BUILD_CONTRIB_KERNELS)
++endif(tensorflow_BUILD_CONTRIB_KERNELS AND WIN32)
+ 
+ if(NOT tensorflow_ENABLE_SSL_SUPPORT)
+   # Cloud libraries require boringssl.
+@@ -197,21 +197,31 @@ if(WIN32 AND tensorflow_ENABLE_GPU)
+     set(target_compile_flags "${target_compile_flags} /UGOOGLE_CUDA")
+   endif()
+   set_target_properties(tf_core_kernels_cpu_only PROPERTIES COMPILE_FLAGS ${target_compile_flags})
++else()
++  add_library(tf_core_kernels_cpu_only OBJECT "")
+ endif(WIN32 AND tensorflow_ENABLE_GPU)
+ 
+ add_library(tf_core_kernels OBJECT ${tf_core_kernels_srcs})
+ add_dependencies(tf_core_kernels tf_core_cpu)
+ 
+-if(WIN32)
+-  target_compile_options(tf_core_kernels PRIVATE /MP)
+-  if (tensorflow_ENABLE_GPU)
+-    set_source_files_properties(${tf_core_gpu_kernels_srcs} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+-    set(tf_core_gpu_kernels_lib tf_core_gpu_kernels)
+-    cuda_add_library(${tf_core_gpu_kernels_lib} ${tf_core_gpu_kernels_srcs})
++if (tensorflow_ENABLE_GPU)
++  if(WIN32)
++    target_compile_options(tf_core_kernels PRIVATE /MP)
++  endif()
++  set_source_files_properties(${tf_core_gpu_kernels_srcs} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
++  set(tf_core_gpu_kernels_lib tf_core_gpu_kernels)
++  cuda_add_library(${tf_core_gpu_kernels_lib} ${tf_core_gpu_kernels_srcs})
++  if (WIN32)
++    set_target_properties(${tf_core_gpu_kernels_lib}
++                          PROPERTIES DEBUG_POSTFIX ""
++                          COMPILE_FLAGS "${TF_REGULAR_CXX_FLAGS}"
++    )
++  else()
+     set_target_properties(${tf_core_gpu_kernels_lib}
+                           PROPERTIES DEBUG_POSTFIX ""
+                           COMPILE_FLAGS "${TF_REGULAR_CXX_FLAGS}"
++                          POSITION_INDEPENDENT_CODE ON
+     )
+-    add_dependencies(${tf_core_gpu_kernels_lib} tf_core_cpu)
+   endif()
++  add_dependencies(${tf_core_gpu_kernels_lib} tf_core_cpu)
+ endif()
+diff --git a/tensorflow/contrib/cmake/tf_core_ops.cmake b/tensorflow/contrib/cmake/tf_core_ops.cmake
+index dc99739..9ad726e 100644
+--- a/tensorflow/contrib/cmake/tf_core_ops.cmake
++++ b/tensorflow/contrib/cmake/tf_core_ops.cmake
+@@ -12,6 +12,176 @@
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+ # ==============================================================================
++add_custom_target(tf_extension_ops)
++function(AddUserOps)
++  cmake_parse_arguments(_AT "" "" "TARGET;SOURCES;GPUSOURCES;DEPENDS;DISTCOPY;LIBS;LIBNAME" ${ARGN})
++  if (tensorflow_ENABLE_GPU AND _AT_GPUSOURCES)
++    # if gpu build is enabled and we have gpu specific code,
++    # hint to cmake that this needs to go to nvcc
++    set (gpu_source ${_AT_GPUSOURCES})
++    set (gpu_lib "${_AT_TARGET}_gpu")
++    set_source_files_properties(${gpu_source} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
++    cuda_compile(gpu_lib ${gpu_source})
++  endif()
++  if(NOT _AT_LIBNAME)
++    if(WIN32)
++      set(_AT_LIBNAME "${_AT_TARGET}.pyd")
++    else()
++      set(_AT_LIBNAME "${_AT_TARGET}.so")
++    endif()
++  endif()
++  
++  # create shared library from source and cuda obj
++  add_library(${_AT_TARGET} SHARED ${_AT_SOURCES} ${gpu_lib})
++  target_link_libraries(${_AT_TARGET} ${_AT_LIBS})
++  set(tf_contrib_ops ${tf_contrib_ops} ${_AT_TARGET} PARENT_SCOPE)
++  set_target_properties(${_AT_TARGET} PROPERTIES
++     VERSION ${TENSORFLOW_LIB_VERSION}
++     SOVERSION ${TENSORFLOW_LIB_SOVERSION}
++  )
++  install(TARGETS ${_AT_TARGET}
++    EXPORT TensorflowContribTargets
++    LIBRARY DESTINATION "lib${LIBSUFFIX}/tensorflow/contrib")
++  set_target_properties(${_AT_TARGET}
++    PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib${LIBSUFFIX}/tensorflow/contrib")
++  if (tensorflow_ENABLE_GPU AND _AT_GPUSOURCES)
++      # some ops call out to cuda directly; need to link libs for the cuda dlls
++      target_link_libraries(${_AT_TARGET} ${CUDA_LIBRARIES})
++  endif()
++  if(WIN32)
++    target_link_libraries(${_AT_TARGET} ${pywrap_tensorflow_lib})
++    if (_AT_DISTCOPY)
++        add_custom_command(TARGET ${_AT_TARGET} POST_BUILD
++            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${_AT_TARGET}> ${_AT_DISTCOPY}/)
++    endif()
++  else()
++    if (_AT_DISTCOPY)
++        add_custom_command(TARGET ${_AT_TARGET} POST_BUILD
++            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${_AT_TARGET}> ${_AT_DISTCOPY}/${_AT_LIBNAME})
++    endif()
++  endif()
++  if (_AT_DEPENDS)
++    add_dependencies(${_AT_TARGET} ${_AT_DEPENDS})
++  endif()
++  # make sure TF_COMPILE_LIBRARY is not defined for this target
++  get_target_property(target_compile_flags  ${_AT_TARGET} COMPILE_FLAGS)
++  if(target_compile_flags STREQUAL "target_compile_flags-NOTFOUND")
++    if(WIN32)
++      set(target_compile_flags "/UTF_COMPILE_LIBRARY")
++    else(WIN32)
++      set(target_compile_flags "-UTF_COMPILE_LIBRARY")
++    endif(WIN32)
++  else()
++    if(WIN32)
++      set(target_compile_flags "${target_compile_flags} /UTF_COMPILE_LIBRARY")
++    else(WIN32)
++      set(target_compile_flags "${target_compile_flags} -UTF_COMPILE_LIBRARY")
++    endif(WIN32)
++  endif()
++  set_target_properties(${_AT_TARGET} PROPERTIES COMPILE_FLAGS ${target_compile_flags})
++  add_dependencies(tf_extension_ops ${_AT_TARGET})
++endfunction(AddUserOps)
++
++function(RELATIVE_PROTOBUF_GENERATE_CPP SRCS HDRS ROOT_DIR)
++  if(NOT ARGN)
++    message(SEND_ERROR "Error: RELATIVE_PROTOBUF_GENERATE_CPP() called without any proto files")
++    return()
++  endif()
++
++  set(${SRCS})
++  set(${HDRS})
++  foreach(FIL ${ARGN})
++    set(ABS_FIL ${ROOT_DIR}/${FIL})
++    get_filename_component(FIL_WE ${FIL} NAME_WE)
++    get_filename_component(FIL_DIR ${ABS_FIL} PATH)
++    file(RELATIVE_PATH REL_DIR ${ROOT_DIR} ${FIL_DIR})
++
++    list(APPEND ${SRCS} "${CMAKE_CURRENT_BINARY_DIR}/${REL_DIR}/${FIL_WE}.pb.cc")
++    list(APPEND ${HDRS} "${CMAKE_CURRENT_BINARY_DIR}/${REL_DIR}/${FIL_WE}.pb.h")
++
++    add_custom_command(
++      OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${REL_DIR}/${FIL_WE}.pb.cc"
++             "${CMAKE_CURRENT_BINARY_DIR}/${REL_DIR}/${FIL_WE}.pb.h"
++      COMMAND  ${PROTOBUF_PROTOC_EXECUTABLE}
++      ARGS --cpp_out  ${CMAKE_CURRENT_BINARY_DIR} -I ${ROOT_DIR} ${ABS_FIL} -I ${PROTOBUF_INCLUDE_DIRS}
++      DEPENDS ${ABS_FIL}
++      COMMENT "Running C++ protocol buffer compiler on ${FIL}"
++      VERBATIM )
++  endforeach()
++
++  set_source_files_properties(${${SRCS}} ${${HDRS}} PROPERTIES GENERATED TRUE)
++  set(${SRCS} ${${SRCS}} PARENT_SCOPE)
++  set(${HDRS} ${${HDRS}} PARENT_SCOPE)
++endfunction()
++
++add_custom_target(python_library_symlinks)
++function(PYTHON_SYMLINK_CUSTOM_OPS_LIB TGT LOC LIBNAME)
++  if($<TARGET_PROPERTY:${TGT},IMPORTED>)
++    get_property(${TGT}_lib_location TARGET ${TGT} PROPERTY LOCATION)
++  else()
++    set(${TGT}_lib_location "${CMAKE_INSTALL_PREFIX}/lib${LIBSUFFIX}/tensorflow/contrib/${CMAKE_SHARED_LIBRARY_PREFIX}${TGT}${CMAKE_SHARED_LIBRARY_SUFFIX}")
++  endif()
++  file(MAKE_DIRECTORY "${LOC}")
++  add_custom_command(OUTPUT "${LOC}/${LIBNAME}"
++                     COMMAND ${CMAKE_COMMAND} -E create_symlink ${${TGT}_lib_location} "${LOC}/${LIBNAME}"
++                     DEPENDS ${TGT}
++                     COMMENT "Installing contrib library symlink ${LOC}/${LIBNAME}")
++
++  add_custom_target(${TGT}_python_symlink ALL DEPENDS "${LOC}/${LIBNAME}")
++  add_dependencies(python_library_symlinks ${TGT}_python_symlink)
++  #install(FILES "${LOC}/${LIBNAME}" DESTINATION "lib${LIBSUFFIX}/tensorflow/test")
++endfunction()
++
++
++# NOTE(mrry): Avoid regenerating the tensorflow/core protos because this
++# can cause benign-but-failing-on-Windows-due-to-file-locking conflicts
++# when two rules attempt to generate the same file.
++file(GLOB_RECURSE tf_contrib_protos_cc_srcs RELATIVE ${tensorflow_source_dir}
++    "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/proto/*.proto"
++    "${tensorflow_source_dir}/tensorflow/contrib/decision_trees/proto/*.proto"
++    "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/proto/*.proto"
++    "${tensorflow_source_dir}/tensorflow/contrib/session_bundle/*.proto"
++    "${tensorflow_source_dir}/tensorflow/contrib/tensorboard/*.proto"
++    "${tensorflow_source_dir}/tensorflow/contrib/tpu/profiler/*.proto"
++    "${tensorflow_source_dir}/tensorflow/contrib/training/*.proto"
++    "${tensorflow_source_dir}/tensorflow/contrib/mpi/*.proto"
++)
++
++#file(GLOB_RECURSE tf_contrib_decision_trees_protos_cc_srcs RELATIVE ${tensorflow_source_dir}
++#    "${tensorflow_source_dir}/tensorflow/contrib/decision_trees/proto/*.proto"
++#)
++#RELATIVE_PROTOBUF_GENERATE_CPP(DT_PROTO_SRCS DT_PROTO_HDRS
++#    ${tensorflow_source_dir} ${tf_contrib_decision_trees_protos_cc_srcs}
++#)
++#add_library(decision_trees_protos SHARED ${DT_PROTO_SRCS} ${DT_PROTO_HDRS})
++#
++#file(GLOB_RECURSE tf_contrib_tensor_forest_protos_cc_srcs RELATIVE ${tensorflow_source_dir}
++#    "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/proto/*.proto"
++#)
++#RELATIVE_PROTOBUF_GENERATE_CPP(T_F_PROTO_SRCS T_F_PROTO_HDRS
++#    ${tensorflow_source_dir} ${tf_contrib_tensor_forest_protos_cc_srcs}
++#)
++#add_library(tensor_forest_protos SHARED ${T_F_PROTO_SRCS} ${T_F_PROTO_HDRS})
++#target_link_libraries(tensor_forest_protos decision_trees_protos)
++
++RELATIVE_PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS
++    ${tensorflow_source_dir} ${tf_contrib_protos_cc_srcs}
++)
++
++add_library(tensorflow_contrib_protos SHARED ${PROTO_SRCS} ${PROTO_HDRS})
++set_target_properties(tensorflow_contrib_protos PROPERTIES
++    VERSION ${TENSORFLOW_LIB_VERSION}
++    SOVERSION ${TENSORFLOW_LIB_SOVERSION}
++#    PUBLIC_HEADER "${PROTO_HDRS}"
++)
++add_dependencies(tensorflow_contrib_protos tensorflow_protos)
++list(APPEND tf_contrib_ops tensorflow_contrib_protos)
++install(TARGETS tensorflow_contrib_protos
++    EXPORT TensorflowContribTargets
++    LIBRARY DESTINATION "lib${LIBSUFFIX}/tensorflow/contrib"
++#    PUBLIC_HEADER DESTINATION "include/tensorflow/contrib/proto"
++)
++
+ set(tf_op_lib_names
+     "array_ops"
+     "bitwise_ops"
+@@ -72,6 +242,8 @@ file(GLOB_RECURSE tpu_ops_srcs
+      "${tensorflow_source_dir}/tensorflow/contrib/tpu/ops/*.cc"
+ )
+ 
++GENERATE_CONTRIB_OP_LIBRARY(batch "${tensorflow_source_dir}/tensorflow/contrib/batching/ops/batch_ops.cc")
++#GENERATE_CONTRIB_OP_LIBRARY(boosted_trees_ensemble_optimizer "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/ops/ensemble_optimizer_ops.cc")
+ GENERATE_CONTRIB_OP_LIBRARY(boosted_trees_model "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/ops/model_ops.cc")
+ GENERATE_CONTRIB_OP_LIBRARY(boosted_trees_split_handler "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/ops/split_handler_ops.cc")
+ GENERATE_CONTRIB_OP_LIBRARY(boosted_trees_training "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/ops/training_ops.cc")
+@@ -101,7 +273,380 @@ GENERATE_CONTRIB_OP_LIBRARY(tensor_forest_stats "${tensorflow_source_dir}/tensor
+ GENERATE_CONTRIB_OP_LIBRARY(text_skip_gram "${tensorflow_source_dir}/tensorflow/contrib/text/ops/skip_gram_ops.cc")
+ GENERATE_CONTRIB_OP_LIBRARY(tpu "${tpu_ops_srcs}")
+ GENERATE_CONTRIB_OP_LIBRARY(bigquery_reader "${tensorflow_source_dir}/tensorflow/contrib/cloud/ops/bigquery_reader_ops.cc")
+-GENERATE_CONTRIB_OP_LIBRARY(reduce_slice_ops "${tensorflow_source_dir}/tensorflow/contrib/reduce_slice_ops/ops/reduce_slice_ops.cc")
++GENERATE_CONTRIB_OP_LIBRARY(reduce_slice "${tensorflow_source_dir}/tensorflow/contrib/reduce_slice_ops/ops/reduce_slice_ops.cc")
++
++set(tf_nearest_neighbor_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/nearest_neighbor/kernels/heap.h"
++    "${tensorflow_source_dir}/tensorflow/contrib/nearest_neighbor/kernels/hyperplane_lsh_probes.h"
++    "${tensorflow_source_dir}/tensorflow/contrib/nearest_neighbor/kernels/hyperplane_lsh_probes.cc"
++    $<TARGET_OBJECTS:tf_contrib_nearest_neighbor_ops>
++)
++
++AddUserOps(TARGET nearest_neighbor_ops
++    SOURCES "${tf_nearest_neighbor_srcs}"
++    DEPENDS tf_contrib_nearest_neighbor_ops)
++
++set(tf_gru_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/blas_gemm.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/blas_gemm.h"
++    "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/gru_ops.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/gru_ops.h"
++    $<TARGET_OBJECTS:tf_contrib_rnn_gru_ops>
++)
++set(tf_gru_gpu_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/gru_ops_gpu.cu.cc"
++)
++
++set(tf_lstm_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/blas_gemm.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/blas_gemm.h"
++    "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/lstm_ops.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/lstm_ops.h"
++    "${tensorflow_source_dir}/tensorflow/contrib/rnn/ops/lstm_ops.cc"
++    $<TARGET_OBJECTS:tf_contrib_rnn_lstm_ops>
++)
++set(tf_lstm_gpu_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/lstm_ops_gpu.cu.cc"
++)
++
++AddUserOps(TARGET gru_ops
++    SOURCES "${tf_gru_srcs}"
++    GPUSOURCES ${tf_gru_gpu_srcs}
++    DEPENDS tf_contrib_rnn_gru_ops)
++
++AddUserOps(TARGET lstm_ops
++    SOURCES "${tf_lstm_srcs}"
++    GPUSOURCES ${tf_lstm_gpu_srcs}
++    DEPENDS tf_contrib_rnn_lstm_ops)
++
++set(tf_beam_search_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/seq2seq/kernels/beam_search_ops.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/seq2seq/kernels/beam_search_ops.h"
++    $<TARGET_OBJECTS:tf_contrib_seq2seq_beam_search_ops>
++)
++
++set(tf_beam_search_gpu_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/seq2seq/kernels/beam_search_ops_gpu.cu.cc"
++)
++
++AddUserOps(TARGET beam_search_ops
++    SOURCES "${tf_beam_search_srcs}"
++    GPUSOURCES ${tf_beam_search_gpu_srcs}
++    DEPENDS tf_contrib_seq2seq_beam_search_ops)
++
++set(distort_image_ops_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/image/kernels/adjust_hsv_in_yiq_op.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/image/ops/distort_image_ops.cc"
++    $<TARGET_OBJECTS:tf_contrib_image_distort_image_ops>
++)
++
++AddUserOps(TARGET distort_image_ops
++    SOURCES "${distort_image_ops_srcs}"
++    DEPENDS tf_contrib_image_distort_image_ops)
++
++AddUserOps(TARGET tpu_ops
++    SOURCES $<TARGET_OBJECTS:tf_contrib_tpu_ops>
++    DEPENDS tf_contrib_tpu_ops)
++
++set(tf_skip_gram_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/text/kernels/skip_gram_kernels.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/text/ops/skip_gram_ops.cc"
++    $<TARGET_OBJECTS:tf_contrib_text_skip_gram_ops>
++)
++
++AddUserOps(TARGET skip_gram_ops
++    SOURCES "${tf_skip_gram_srcs}"
++    DEPENDS tf_contrib_text_skip_gram_ops)
++
++add_library(tree_utils OBJECT
++    "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/kernels/tree_utils.cc"
++)
++
++set(tf_tensor_forest_v2_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/kernels/reinterpret_string_to_float_op.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/kernels/scatter_add_ndim_op.cc"
++    $<TARGET_OBJECTS:tf_contrib_tensor_forest_ops>
++    $<TARGET_OBJECTS:tree_utils>
++)
++
++AddUserOps(TARGET tensor_forest_ops
++    SOURCES "${tf_tensor_forest_v2_srcs}"
++    DEPENDS tf_contrib_tensor_forest_ops tree_utils)
++
++add_library(tensor_forest_v4_common OBJECT
++    "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/kernels/v4/input_data.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/kernels/v4/decision-tree-resource.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/kernels/v4/leaf_model_operators.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/kernels/v4/decision_node_evaluator.cc"
++)
++
++set(tf_tensor_forest_model_srcs
++    $<TARGET_OBJECTS:tf_contrib_tensor_forest_model_ops>
++    "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/kernels/model_ops.cc"
++    $<TARGET_OBJECTS:tensor_forest_v4_common>
++    $<TARGET_OBJECTS:tree_utils>
++)
++
++AddUserOps(TARGET tensor_forest_model_ops
++    SOURCES "${tf_tensor_forest_model_srcs}"
++    DEPENDS tf_contrib_tensor_forest_model_ops tree_utils tensor_forest_v4_common
++    LIBS tensorflow_contrib_protos
++)
++
++set(tf_tensor_forest_stats_srcs
++    $<TARGET_OBJECTS:tf_contrib_tensor_forest_stats_ops>
++    "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/kernels/stats_ops.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/kernels/v4/params.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/kernels/v4/fertile-stats-resource.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/kernels/v4/split_collection_operators.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/kernels/v4/grow_stats.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/kernels/v4/stat_utils.cc"
++    $<TARGET_OBJECTS:tensor_forest_v4_common>
++    $<TARGET_OBJECTS:tree_utils>
++)
++
++AddUserOps(TARGET tensor_forest_stats_ops
++    SOURCES "${tf_tensor_forest_stats_srcs}"
++    DEPENDS tf_contrib_tensor_forest_stats_ops tree_utils tensor_forest_v4_common
++    DISTCOPY ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/tensor_forest/python/ops/
++    LIBS tensorflow_contrib_protos
++)
++
++set(tf_tensor_forest_hybrid_srcs
++    $<TARGET_OBJECTS:tf_contrib_tensor_forest_hybrid_ops>
++    $<TARGET_OBJECTS:tree_utils>
++)
++
++AddUserOps(TARGET tensor_forest_training_ops
++    SOURCES "${tf_tensor_forest_hybrid_srcs}"
++    DEPENDS tf_contrib_tensor_forest_hybrid_ops tree_utils)
++
++set(tf_reduce_slice_ops_srcs
++    $<TARGET_OBJECTS:tf_contrib_reduce_slice_ops>
++    "${tensorflow_source_dir}/tensorflow/contrib/reduce_slice_ops/kernels/reduce_slice_ops.cc"
++)
++set(tf_reduce_slice_ops_gpu_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/reduce_slice_ops/kernels/reduce_slice_ops_gpu.cu.cc"
++)
++
++AddUserOps(TARGET reduce_slice_ops
++    SOURCES "${tf_reduce_slice_ops_srcs}"
++    GPUSOURCES ${tf_reduce_slice_ops_gpu_srcs}
++    DEPENDS tf_contrib_reduce_slice_ops)
++
++set(tf_resampler_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/resampler/kernels/resampler_ops.cc"
++    $<TARGET_OBJECTS:tf_contrib_resampler_ops>
++)
++set(tf_resampler_gpu_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/resampler/kernels/resampler_ops_gpu.cu.cc"
++)
++
++AddUserOps(TARGET resampler_ops
++    SOURCES "${tf_resampler_srcs}"
++    GPUSOURCES ${tf_resampler_gpu_srcs}
++    DEPENDS tf_contrib_resampler_ops)
++
++if(NOT WIN32 AND tensorflow_ENABLE_GPU AND NCCL_LIBRARY)
++    set(tf_nccl_srcs
++        "${tensorflow_source_dir}/tensorflow/contrib/nccl/kernels/nccl_manager.cc"
++        "${tensorflow_source_dir}/tensorflow/contrib/nccl/kernels/nccl_ops.cc"
++        $<TARGET_OBJECTS:tf_contrib_nccl_ops>
++    )
++    AddUserOps(TARGET nccl_ops
++        SOURCES "${tf_nccl_srcs}"
++        DEPENDS tf_contrib_nccl_ops
++        LIBS "${NCCL_LIBRARY}" ${CUDA_LIBRARIES})
++endif()
++
++set(tf_memory_stats_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/memory_stats/kernels/memory_stats_ops.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/memory_stats/ops/memory_stats_ops.cc"
++    $<TARGET_OBJECTS:tf_contrib_memory_stats_ops>
++)
++
++AddUserOps(TARGET memory_stats_ops
++    SOURCES "${tf_memory_stats_srcs}"
++    DEPENDS tf_contrib_memory_stats_ops)
++
++AddUserOps(TARGET sparse_feature_cross_op
++    SOURCES $<TARGET_OBJECTS:tf_contrib_layers_sparse_feature_cross_ops>
++    DEPENDS tf_contrib_layers_sparse_feature_cross_ops)
++
++AddUserOps(TARGET input_pipeline_ops
++    SOURCES $<TARGET_OBJECTS:tf_contrib_input_pipeline_ops>
++    DEPENDS tf_contrib_input_pipeline_ops)
++
++set(tf_image_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/image/kernels/bipartite_match_op.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/image/kernels/image_ops.cc"
++    $<TARGET_OBJECTS:tf_contrib_image_ops>
++)
++
++set(tf_image_gpu_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/image/kernels/image_ops_gpu.cu.cc"
++)
++
++AddUserOps(TARGET image_ops
++    SOURCES "${tf_image_srcs}"
++    GPUSOURCES ${tf_image_gpu_srcs}
++    DEPENDS tf_contrib_image_ops)
++
++set(tf_single_image_random_dot_stereograms_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/image/kernels/single_image_random_dot_stereograms_ops.cc"
++    $<TARGET_OBJECTS:tf_contrib_image_sirds_ops>
++)
++
++AddUserOps(TARGET single_image_random_dot_stereograms
++    SOURCES "${tf_single_image_random_dot_stereograms_srcs}"
++    DEPENDS tf_contrib_image_sirds_ops)
++
++set(tf_framework_variable_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/framework/kernels/zero_initializer_op.cc"
++    $<TARGET_OBJECTS:tf_contrib_framework_variable_ops>
++)
++
++set(tf_framework_variable_gpu_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/framework/kernels/zero_initializer_op_gpu.cu.cc"
++)
++
++AddUserOps(TARGET variable_ops
++    SOURCES "${tf_framework_variable_srcs}"
++    GPUSOURCES ${tf_framework_variable_gpu_srcs}
++    DEPENDS tf_contrib_framework_variable_ops)
++
++set(tf_factorization_clustering_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/factorization/kernels/clustering_ops.cc"
++    $<TARGET_OBJECTS:tf_contrib_factorization_clustering_ops>
++)
++
++AddUserOps(TARGET clustering_ops
++    SOURCES "${tf_factorization_clustering_srcs}"
++    DEPENDS tf_contrib_factorization_clustering_ops)
++
++set(tf_factorization_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/factorization/kernels/masked_matmul_ops.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/factorization/kernels/wals_solver_ops.cc"
++    $<TARGET_OBJECTS:tf_contrib_factorization_factorization_ops>
++)
++
++AddUserOps(TARGET factorization_ops
++    SOURCES "${tf_factorization_srcs}"
++    DEPENDS tf_contrib_factorization_factorization_ops)
++
++if(tensorflow_ENABLE_GPU)
++    set(tf_cudnn_rnn_srcs
++        "${tensorflow_source_dir}/tensorflow/contrib/cudnn_rnn/kernels/cudnn_rnn_ops.cc"
++        $<TARGET_OBJECTS:tf_contrib_cudnn_rnn_ops>
++    )
++
++    AddUserOps(TARGET cudnn_rnn_ops
++        SOURCES "${tf_cudnn_rnn_srcs}"
++        DEPENDS tf_contrib_cudnn_rnn_ops
++	LIBS ${CUDA_LIBRARIES})
++endif()
++
++set(tf_boosted_trees_utils_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/lib/utils/batch_features.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/lib/utils/dropout_utils.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/lib/utils/examples_iterable.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/lib/utils/parallel_for.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/lib/utils/sparse_column_iterable.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/lib/utils/tensor_utils.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/lib/learner/common/partitioners/example_partitioner.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/lib/models/multiple_additive_trees.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/lib/trees/decision_tree.cc"
++)
++add_library(boosted_trees_utils SHARED ${tf_boosted_trees_utils_srcs})
++set_target_properties(boosted_trees_utils PROPERTIES
++    VERSION ${TENSORFLOW_LIB_VERSION}
++    SOVERSION ${TENSORFLOW_LIB_SOVERSION}
++)
++target_link_libraries(boosted_trees_utils tensorflow_contrib_protos)
++list(APPEND tf_contrib_ops boosted_trees_utils)
++install(TARGETS boosted_trees_utils
++    EXPORT TensorflowContribTargets
++    LIBRARY DESTINATION "lib${LIBSUFFIX}/tensorflow/contrib")
++
++set(tf_boosted_trees_model_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/kernels/model_ops.cc"
++    $<TARGET_OBJECTS:tf_contrib_boosted_trees_model_ops>
++)
++
++AddUserOps(TARGET boosted_trees_model_ops
++    SOURCES "${tf_boosted_trees_model_srcs}"
++    DEPENDS tf_contrib_boosted_trees_model_ops
++    LIBS tensorflow_contrib_protos boosted_trees_utils
++)
++
++set(tf_boosted_trees_split_handler_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/kernels/split_handler_ops.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/lib/learner/stochastic/handlers/bias-feature-column-handler.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/lib/learner/stochastic/handlers/categorical-feature-column-handler.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/lib/learner/stochastic/handlers/dense-quantized-feature-column-handler.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/lib/learner/stochastic/handlers/sparse-quantized-feature-column-handler.cc"
++    $<TARGET_OBJECTS:tf_contrib_boosted_trees_split_handler_ops>
++)
++
++AddUserOps(TARGET boosted_trees_split_handler_ops
++    SOURCES "${tf_boosted_trees_split_handler_srcs}"
++    DEPENDS tf_contrib_boosted_trees_split_handler_ops
++    LIBS tensorflow_contrib_protos)
++
++set(tf_boosted_trees_training_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/kernels/training_ops.cc"
++    $<TARGET_OBJECTS:tf_contrib_boosted_trees_training_ops>
++)
++
++AddUserOps(TARGET boosted_trees_training_ops
++    SOURCES "${tf_boosted_trees_training_srcs}"
++    DEPENDS tf_contrib_boosted_trees_training_ops
++    LIBS tensorflow_contrib_protos boosted_trees_utils)
++
++set(tf_boosted_trees_prediction_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/kernels/prediction_ops.cc"
++    $<TARGET_OBJECTS:tf_contrib_boosted_trees_prediction_ops>
++)
++
++AddUserOps(TARGET boosted_trees_prediction_ops
++    SOURCES "${tf_boosted_trees_prediction_srcs}"
++    DEPENDS tf_contrib_boosted_trees_prediction_ops
++    LIBS tensorflow_contrib_protos boosted_trees_utils)
++
++set(tf_boosted_trees_quantile_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/kernels/quantile_ops.cc"
++    $<TARGET_OBJECTS:tf_contrib_boosted_trees_quantiles_ops>
++)
++AddUserOps(TARGET boosted_trees_quantile_ops
++    SOURCES "${tf_boosted_trees_quantile_srcs}"
++    DEPENDS tf_contrib_boosted_trees_quantiles_ops
++    LIBS tensorflow_contrib_protos boosted_trees_utils
++)
++set(tf_boosted_trees_stats_accumulator_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/kernels/stats_accumulator_ops.cc"
++    $<TARGET_OBJECTS:tf_contrib_boosted_trees_stats_accumulator_ops>
++)
++AddUserOps(TARGET boosted_trees_stats_accumulator_ops
++    SOURCES "${tf_boosted_trees_stats_accumulator_srcs}"
++    DEPENDS tf_contrib_boosted_trees_stats_accumulator_ops
++    LIBS tensorflow_contrib_protos boosted_trees_utils
++)
++set(tf_batch_srcs
++    "${tensorflow_source_dir}/tensorflow/contrib/batching/util/periodic_function.cc"
++    "${tensorflow_source_dir}/tensorflow/contrib/batching/kernels/batch_kernels.cc"
++    $<TARGET_OBJECTS:tf_contrib_batch_ops>
++)
++AddUserOps(TARGET batch_ops
++    SOURCES "${tf_batch_srcs}"
++    DEPENDS tf_contrib_batch_ops)
++
++#install(TARGETS ${tf_contrib_ops}
++#    EXPORT TensorflowContribTargets
++#    LIBRARY DESTINATION "lib/tensorflow/contrib")
++
++# Create TensorflowConfig.cmake
++EXPORT(TARGETS ${tf_contrib_ops} FILE "${CMAKE_CURRENT_BINARY_DIR}/TensorflowContribTargets.cmake")
++INSTALL(EXPORT TensorflowContribTargets DESTINATION "share/tensorflow/cmake")
+ 
+ ########################################################
+ # tf_user_ops library
+diff --git a/tensorflow/contrib/cmake/tf_label_image_example.cmake b/tensorflow/contrib/cmake/tf_label_image_example.cmake
+index 0d3a469..097ea4b 100644
+--- a/tensorflow/contrib/cmake/tf_label_image_example.cmake
++++ b/tensorflow/contrib/cmake/tf_label_image_example.cmake
+@@ -30,7 +30,7 @@ add_executable(tf_label_image_example
+ )
+ 
+ target_link_libraries(tf_label_image_example PUBLIC
+-    tf_protos_cc
++    tensorflow_protos
+     ${tf_core_gpu_kernels_lib}
+     ${tensorflow_EXTERNAL_LIBRARIES}
+ )
+diff --git a/tensorflow/contrib/cmake/tf_python.cmake b/tensorflow/contrib/cmake/tf_python.cmake
+index bb3e69d..07aff9f 100755
+--- a/tensorflow/contrib/cmake/tf_python.cmake
++++ b/tensorflow/contrib/cmake/tf_python.cmake
+@@ -68,6 +68,7 @@ function(RELATIVE_PROTOBUF_GENERATE_PYTHON ROOT_DIR SRCS)
+     message(SEND_ERROR "Error: RELATIVE_PROTOBUF_GENERATE_PYTHON() called without any proto files")
+     return()
+   endif()
++  message("Protobuf_PROTOC_EXECUTABLE: ${Protobuf_PROTOC_EXECUTABLE}")
+ 
+   set(${SRCS})
+   foreach(FIL ${ARGN})
+@@ -79,55 +80,23 @@ function(RELATIVE_PROTOBUF_GENERATE_PYTHON ROOT_DIR SRCS)
+     list(APPEND ${SRCS} "${CMAKE_CURRENT_BINARY_DIR}/tf_python/${REL_DIR}/${FIL_WE}_pb2.py")
+     add_custom_command(
+       OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/tf_python/${REL_DIR}/${FIL_WE}_pb2.py"
+-      COMMAND ${PROTOBUF_PROTOC_EXECUTABLE}
++      #COMMAND ${PROTOBUF_PROTOC_EXECUTABLE}
++      COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+       ARGS --python_out  ${CMAKE_CURRENT_BINARY_DIR}/tf_python/ -I ${ROOT_DIR} -I ${PROTOBUF_INCLUDE_DIRS} ${ABS_FIL}
+-      DEPENDS ${PROTOBUF_PROTOC_EXECUTABLE} protobuf
+       COMMENT "Running Python protocol buffer compiler on ${FIL}"
+       VERBATIM )
+   endforeach()
+   set(${SRCS} ${${SRCS}} PARENT_SCOPE)
+ endfunction()
+ 
+-function(RELATIVE_PROTOBUF_GENERATE_CPP SRCS HDRS ROOT_DIR)
+-  if(NOT ARGN)
+-    message(SEND_ERROR "Error: RELATIVE_PROTOBUF_GENERATE_CPP() called without any proto files")
+-    return()
+-  endif()
+-
+-  set(${SRCS})
+-  set(${HDRS})
+-  foreach(FIL ${ARGN})
+-    set(ABS_FIL ${ROOT_DIR}/${FIL})
+-    get_filename_component(FIL_WE ${FIL} NAME_WE)
+-    get_filename_component(FIL_DIR ${ABS_FIL} PATH)
+-    file(RELATIVE_PATH REL_DIR ${ROOT_DIR} ${FIL_DIR})
+-
+-    list(APPEND ${SRCS} "${CMAKE_CURRENT_BINARY_DIR}/${REL_DIR}/${FIL_WE}.pb.cc")
+-    list(APPEND ${HDRS} "${CMAKE_CURRENT_BINARY_DIR}/${REL_DIR}/${FIL_WE}.pb.h")
+-
+-    add_custom_command(
+-      OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${REL_DIR}/${FIL_WE}.pb.cc"
+-             "${CMAKE_CURRENT_BINARY_DIR}/${REL_DIR}/${FIL_WE}.pb.h"
+-      COMMAND  ${PROTOBUF_PROTOC_EXECUTABLE}
+-      ARGS --cpp_out  ${CMAKE_CURRENT_BINARY_DIR} -I ${ROOT_DIR} ${ABS_FIL} -I ${PROTOBUF_INCLUDE_DIRS}
+-      DEPENDS ${ABS_FIL} protobuf
+-      COMMENT "Running C++ protocol buffer compiler on ${FIL}"
+-      VERBATIM )
+-  endforeach()
+-
+-  set_source_files_properties(${${SRCS}} ${${HDRS}} PROPERTIES GENERATED TRUE)
+-  set(${SRCS} ${${SRCS}} PARENT_SCOPE)
+-  set(${HDRS} ${${HDRS}} PARENT_SCOPE)
+-endfunction()
+-
+ file(GLOB_RECURSE tf_protos_python_srcs RELATIVE ${tensorflow_source_dir}
+     "${tensorflow_source_dir}/tensorflow/core/*.proto"
+     "${tensorflow_source_dir}/tensorflow/core/profiler/*.proto"
+     "${tensorflow_source_dir}/tensorflow/python/*.proto"
+     "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/proto/*.proto"
+     "${tensorflow_source_dir}/tensorflow/contrib/decision_trees/proto/*.proto"
+-    "${tensorflow_source_dir}/tensorflow/contrib/session_bundle/*.proto"
+     "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/proto/*.proto"
++    "${tensorflow_source_dir}/tensorflow/contrib/session_bundle/*.proto"
+     "${tensorflow_source_dir}/tensorflow/contrib/tensorboard/*.proto"
+     "${tensorflow_source_dir}/tensorflow/contrib/tpu/profiler/*.proto"
+     "${tensorflow_source_dir}/tensorflow/contrib/training/*.proto"
+@@ -140,18 +109,22 @@ RELATIVE_PROTOBUF_GENERATE_PYTHON(
+ # can cause benign-but-failing-on-Windows-due-to-file-locking conflicts
+ # when two rules attempt to generate the same file.
+ file(GLOB_RECURSE tf_python_protos_cc_srcs RELATIVE ${tensorflow_source_dir}
+-    "${tensorflow_source_dir}/tensorflow/core/profiler/*.proto"
++#    "${tensorflow_source_dir}/tensorflow/core/profiler/*.proto"
+     "${tensorflow_source_dir}/tensorflow/python/*.proto"
+-    "${tensorflow_source_dir}/tensorflow/contrib/session_bundle/*.proto"
+-    "${tensorflow_source_dir}/tensorflow/contrib/tensorboard/*.proto"
+-    "${tensorflow_source_dir}/tensorflow/contrib/training/*.proto"
++#    "${tensorflow_source_dir}/tensorflow/contrib/boosted_trees/proto/*.proto"
++#    "${tensorflow_source_dir}/tensorflow/contrib/decision_trees/proto/*.proto"
++#    "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/proto/*.proto"
++#    "${tensorflow_source_dir}/tensorflow/contrib/session_bundle/*.proto"
++#    "${tensorflow_source_dir}/tensorflow/contrib/tensorboard/*.proto"
++#    "${tensorflow_source_dir}/tensorflow/contrib/tpu/profiler/*.proto"
++#    "${tensorflow_source_dir}/tensorflow/contrib/training/*.proto"
+ )
+ RELATIVE_PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS
+     ${tensorflow_source_dir} ${tf_python_protos_cc_srcs}
+ )
+ 
+ add_library(tf_python_protos_cc ${PROTO_SRCS} ${PROTO_HDRS})
+-add_dependencies(tf_python_protos_cc tf_protos_cc)
++add_dependencies(tf_python_protos_cc tensorflow_protos)
+ 
+ # tf_python_touchup_modules adds empty __init__.py files to all
+ # directories containing Python code, so that Python will recognize
+@@ -193,10 +166,12 @@ endfunction()
+ 
+ add_python_module("tensorflow")
+ add_python_module("tensorflow/core")
++add_python_module("tensorflow/core/debug")
+ add_python_module("tensorflow/core/example")
+ add_python_module("tensorflow/core/framework")
+ add_python_module("tensorflow/core/lib")
+ add_python_module("tensorflow/core/lib/core")
++add_python_module("tensorflow/core/profiler")
+ add_python_module("tensorflow/core/protobuf")
+ add_python_module("tensorflow/core/util")
+ add_python_module("tensorflow/examples")
+@@ -211,6 +186,7 @@ add_python_module("tensorflow/python/debug")
+ add_python_module("tensorflow/python/debug/cli")
+ add_python_module("tensorflow/python/debug/examples")
+ add_python_module("tensorflow/python/debug/lib")
++add_python_module("tensorflow/python/debug/ops")
+ add_python_module("tensorflow/python/debug/wrappers")
+ add_python_module("tensorflow/python/eager")
+ add_python_module("tensorflow/python/estimator")
+@@ -298,6 +274,8 @@ add_python_module("tensorflow/contrib/android/java/org/tensorflow")
+ add_python_module("tensorflow/contrib/android/java/org/tensorflow/contrib")
+ add_python_module("tensorflow/contrib/android/java/org/tensorflow/contrib/android")
+ add_python_module("tensorflow/contrib/android/jni")
++add_python_module("tensorflow/contrib/batching")
++add_python_module("tensorflow/contrib/batching/ops")
+ add_python_module("tensorflow/contrib/bayesflow")
+ add_python_module("tensorflow/contrib/bayesflow/examples")
+ add_python_module("tensorflow/contrib/bayesflow/examples/reinforce_simple")
+@@ -639,9 +617,14 @@ add_python_module("tensorflow/contrib/reduce_slice_ops/python/kernel_tests")
+ add_python_module("tensorflow/contrib/reduce_slice_ops/python/ops")
+ 
+ # Generate the tensorflow.python.platform.build_info module.
++if (tensorflow_ENABLE_GPU)
++	set(tf_build_type "gpu")
++else()
++	set(tf_build_type "cpu")
++endif()
+ set(BUILD_INFO_PY "${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/python/platform/build_info.py")
+ add_custom_command(TARGET tf_python_copy_scripts_to_destination PRE_BUILD
+-  COMMAND ${PYTHON_EXECUTABLE} ${tensorflow_source_dir}/tensorflow/tools/build_info/gen_build_info.py --raw_generate ${BUILD_INFO_PY} ${tensorflow_BUILD_INFO_FLAGS})
++  COMMAND ${PYTHON_EXECUTABLE} ${tensorflow_source_dir}/tensorflow/tools/build_info/gen_build_info.py --raw_generate ${BUILD_INFO_PY} ${tensorflow_BUILD_INFO_FLAGS} --build_config ${tf_build_type})
+ 
+ 
+ ########################################################
+@@ -699,7 +682,7 @@ function(GENERATE_PYTHON_OP_LIB tf_python_op_lib_name)
+         ${GENERATE_PYTHON_OP_LIB_ADDITIONAL_LIBRARIES}
+     )
+     target_link_libraries(${tf_python_op_lib_name}_gen_python PRIVATE
+-        tf_protos_cc
++        tensorflow_protos
+ 				tf_python_protos_cc
+         ${tensorflow_EXTERNAL_LIBRARIES}
+     )
+@@ -749,6 +732,13 @@ GENERATE_PYTHON_OP_LIB("user_ops")
+ GENERATE_PYTHON_OP_LIB("training_ops"
+   DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/python/training/gen_training_ops.py)
+ 
++GENERATE_PYTHON_OP_LIB("contrib_batch_ops"
++  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/batching/ops/gen_batch_ops.py)
++GENERATE_PYTHON_OP_LIB("contrib_tpu_ops"
++  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/tpu/ops/gen_tpu_ops.py)
++#GENERATE_PYTHON_OP_LIB("contrib_boosted_trees_ensemble_optimizer_ops"
++#  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/boosted_trees/python/ops/gen_ensemble_optimizer_ops.py)
++
+ GENERATE_PYTHON_OP_LIB("contrib_boosted_trees_model_ops"
+   DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/boosted_trees/python/ops/gen_model_ops.py)
+ GENERATE_PYTHON_OP_LIB("contrib_boosted_trees_split_handler_ops"
+@@ -912,13 +902,13 @@ if(WIN32)
+         ${NUMPY_INCLUDE_DIR}
+     )
+     #target_link_libraries(pywrap_tensorflow_internal_static
+-    #	tf_protos_cc
++    #	tensorflow_protos
+     #	tf_python_protos_cc
+     #)
+-    add_dependencies(pywrap_tensorflow_internal_static tf_protos_cc tf_python_protos_cc)
++    add_dependencies(pywrap_tensorflow_internal_static tensorflow_protos tf_python_protos_cc)
+     set(pywrap_tensorflow_internal_static_dependencies
+         $<TARGET_FILE:pywrap_tensorflow_internal_static>
+-        $<TARGET_FILE:tf_protos_cc>
++        $<TARGET_FILE:tensorflow_protos>
+         $<TARGET_FILE:tf_python_protos_cc>
+ 	${nsync_STATIC_LIBRARIES}
+     )
+@@ -953,6 +943,7 @@ add_library(pywrap_tensorflow_internal SHARED
+     $<TARGET_OBJECTS:tf_grappler>
+     $<TARGET_OBJECTS:tf_tools_transform_graph_lib>
+     $<$<BOOL:${tensorflow_ENABLE_GRPC_SUPPORT}>:$<TARGET_OBJECTS:tf_core_distributed_runtime>>
++    $<$<BOOL:${tensorflow_ENABLE_MPI}>:$<TARGET_OBJECTS:tf_core_mpi>>
+     $<TARGET_OBJECTS:tf_core_kernels>
+     $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_core_kernels_cpu_only>>
+     $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_stream_executor>>
+@@ -971,84 +962,21 @@ target_include_directories(pywrap_tensorflow_internal PUBLIC
+ target_link_libraries(pywrap_tensorflow_internal PRIVATE
+     ${tf_core_gpu_kernels_lib}
+     ${tensorflow_EXTERNAL_LIBRARIES}
+-    tf_protos_cc
++    tensorflow_protos
+     tf_python_protos_cc
+     ${PYTHON_LIBRARIES}
++    ${MKL_LIBRARIES}
+ )
+ 
+-if(WIN32)
+-    # include contrib/nearest_neighbor as .so
+-    #
+-    set(tf_nearest_neighbor_srcs
+-        "${tensorflow_source_dir}/tensorflow/contrib/nearest_neighbor/kernels/heap.h"
+-        "${tensorflow_source_dir}/tensorflow/contrib/nearest_neighbor/kernels/hyperplane_lsh_probes.h"
+-        "${tensorflow_source_dir}/tensorflow/contrib/nearest_neighbor/kernels/hyperplane_lsh_probes.cc"
+-        "${tensorflow_source_dir}/tensorflow/contrib/nearest_neighbor/ops/nearest_neighbor_ops.cc"
+-    )
+ 
+-    AddUserOps(TARGET _nearest_neighbor_ops
+-        SOURCES "${tf_nearest_neighbor_srcs}"
+-        DEPENDS pywrap_tensorflow_internal tf_python_ops
+-        DISTCOPY ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/nearest_neighbor/python/ops/)
+-endif(WIN32)
+ 
+-if(WIN32)
+-    # include contrib/rnn as .so
+-    #
+-    set(tf_gru_srcs
+-        "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/blas_gemm.cc"
+-        "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/blas_gemm.h"
+-        "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/gru_ops.cc"
+-        "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/gru_ops.h"
+-        "${tensorflow_source_dir}/tensorflow/contrib/rnn/ops/gru_ops.cc"
+-    )
+-    set(tf_gru_gpu_srcs
+-        "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/gru_ops_gpu.cu.cc"
+-    )
+ 
+-    set(tf_lstm_srcs
+-        "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/blas_gemm.cc"
+-        "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/blas_gemm.h"
+-        "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/lstm_ops.cc"
+-        "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/lstm_ops.h"
+-        "${tensorflow_source_dir}/tensorflow/contrib/rnn/ops/lstm_ops.cc"
+-    )
+-    set(tf_lstm_gpu_srcs
+-        "${tensorflow_source_dir}/tensorflow/contrib/rnn/kernels/lstm_ops_gpu.cu.cc"
+-    )
+ 
+-    AddUserOps(TARGET _gru_ops
+-        SOURCES "${tf_gru_srcs}"
+-        GPUSOURCES ${tf_gru_gpu_srcs}
+-        DEPENDS pywrap_tensorflow_internal tf_python_ops
+-        DISTCOPY ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/rnn/python/ops/)
+-
+-    AddUserOps(TARGET _lstm_ops
+-        SOURCES "${tf_lstm_srcs}"
+-        GPUSOURCES ${tf_lstm_gpu_srcs}
+-        DEPENDS pywrap_tensorflow_internal tf_python_ops
+-        DISTCOPY ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/rnn/python/ops/)
+-endif(WIN32)
+ 
+-if(WIN32)
+-    # include contrib/seq2seq as .so
+-    #
+-    set(tf_beam_search_srcs
+-        "${tensorflow_source_dir}/tensorflow/contrib/seq2seq/kernels/beam_search_ops.cc"
+-        "${tensorflow_source_dir}/tensorflow/contrib/seq2seq/kernels/beam_search_ops.h"
+-        "${tensorflow_source_dir}/tensorflow/contrib/seq2seq/ops/beam_search_ops.cc"
+-    )
+ 
+-    set(tf_beam_search_gpu_srcs
+-        "${tensorflow_source_dir}/tensorflow/contrib/seq2seq/kernels/beam_search_ops_gpu.cu.cc"
+-    )
+ 
+-    AddUserOps(TARGET _beam_search_ops
+-        SOURCES "${tf_beam_search_srcs}"
+-        GPUSOURCES ${tf_beam_search_gpu_srcs}
+-        DEPENDS pywrap_tensorflow_internal tf_python_ops
+-        DISTCOPY ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/seq2seq/python/ops/)
+-endif(WIN32)
++
++
+ 
+ ############################################################
+ # Build a PIP package containing the TensorFlow runtime.
+@@ -1061,6 +989,14 @@ add_dependencies(tf_python_build_pip_package
+     tf_python_ops
+     tf_extension_ops)
+ 
++if(tensorflow_BUILD_SHARED_LIB)
++    add_custom_target(tf_python_package_and_slibs)
++    add_dependencies(tf_python_package_and_slibs
++        tf_python_build_pip_package
++        tensorflow
++    )
++endif()
++
+ # Fix-up Python files that were not included by the add_python_module() macros.
+ add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
+   COMMAND ${CMAKE_COMMAND} -E copy ${tensorflow_source_dir}/tensorflow/tools/pip_package/setup.py
+@@ -1081,6 +1017,9 @@ else()
+   add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
+     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libpywrap_tensorflow_internal.so
+                                      ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/python/_pywrap_tensorflow_internal.so)
++  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libtensor_forest_protos.so
++                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/libtensor_forest_protos.so)
+ endif()
+ add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
+   COMMAND ${CMAKE_COMMAND} -E copy ${tensorflow_source_dir}/tensorflow/tools/pip_package/README
+@@ -1128,6 +1067,7 @@ add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
+   COMMAND ${CMAKE_COMMAND} -E copy_directory ${tensorflow_source_dir}/tensorflow/stream_executor
+                                    ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/include/tensorflow/stream_executor)
+ 
++if(WIN32)
+ # google protobuf headers
+ add_custom_command(TARGET tf_python_build_pip_package PRE_BUILD
+   COMMAND ${CMAKE_COMMAND} -E make_directory
+@@ -1176,6 +1116,7 @@ add_custom_command(TARGET tf_python_build_pip_package PRE_BUILD
+ add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
+   COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_BINARY_DIR}/eigen/src/eigen/unsupported/Eigen
+                                    ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/include/unsupported/Eigen)
++endif(WIN32)
+ 
+ if(${tensorflow_TF_NIGHTLY})
+   if(${tensorflow_ENABLE_GPU})
+diff --git a/tensorflow/contrib/cmake/tf_shared_lib.cmake b/tensorflow/contrib/cmake/tf_shared_lib.cmake
+index 9bf45ba..b6a48e7 100644
+--- a/tensorflow/contrib/cmake/tf_shared_lib.cmake
++++ b/tensorflow/contrib/cmake/tf_shared_lib.cmake
+@@ -24,7 +24,6 @@ if(WIN32)
+   #
+   add_library(tensorflow_static STATIC
+       $<TARGET_OBJECTS:tf_c>
+-      $<TARGET_OBJECTS:tf_cc>
+       $<TARGET_OBJECTS:tf_cc_framework>
+       $<TARGET_OBJECTS:tf_cc_ops>
+       $<TARGET_OBJECTS:tf_cc_while_loop>
+@@ -40,10 +39,10 @@ if(WIN32)
+       $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_stream_executor>>
+   )
+ 
+-  add_dependencies(tensorflow_static tf_protos_cc)
++  add_dependencies(tensorflow_static tensorflow_protos)
+   set(tensorflow_static_dependencies
+       $<TARGET_FILE:tensorflow_static>
+-      $<TARGET_FILE:tf_protos_cc>
++      $<TARGET_FILE:tensorflow_protos>
+   )
+     
+   set(tensorflow_deffile "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/tensorflow.def")
+@@ -57,32 +56,77 @@ if(WIN32)
+   )
+ endif(WIN32)
+ 
+-# tensorflow is a shared library containing all of the
+-# TensorFlow runtime and the standard ops and kernels.
+-add_library(tensorflow SHARED
++#        "//tensorflow/core:framework_internal_impl",
++#        "//tensorflow/core:lib_internal_impl",
++#        "//tensorflow/core:core_cpu_impl",
++#        "//tensorflow/stream_executor:stream_executor_impl",
++#        "//tensorflow/core:gpu_runtime_impl",
++
++add_library(tensorflow_core_lib STATIC
++        $<TARGET_OBJECTS:tf_core_lib>
++        $<TARGET_OBJECTS:tf_core_framework>
++)
++add_dependencies(tensorflow_core_lib tf_core_lib tf_core_framework)
++list(APPEND tensorflow_libs tensorflow_core_lib)
++list(APPEND tensorflow_libs tensorflow_protos)
++add_library(tensorflow_framework SHARED
++    $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_stream_executor>>
+     $<TARGET_OBJECTS:tf_c>
+-    $<TARGET_OBJECTS:tf_cc>
+-    $<TARGET_OBJECTS:tf_cc_framework>
+-    $<TARGET_OBJECTS:tf_cc_ops>
+-    $<TARGET_OBJECTS:tf_cc_while_loop>
+     $<TARGET_OBJECTS:tf_core_lib>
+     $<TARGET_OBJECTS:tf_core_cpu>
++    $<TARGET_OBJECTS:tf_cc_framework>
+     $<TARGET_OBJECTS:tf_core_framework>
++)
++set_target_properties(tensorflow_framework PROPERTIES
++    VERSION ${TENSORFLOW_LIB_VERSION}
++    SOVERSION ${TENSORFLOW_LIB_SOVERSION}
++)
++target_link_libraries(tensorflow_framework PRIVATE
++    ${tf_core_gpu_kernels_lib}
++    ${tensorflow_EXTERNAL_LIBRARIES}
++    tensorflow_protos)
++list(APPEND tensorflow_libs tensorflow_framework)
++
++if (${tensorflow_ENABLE_GRPC_SUPPORT} OR ${tensorflow_ENABLE_MPI})
++endif()
++
++add_library(tensorflow SHARED
++    $<TARGET_OBJECTS:tf_cc>
++    $<TARGET_OBJECTS:tf_cc_ops>
++    $<TARGET_OBJECTS:tf_cc_while_loop>
+     $<TARGET_OBJECTS:tf_core_ops>
++    $<TARGET_OBJECTS:tf_core_kernels>
++    $<TARGET_OBJECTS:tf_core_profiler>
+     $<TARGET_OBJECTS:tf_core_direct_session>
+     $<TARGET_OBJECTS:tf_tools_transform_graph_lib>
+     $<$<BOOL:${tensorflow_ENABLE_GRPC_SUPPORT}>:$<TARGET_OBJECTS:tf_core_distributed_runtime>>
+-    $<TARGET_OBJECTS:tf_core_kernels>
+     $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_core_kernels_cpu_only>>
+-    $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_stream_executor>>
+     ${tensorflow_deffile}
+ )
++set_target_properties(tensorflow PROPERTIES
++    VERSION ${TENSORFLOW_LIB_VERSION}
++    SOVERSION ${TENSORFLOW_LIB_SOVERSION}
++)
+ 
++target_link_libraries(tensorflow PUBLIC tensorflow_framework)
+ target_link_libraries(tensorflow PRIVATE
+     ${tf_core_gpu_kernels_lib}
+     ${tensorflow_EXTERNAL_LIBRARIES}
+-    tf_protos_cc
++    #tensorflow_protos
+ )
++target_include_directories(tensorflow PUBLIC "${tensorflow_source_dir}/tensorflow/c/c_api.h")
++set_target_properties(tensorflow PROPERTIES PUBLIC_HEADER "${tensorflow_source_dir}/tensorflow/c/c_api.h")
++list(APPEND tensorflow_libs tensorflow)
++
++install(TARGETS ${tensorflow_libs}
++    EXPORT TensorflowTargets
++    LIBRARY DESTINATION "lib${LIBSUFFIX}"
++    ARCHIVE DESTINATION "lib${LIBSUFFIX}"
++    PUBLIC_HEADER DESTINATION "include/tensorflow/c")
++
++# Create TensorflowConfig.cmake
++EXPORT(TARGETS ${tensorflow_libs} FILE "${CMAKE_CURRENT_BINARY_DIR}/TensorflowTargets.cmake")
++INSTALL(EXPORT TensorflowTargets DESTINATION "share/tensorflow/cmake")
+ 
+ # There is a bug in GCC 5 resulting in undefined reference to a __cpu_model function when
+ # linking to the tensorflow library. Adding the following libraries fixes it.
+diff --git a/tensorflow/contrib/cmake/tf_tests.cmake b/tensorflow/contrib/cmake/tf_tests.cmake
+index 3dad967..9ff19f0 100644
+--- a/tensorflow/contrib/cmake/tf_tests.cmake
++++ b/tensorflow/contrib/cmake/tf_tests.cmake
+@@ -496,7 +496,7 @@ if (tensorflow_BUILD_CC_TESTS)
+   )
+ 
+   set(tf_test_libs
+-    tf_protos_cc
++    tensorflow_protos
+     tf_test_lib
+     ${tf_core_gpu_kernels_lib}
+     ${googletest_STATIC_LIBRARIES}
+diff --git a/tensorflow/contrib/cmake/tf_tools.cmake b/tensorflow/contrib/cmake/tf_tools.cmake
+index 6ef9598..1d5ae1b 100644
+--- a/tensorflow/contrib/cmake/tf_tools.cmake
++++ b/tensorflow/contrib/cmake/tf_tools.cmake
+@@ -26,16 +26,16 @@ add_executable(${proto_text}
+     ${tf_tools_proto_text_srcs}
+     $<TARGET_OBJECTS:tf_core_lib>
+ )
++install(TARGETS ${proto_text}
++    EXPORT TensorflowToolsTargets
++    RUNTIME DESTINATION "libexec/tensorflow")
+ 
+ target_link_libraries(${proto_text} PUBLIC
+   ${tensorflow_EXTERNAL_LIBRARIES}
+-  tf_protos_cc
++  tensorflow_protos
+ )
+ 
+ add_dependencies(${proto_text} tf_core_lib)
+-if(tensorflow_ENABLE_GRPC_SUPPORT)
+-    add_dependencies(${proto_text} grpc)
+-endif(tensorflow_ENABLE_GRPC_SUPPORT)
+ 
+ file(GLOB_RECURSE tf_tools_transform_graph_lib_srcs
+     "${tensorflow_source_dir}/tensorflow/tools/graph_transforms/*.h"
+@@ -65,20 +65,11 @@ set(transform_graph "transform_graph")
+ 
+ add_executable(${transform_graph}
+     "${tensorflow_source_dir}/tensorflow/tools/graph_transforms/transform_graph_main.cc"
+-    $<TARGET_OBJECTS:tf_tools_transform_graph_lib>
+-    $<TARGET_OBJECTS:tf_core_lib>
+-    $<TARGET_OBJECTS:tf_core_cpu>
+-    $<TARGET_OBJECTS:tf_core_framework>
+-    $<TARGET_OBJECTS:tf_core_ops>
+-    $<TARGET_OBJECTS:tf_core_direct_session>
+-    $<TARGET_OBJECTS:tf_tools_transform_graph_lib>
+-    $<TARGET_OBJECTS:tf_core_kernels>
+-    $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_core_kernels_cpu_only>>
+-    $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_stream_executor>>
+ )
+ 
+ target_link_libraries(${transform_graph} PUBLIC
+-  tf_protos_cc
++  tensorflow
++  tensorflow_protos
+   ${tf_core_gpu_kernels_lib}
+   ${tensorflow_EXTERNAL_LIBRARIES}
+ )
+@@ -87,20 +78,11 @@ set(summarize_graph "summarize_graph")
+ 
+ add_executable(${summarize_graph}
+     "${tensorflow_source_dir}/tensorflow/tools/graph_transforms/summarize_graph_main.cc"
+-    $<TARGET_OBJECTS:tf_tools_transform_graph_lib>
+-    $<TARGET_OBJECTS:tf_core_lib>
+-    $<TARGET_OBJECTS:tf_core_cpu>
+-    $<TARGET_OBJECTS:tf_core_framework>
+-    $<TARGET_OBJECTS:tf_core_ops>
+-    $<TARGET_OBJECTS:tf_core_direct_session>
+-    $<TARGET_OBJECTS:tf_tools_transform_graph_lib>
+-    $<TARGET_OBJECTS:tf_core_kernels>
+-    $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_core_kernels_cpu_only>>
+-    $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_stream_executor>>
+ )
+ 
+ target_link_libraries(${summarize_graph} PUBLIC
+-  tf_protos_cc
++  tensorflow
++  tensorflow_protos
+   ${tf_core_gpu_kernels_lib}
+   ${tensorflow_EXTERNAL_LIBRARIES}
+ )
+@@ -109,20 +91,11 @@ set(compare_graphs "compare_graphs")
+ 
+ add_executable(${compare_graphs}
+     "${tensorflow_source_dir}/tensorflow/tools/graph_transforms/compare_graphs.cc"
+-    $<TARGET_OBJECTS:tf_tools_transform_graph_lib>
+-    $<TARGET_OBJECTS:tf_core_lib>
+-    $<TARGET_OBJECTS:tf_core_cpu>
+-    $<TARGET_OBJECTS:tf_core_framework>
+-    $<TARGET_OBJECTS:tf_core_ops>
+-    $<TARGET_OBJECTS:tf_core_direct_session>
+-    $<TARGET_OBJECTS:tf_tools_transform_graph_lib>
+-    $<TARGET_OBJECTS:tf_core_kernels>
+-    $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_core_kernels_cpu_only>>
+-    $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_stream_executor>>
+ )
+ 
+ target_link_libraries(${compare_graphs} PUBLIC
+-  tf_protos_cc
++  tensorflow
++  tensorflow_protos
+   ${tf_core_gpu_kernels_lib}
+   ${tensorflow_EXTERNAL_LIBRARIES}
+ )
+@@ -132,18 +105,18 @@ set(benchmark_model "benchmark_model")
+ add_executable(${benchmark_model}
+     "${tensorflow_source_dir}/tensorflow/tools/benchmark/benchmark_model.cc"
+     "${tensorflow_source_dir}/tensorflow/tools/benchmark/benchmark_model_main.cc"
+-    $<TARGET_OBJECTS:tf_core_lib>
+-    $<TARGET_OBJECTS:tf_core_cpu>
+-    $<TARGET_OBJECTS:tf_core_framework>
+-    $<TARGET_OBJECTS:tf_core_ops>
+-    $<TARGET_OBJECTS:tf_core_direct_session>
+-    $<TARGET_OBJECTS:tf_core_kernels>
+-    $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_core_kernels_cpu_only>>
+-    $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_stream_executor>>
+ )
+ 
+ target_link_libraries(${benchmark_model} PUBLIC
+-  tf_protos_cc
++  tensorflow
++  tensorflow_protos
+   ${tf_core_gpu_kernels_lib}
+   ${tensorflow_EXTERNAL_LIBRARIES}
+ )
++install(TARGETS ${transform_graph} ${summarize_graph} ${compare_graphs} ${benchmark_model}
++    EXPORT TensorflowToolsTargets
++    LIBRARY DESTINATION "lib${LIBSUFFIX}"
++    RUNTIME DESTINATION "bin")
++# Create TensorflowToolsConfig.cmake
++EXPORT(TARGETS ${transform_graph} ${summarize_graph} ${compare_graphs} ${benchmark_model} FILE "${CMAKE_CURRENT_BINARY_DIR}/TensorflowToolsTargets.cmake")
++INSTALL(EXPORT TensorflowToolsTargets DESTINATION "share/tensorflow/cmake")
+diff --git a/tensorflow/contrib/cmake/tf_tutorials.cmake b/tensorflow/contrib/cmake/tf_tutorials.cmake
+index 858e7dd..21ab204 100644
+--- a/tensorflow/contrib/cmake/tf_tutorials.cmake
++++ b/tensorflow/contrib/cmake/tf_tutorials.cmake
+@@ -30,7 +30,7 @@ add_executable(tf_tutorials_example_trainer
+ )
+ 
+ target_link_libraries(tf_tutorials_example_trainer PUBLIC
+-    tf_protos_cc
++    tensorflow_protos
+     ${tf_core_gpu_kernels_lib}
+     ${tensorflow_EXTERNAL_LIBRARIES}
+ )
+diff --git a/tensorflow/contrib/nccl/kernels/nccl_manager.h b/tensorflow/contrib/nccl/kernels/nccl_manager.h
+index cb1719c..e471a26 100644
+--- a/tensorflow/contrib/nccl/kernels/nccl_manager.h
++++ b/tensorflow/contrib/nccl/kernels/nccl_manager.h
+@@ -20,7 +20,7 @@ limitations under the License.
+ #include <unordered_map>
+ #include <vector>
+ 
+-#include "src/nccl.h"
++#include <nccl.h>
+ #include "tensorflow/core/common_runtime/gpu/gpu_event_mgr.h"
+ #include "tensorflow/core/framework/tensor.h"
+ #include "tensorflow/core/platform/mutex.h"
+diff --git a/tensorflow/contrib/nccl/kernels/nccl_ops.cc b/tensorflow/contrib/nccl/kernels/nccl_ops.cc
+index 4eb5249..d90b25d 100644
+--- a/tensorflow/contrib/nccl/kernels/nccl_ops.cc
++++ b/tensorflow/contrib/nccl/kernels/nccl_ops.cc
+@@ -19,7 +19,7 @@ limitations under the License.
+ #include <unordered_map>
+ #include <vector>
+ 
+-#include "src/nccl.h"
++#include <nccl.h>
+ #include "tensorflow/contrib/nccl/kernels/nccl_manager.h"
+ #include "tensorflow/core/framework/op_kernel.h"
+ 
+diff --git a/tensorflow/contrib/tpu/profiler/trace_events_to_json.cc b/tensorflow/contrib/tpu/profiler/trace_events_to_json.cc
+index 3f7e67d..a56fd6f 100644
+--- a/tensorflow/contrib/tpu/profiler/trace_events_to_json.cc
++++ b/tensorflow/contrib/tpu/profiler/trace_events_to_json.cc
+@@ -14,7 +14,7 @@ limitations under the License.
+ ==============================================================================*/
+ 
+ #include "tensorflow/contrib/tpu/profiler/trace_events_to_json.h"
+-#include "include/json/json.h"
++#include <json/json.h>
+ #include "tensorflow/core/lib/strings/strcat.h"
+ #include "tensorflow/core/lib/strings/stringprintf.h"
+ 
+diff --git a/tensorflow/contrib/tpu/profiler/trace_events_to_json_test.cc b/tensorflow/contrib/tpu/profiler/trace_events_to_json_test.cc
+index e97989c..945746f 100644
+--- a/tensorflow/contrib/tpu/profiler/trace_events_to_json_test.cc
++++ b/tensorflow/contrib/tpu/profiler/trace_events_to_json_test.cc
+@@ -14,7 +14,7 @@ limitations under the License.
+ ==============================================================================*/
+ 
+ #include "tensorflow/contrib/tpu/profiler/trace_events_to_json.h"
+-#include "include/json/json.h"
++#include <json/json.h>
+ #include "tensorflow/core/platform/protobuf.h"
+ #include "tensorflow/core/platform/test.h"
+ 
+diff --git a/tensorflow/core/kernels/cuda_solvers.cc b/tensorflow/core/kernels/cuda_solvers.cc
+index 6c12a0e..83dcc41 100644
+--- a/tensorflow/core/kernels/cuda_solvers.cc
++++ b/tensorflow/core/kernels/cuda_solvers.cc
+@@ -502,6 +502,8 @@ static inline Status UnmqrImpl(BufSizeFnT bufsize, SolverFnT solver,
+ // Unfortunately the LAPACK function name differs for the real and complex case
+ // (complex ones are prefixed with "UN" for "unitary"), so we instantiate each
+ // one separately.
++
++#if CUDA_VERSION >= 8000
+ #define UNMQR_INSTANCE(Scalar, function_prefix, type_prefix)                  \
+   template <>                                                                 \
+   Status CudaSolver::Unmqr(cublasSideMode_t side, cublasOperation_t trans,    \
+@@ -599,6 +601,7 @@ HEEVD_INSTANCE(float, sy, S);
+ HEEVD_INSTANCE(double, sy, D);
+ HEEVD_INSTANCE(complex64, he, C);
+ HEEVD_INSTANCE(complex128, he, Z);
++#endif
+ 
+ template <typename Scalar, typename BufSizeFnT, typename SolverFnT>
+ static inline Status GesvdImpl(
+diff --git a/tensorflow/core/kernels/cuda_solvers.h b/tensorflow/core/kernels/cuda_solvers.h
+index 60c4a0b..e5f038a 100644
+--- a/tensorflow/core/kernels/cuda_solvers.h
++++ b/tensorflow/core/kernels/cuda_solvers.h
+@@ -278,10 +278,12 @@ class CudaSolver {
+   // supported.
+   // Returns Status::OK() if the kernel was launched successfully.
+   // See: http://docs.nvidia.com/cuda/cusolver/#cuds-lt-t-gt-ormqr
++  #if CUDA_VERSION >= 8000
+   template <typename Scalar>
+   Status Unmqr(cublasSideMode_t side, cublasOperation_t trans, int m, int n,
+                int k, const Scalar* dev_a, int lda, const Scalar* dev_tau,
+                Scalar* dev_c, int ldc, int* dev_lapack_info) TF_MUST_USE_RESULT;
++  #endif
+ 
+   // Overwrites QR factorization produced by Geqrf by the unitary Householder
+   // matrix Q. On input, the Householder matrix Q is represented by the output
+@@ -289,17 +291,21 @@ class CudaSolver {
+   // first n columns of Q. Requires m >= n >= 0.
+   // Returns Status::OK() if the kernel was launched successfully.
+   // See: http://docs.nvidia.com/cuda/cusolver/#cuds-lt-t-gt-orgqr
++  #if CUDA_VERSION >= 8000
+   template <typename Scalar>
+   Status Ungqr(int m, int n, int k, Scalar* dev_a, int lda,
+                const Scalar* dev_tau, int* dev_lapack_info) TF_MUST_USE_RESULT;
++  #endif
+ 
+   // Hermitian (Symmetric) Eigen decomposition.
+   // See: http://docs.nvidia.com/cuda/cusolver/#cuds-lt-t-gt-syevd
++  #if CUDA_VERSION >= 8000
+   template <typename Scalar>
+   Status Heevd(cusolverEigMode_t jobz, cublasFillMode_t uplo, int n,
+                Scalar* dev_A, int lda,
+                typename Eigen::NumTraits<Scalar>::Real* dev_W,
+                int* dev_lapack_info) TF_MUST_USE_RESULT;
++  #endif
+ 
+   // Singular value decomposition.
+   // Returns Status::OK() if the kernel was launched successfully.
+diff --git a/tensorflow/core/kernels/qr_op_complex128.cc b/tensorflow/core/kernels/qr_op_complex128.cc
+index c5b7313..4059acc 100644
+--- a/tensorflow/core/kernels/qr_op_complex128.cc
++++ b/tensorflow/core/kernels/qr_op_complex128.cc
+@@ -20,7 +20,9 @@ namespace tensorflow {
+ REGISTER_LINALG_OP("Qr", (QrOp<complex128>), complex128);
+ 
+ #if GOOGLE_CUDA
++#if CUDA_VERSION >= 8000
+ REGISTER_LINALG_OP_GPU("Qr", (QrOpGpu<complex128>), complex128);
+ #endif
++#endif
+ 
+ }  // namespace tensorflow
+diff --git a/tensorflow/core/kernels/qr_op_complex64.cc b/tensorflow/core/kernels/qr_op_complex64.cc
+index 4e14f26..0037c4b 100644
+--- a/tensorflow/core/kernels/qr_op_complex64.cc
++++ b/tensorflow/core/kernels/qr_op_complex64.cc
+@@ -20,7 +20,9 @@ namespace tensorflow {
+ REGISTER_LINALG_OP("Qr", (QrOp<complex64>), complex64);
+ 
+ #if GOOGLE_CUDA
++#if CUDA_VERSION >= 8000
+ REGISTER_LINALG_OP_GPU("Qr", (QrOpGpu<complex64>), complex64);
+ #endif
++#endif
+ 
+ }  // namespace tensorflow
+diff --git a/tensorflow/core/kernels/qr_op_double.cc b/tensorflow/core/kernels/qr_op_double.cc
+index 51885eb..439a38b 100644
+--- a/tensorflow/core/kernels/qr_op_double.cc
++++ b/tensorflow/core/kernels/qr_op_double.cc
+@@ -20,7 +20,9 @@ namespace tensorflow {
+ REGISTER_LINALG_OP("Qr", (QrOp<double>), double);
+ 
+ #if GOOGLE_CUDA
++#if CUDA_VERSION >= 8000
+ REGISTER_LINALG_OP_GPU("Qr", (QrOpGpu<double>), double);
+ #endif
++#endif
+ 
+ }  // namespace tensorflow
+diff --git a/tensorflow/core/kernels/qr_op_float.cc b/tensorflow/core/kernels/qr_op_float.cc
+index d0a1dd4..e9c8184 100644
+--- a/tensorflow/core/kernels/qr_op_float.cc
++++ b/tensorflow/core/kernels/qr_op_float.cc
+@@ -20,7 +20,9 @@ namespace tensorflow {
+ REGISTER_LINALG_OP("Qr", (QrOp<float>), float);
+ 
+ #if GOOGLE_CUDA
++#if CUDA_VERSION >= 8000
+ REGISTER_LINALG_OP_GPU("Qr", (QrOpGpu<float>), float);
+ #endif
++#endif
+ 
+ }  // namespace tensorflow
+diff --git a/tensorflow/core/kernels/qr_op_impl.h b/tensorflow/core/kernels/qr_op_impl.h
+index e263eb2..f2bef6f 100644
+--- a/tensorflow/core/kernels/qr_op_impl.h
++++ b/tensorflow/core/kernels/qr_op_impl.h
+@@ -122,6 +122,7 @@ class QrOp : public LinearAlgebraOp<Scalar> {
+ };
+ 
+ #if GOOGLE_CUDA
++#if CUDA_VERSION >= 8000
+ 
+ typedef Eigen::GpuDevice GPUDevice;
+ 
+@@ -294,6 +295,7 @@ class QrOpGpu : public AsyncOpKernel {
+   TF_DISALLOW_COPY_AND_ASSIGN(QrOpGpu);
+ };
+ 
++#endif
+ #endif
+ 
+ }  // namespace tensorflow
+diff --git a/tensorflow/core/kernels/self_adjoint_eig_v2_op_gpu.cc b/tensorflow/core/kernels/self_adjoint_eig_v2_op_gpu.cc
+index b0b4f89..251e79b 100644
+--- a/tensorflow/core/kernels/self_adjoint_eig_v2_op_gpu.cc
++++ b/tensorflow/core/kernels/self_adjoint_eig_v2_op_gpu.cc
+@@ -16,6 +16,7 @@ limitations under the License.
+ // See docs in ../ops/linalg_ops.cc.
+ 
+ #if GOOGLE_CUDA
++#if CUDA_VERSION >= 8000
+ 
+ #include <numeric>
+ #include <type_traits>
+@@ -180,4 +181,5 @@ REGISTER(complex128);
+ 
+ }  // namespace tensorflow
+ 
++#endif  // CUDA_VERSION >= 8000
+ #endif  // GOOGLE_CUDA
+diff --git a/tensorflow/core/platform/cloud/gcs_file_system.cc b/tensorflow/core/platform/cloud/gcs_file_system.cc
+index e82aeba..a05668b 100644
+--- a/tensorflow/core/platform/cloud/gcs_file_system.cc
++++ b/tensorflow/core/platform/cloud/gcs_file_system.cc
+@@ -22,7 +22,7 @@ limitations under the License.
+ #include <cstring>
+ #include <fstream>
+ #include <vector>
+-#include "include/json/json.h"
++#include <json/json.h>
+ #include "tensorflow/core/lib/core/errors.h"
+ #include "tensorflow/core/lib/gtl/map_util.h"
+ #include "tensorflow/core/lib/gtl/stl_util.h"
+diff --git a/tensorflow/core/platform/cloud/google_auth_provider.cc b/tensorflow/core/platform/cloud/google_auth_provider.cc
+index f6fd837..82b7514 100644
+--- a/tensorflow/core/platform/cloud/google_auth_provider.cc
++++ b/tensorflow/core/platform/cloud/google_auth_provider.cc
+@@ -18,7 +18,7 @@ limitations under the License.
+ #include <sys/types.h>
+ #include <unistd.h>
+ #include <fstream>
+-#include "include/json/json.h"
++#include <json/json.h>
+ #include "tensorflow/core/lib/core/errors.h"
+ #include "tensorflow/core/lib/io/path.h"
+ #include "tensorflow/core/lib/strings/base64.h"
+diff --git a/tensorflow/core/platform/cloud/oauth_client.h b/tensorflow/core/platform/cloud/oauth_client.h
+index 1614c7b..a0e2bcc 100644
+--- a/tensorflow/core/platform/cloud/oauth_client.h
++++ b/tensorflow/core/platform/cloud/oauth_client.h
+@@ -17,7 +17,7 @@ limitations under the License.
+ #define THIRD_PARTY_TENSORFLOW_CORE_PLATFORM_CLOUD_OAUTH_CLIENT_H_
+ 
+ #include <memory>
+-#include "include/json/json.h"
++#include <json/json.h>
+ #include "tensorflow/core/lib/core/status.h"
+ #include "tensorflow/core/platform/cloud/http_request.h"
+ #include "tensorflow/core/platform/env.h"
+diff --git a/tensorflow/core/profiler/internal/tfprof_timeline.h b/tensorflow/core/profiler/internal/tfprof_timeline.h
+index 6c62d10..2998b8b 100644
+--- a/tensorflow/core/profiler/internal/tfprof_timeline.h
++++ b/tensorflow/core/profiler/internal/tfprof_timeline.h
+@@ -16,7 +16,7 @@ limitations under the License.
+ #ifndef THIRD_PARTY_TENSORFLOW_CORE_PROFILER_INTERNAL_TFPROF_TIMELINE_H_
+ #define THIRD_PARTY_TENSORFLOW_CORE_PROFILER_INTERNAL_TFPROF_TIMELINE_H_
+ 
+-#include "include/json/json.h"
++#include <json/json.h>
+ #include "tensorflow/core/framework/graph.pb.h"
+ #include "tensorflow/core/framework/step_stats.pb.h"
+ #include "tensorflow/core/lib/strings/strcat.h"
+diff --git a/tensorflow/stream_executor/cuda/cuda_dnn.cc b/tensorflow/stream_executor/cuda/cuda_dnn.cc
+index 0a1a748..1601120 100644
+--- a/tensorflow/stream_executor/cuda/cuda_dnn.cc
++++ b/tensorflow/stream_executor/cuda/cuda_dnn.cc
+@@ -232,7 +232,6 @@ CUDNN_DNN_ROUTINE_EACH_R3(PERFTOOLS_GPUTOOLS_CUDNN_WRAP)
+   __macro(cudnnRNNBackwardData)                               \
+   __macro(cudnnRNNBackwardWeights)                            \
+   __macro(cudnnSetRNNDescriptor)                              \
+-  __macro(cudnnSetRNNDescriptor_v6)                           \
+   __macro(cudnnGetFilterNdDescriptor)
+ 
+ // clang-format on
+@@ -245,7 +244,8 @@ CUDNN_DNN_ROUTINE_EACH_R5(PERFTOOLS_GPUTOOLS_CUDNN_WRAP)
+ // clang-format off
+ #if CUDNN_VERSION >= 6000
+ #define CUDNN_DNN_ROUTINE_EACH_R6(__macro)                    \
+-  __macro(cudnnConvolutionBiasActivationForward)
++  __macro(cudnnConvolutionBiasActivationForward)              \
++  __macro(cudnnSetRNNDescriptor_v6)
+ 
+ // clang-format on
+ CUDNN_DNN_ROUTINE_EACH_R6(PERFTOOLS_GPUTOOLS_CUDNN_WRAP)

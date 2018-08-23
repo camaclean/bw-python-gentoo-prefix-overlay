@@ -1,0 +1,166 @@
+diff --git a/setup.py b/setup.py
+index c0710be..ddf6909 100644
+--- a/setup.py
++++ b/setup.py
+@@ -310,6 +310,59 @@ def configure_libvt(lib, config_cmd):
+         lib.extra_compile_args.append(openmp_flag)
+         lib.extra_link_args.append(openmp_flag)
+ 
++def configure_tau(lib, config_cmd):
++    libdir = '/sw/xe/tau/2.25.1/cle5.2_gnu4.9.3/craycnl/lib'
++    lib.library_dirs.append(libdir)
++    lib.runtime_library_dirs.append(libdir)
++    libraries = ['bfd','iberty']
++    if lib.name == 'tau':
++        libname = 'TauMpi-gnu-mpi'
++    elif lib.name == 'tau-papi':
++        libname = 'TauMpi-gnu-papi-mpi'
++    ok = config_cmd.check_library(libname, lib.library_dirs)
++    if not ok: return
++    if whole_archive:
++        cc = config_cmd.compiler
++        dirs = lib.library_dirs[:]
++        lib.extra_link_args += whole_archive(cc, libname, dirs)
++        lib.extra_link_args += ['-l' + libname
++                                for libname in libraries]
++    else:
++        lib.libraries += [libname] + libraries
++
++def configure_craypat(lib, config_cmd):
++    libdir = '/opt/cray/perftools/default/lib64'
++    lib.library_dirs.append(libdir)
++    lib.runtime_library_dirs.append(libdir)
++    dep_libs = ('_pat',)
++    libraries = []
++    for libname in dep_libs:
++        if config_cmd.check_library(
++            libname, lib.library_dirs,
++            other_libraries=libraries):
++            cc = config_cmd.compiler
++            dirs = lib.library_dirs[:]
++            libraries.insert(0, libname)
++            lib.extra_link_args += whole_archive(cc, libname, dirs)
++    if lib.name == 'craypat-mpi':
++        log_name = '_pat_mpi_dl'
++    if lib.name == 'craypat-cuda':
++        log_name = '_pat_cuda_dl'
++    if lib.name == 'craypat-dmapp':
++        log_name = '_pat_dmapp_dl'
++    if lib.name == 'craypat-omp':
++        log_name = '_pat_omp_dl'
++    ok = config_cmd.check_library(log_name, lib.library_dirs)
++    if not ok: return
++    if whole_archive:
++        cc = config_cmd.compiler
++        dirs = lib.library_dirs[:]
++        lib.extra_link_args += whole_archive(cc, log_name, dirs)
++        lib.extra_link_args += ['-l' + libname
++                                for libname in libraries]
++    else:
++        lib.libraries += [libname] + libraries
++
+ def configure_pyexe(exe, config_cmd):
+     from distutils import sysconfig
+     if sys.platform.startswith('win'):
+@@ -415,11 +469,65 @@ def libraries():
+         configure=configure_libvt,
+         )
+     #
++    pmpi_tau = dict(
++        name='tau', kind='dylib',
++        optional=True,
++        package='mpi4py',
++        dest_dir='lib-pmpi',
++        sources=['src/lib-pmpi/tau.c'],
++        configure=configure_tau,
++        )
++    pmpi_tau_papi = dict(
++        name='tau-papi', kind='dylib',
++        optional=True,
++        package='mpi4py',
++        dest_dir='lib-pmpi',
++        sources=['src/lib-pmpi/tau-papi.c'],
++        configure=configure_tau,
++        )
++    pmpi_craypat_mpi = dict(
++        name='craypat-mpi', kind='dylib',
++        optional=True,
++        package='mpi4py',
++        dest_dir='lib-pmpi',
++        sources=['src/lib-pmpi/craypat-mpi.c'],
++        configure=configure_craypat,
++        )
++    pmpi_craypat_cuda = dict(
++        name='craypat-cuda', kind='dylib',
++        optional=True,
++        package='mpi4py',
++        dest_dir='lib-pmpi',
++        sources=['src/lib-pmpi/craypat-cuda.c'],
++        configure=configure_craypat,
++        )
++    pmpi_craypat_dmapp = dict(
++        name='craypat-dmapp', kind='dylib',
++        optional=True,
++        package='mpi4py',
++        dest_dir='lib-pmpi',
++        sources=['src/lib-pmpi/craypat-dmapp.c'],
++        configure=configure_craypat,
++        )
++    pmpi_craypat_omp = dict(
++        name='craypat-omp', kind='dylib',
++        optional=True,
++        package='mpi4py',
++        dest_dir='lib-pmpi',
++        sources=['src/lib-pmpi/craypat-omp.c'],
++        configure=configure_craypat,
++        )
+     return [
+         pmpi_mpe,
+         pmpi_vt,
+         pmpi_vt_mpi,
+         pmpi_vt_hyb,
++        pmpi_tau,
++        pmpi_tau_papi,
++        #pmpi_craypat_mpi,
++        #pmpi_craypat_cuda,
++        #pmpi_craypat_dmapp,
++        #pmpi_craypat_omp,
+         ]
+ 
+ def executables():
+diff --git a/src/lib-pmpi/craypat-cuda.c b/src/lib-pmpi/craypat-cuda.c
+index e69de29..f4d53c3 100644
+--- a/src/lib-pmpi/craypat-cuda.c
++++ b/src/lib-pmpi/craypat-cuda.c
+@@ -0,0 +1 @@
++char pympi_pmpi_name[] = "craypat-cuda";
+diff --git a/src/lib-pmpi/craypat-dmapp.c b/src/lib-pmpi/craypat-dmapp.c
+index e69de29..27983b5 100644
+--- a/src/lib-pmpi/craypat-dmapp.c
++++ b/src/lib-pmpi/craypat-dmapp.c
+@@ -0,0 +1 @@
++char pympi_pmpi_name[] = "craypat-dmapp";
+diff --git a/src/lib-pmpi/craypat-mpi.c b/src/lib-pmpi/craypat-mpi.c
+index e69de29..354aea4 100644
+--- a/src/lib-pmpi/craypat-mpi.c
++++ b/src/lib-pmpi/craypat-mpi.c
+@@ -0,0 +1 @@
++char pympi_pmpi_name[] = "craypat-mpi";
+diff --git a/src/lib-pmpi/craypat-omp.c b/src/lib-pmpi/craypat-omp.c
+index e69de29..824834f 100644
+--- a/src/lib-pmpi/craypat-omp.c
++++ b/src/lib-pmpi/craypat-omp.c
+@@ -0,0 +1 @@
++char pympi_pmpi_name[] = "craypat-omp";
+diff --git a/src/lib-pmpi/tau-papi.c b/src/lib-pmpi/tau-papi.c
+index e69de29..8cab5b4 100644
+--- a/src/lib-pmpi/tau-papi.c
++++ b/src/lib-pmpi/tau-papi.c
+@@ -0,0 +1 @@
++char pympi_pmpi_name[] = "tau-papi";
+diff --git a/src/lib-pmpi/tau.c b/src/lib-pmpi/tau.c
+index e69de29..d7e6ae8 100644
+--- a/src/lib-pmpi/tau.c
++++ b/src/lib-pmpi/tau.c
+@@ -0,0 +1 @@
++char pympi_pmpi_name[] = "tau";

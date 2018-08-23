@@ -56,7 +56,7 @@ RDEPEND="
         ffmpeg? ( virtual/ffmpeg )
         gdal? ( sci-libs/gdal )
         java? ( >=virtual/jdk-1.7:* )
-        kaapi? ( <sci-libs/xkaapi-3 )
+        kaapi? ( sci-libs/xkaapi )
         >=media-libs/freetype-2.5.4
         media-libs/libpng:0=
         media-libs/mesa
@@ -113,7 +113,8 @@ S="${WORKDIR}"/VTK-${PV}
 PATCHES=(
         "${FILESDIR}"/${PN}-7.0.0-glext.patch
         "${FILESDIR}"/${PN}-6.1.0-memset.patch
-        )
+	"${FILESDIR}"/${PN}-7.1.0-hdf5-1.10.patch
+)
 
 RESTRICT=test
 
@@ -212,6 +213,7 @@ src_configure() {
                 -DVTK_WRAP_PYTHON=$(usex python)
                 -DVTK_WRAP_PYTHON_SIP=$(usex python)
                 -DVTK_WRAP_TCL=$(usex tcl)
+		-DVTK_USE_TK=$(usex tk)
                 -DVTK_USE_BOOST=$(usex boost)
                 -DUSE_VTK_USE_BOOST=$(usex boost)
                 -DModule_vtkInfovisBoost=$(usex boost)

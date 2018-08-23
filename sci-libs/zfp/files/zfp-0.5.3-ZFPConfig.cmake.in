@@ -1,0 +1,12 @@
+# Find the ZFP includes and library
+#
+# ZFP_LIBRARIES -- list of libraries to link against
+# ZFP_FOUND -- set to 1 if found
+
+SET(ZFP_FOUND 1)
+
+if(NOT TARGET zfp AND NOT ZFP_BINARY_DIR)
+   include("${CMAKE_INSTALL_PREFIX}/share/zfp/cmake/ZfpTargets.cmake")
+endif()
+
+SET(ZFP_LIBRARIES zfp)

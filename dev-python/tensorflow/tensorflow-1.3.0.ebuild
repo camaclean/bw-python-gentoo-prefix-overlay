@@ -16,7 +16,7 @@ SRC_URI="https://github.com/tensorflow/${PN}/archive/v${MY_PV}.tar.gz -> ${P}.ta
 LICENSE="Apache-2.0"
 SLOT="0"
 KEYWORDS="~amd64"
-IUSE="cray cuda graphviz prefix-chaining prefix-chain"
+IUSE="cray cuda graphviz mkl mpi prefix-chaining prefix-chain"
 
 RDEPEND="dev-libs/nccl
 	 dev-python/numpy[${PYTHON_USEDEP}]
@@ -30,11 +30,17 @@ RDEPEND="dev-libs/nccl
 DEPEND="dev-lang/swig
 	${RDEPEND}"
 
-PATCHES=( "${FILESDIR}"/tensorflow-${MY_PV}.patch )
+PATCHES=( "${FILESDIR}"/tensorflow-${MY_PV}.patch
+          "${FILESDIR}"/tensorflow-${MY_PV}-mpi.patch )
 
 S="${WORKDIR}/tensorflow-${MY_PV}"
 
 ENVMOD_REQUIRE="cudatoolkit"
+
+src_prepare() {
+	default
+	ln -s /opt/intel/mkl/include "$S"/third_party/mkl/include || die
+}
 
 src_configure() {
 	export LDFLAGS_BAK="${LDFLAGS}"
@@ -43,8 +49,16 @@ src_configure() {
 	        mkdir -p "${BUILD_DIR}" || die
         	cd "${BUILD_DIR}" || die
 		if use cray; then
-			CC="${GCC_PATH}/snos/bin/gcc"
-			CXX="${GCC_PATH}/snos/bin/g++"
+			if use mpi; then
+				CC=$(which cc)
+				CXX=$(which CC)
+				export CXXFLAGS="${CXXFLAGS} -fexceptions"
+				export CRAYPE_LINK_TYPE="dynamic"
+				export CRAY_ADD_RPATH="yes"
+			else
+				CC="${GCC_PATH}/snos/bin/gcc"
+				CXX="${GCC_PATH}/snos/bin/g++"
+			fi
 			tc-export CC CXX
 		fi
 		if use cuda; then
@@ -70,6 +84,12 @@ src_configure() {
 				mycmakeargs+=( "-Dtensorflow_CUDA_52=ON" )
 			fi
 		fi
+		if use mkl; then
+			mycmakeargs+=( "-Dtensorflow_USE_MKL=ON"
+				       "-DMLK_LIBRARIES=/opt/intel/lib/intel64/libiomp5.so;/opt/intel/mkl/lib/intel64/libmkl_rt.so"
+			)
+		fi
+		mycmakeargs+=( "-Dtensorflow_ENABLE_MPI=$(usex mpi)" )
 	
 		CMAKE_USE_DIR="${S}"/tensorflow/contrib/cmake/
 		cmake-utils_src_configure || die

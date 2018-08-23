@@ -2,9 +2,9 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Header: /var/cvsroot/gentoo-x86/sys-apps/gawk/gawk-4.1.3.ebuild,v 1.1 2015/05/23 19:38:43 polynomial-c Exp $
 
-EAPI="4"
+EAPI="6"
 
-inherit eutils hostsym
+inherit hostsym
 
 DESCRIPTION="GNU awk pattern-matching language"
 HOMEPAGE="http://www.gnu.org/software/gawk/gawk.html"
@@ -22,6 +22,9 @@ DEPEND="${RDEPEND}
 S=${WORKDIR}
 
 src_install() {
-	dohostsyms /usr/bin/gawk /usr/bin/pgawk /usr/bin/awk
-	dohostoptsyms /usr/bin/dgawk /usr/bin/igawk
+	dohostsyms /usr/bin/awk /usr/bin/awk
+	dohostsyms /usr/bin/gawk /usr/bin/gawk
+	dohostsyms /usr/bin/pgawk /usr/bin/pgawk
+	[ -e /usr/bin/dgawk ] && dohostsym /usr/bin/dgawk /usr/bin/dgawk
+	[ -e /usr/bin/igawk ] && dohostsym /usr/bin/igawk /usr/bin/igawk
 }

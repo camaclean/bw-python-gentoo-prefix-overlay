@@ -1,0 +1,170 @@
+diff --git a/lib/Driver/ToolChains/Gnu.cpp b/lib/Driver/ToolChains/Gnu.cpp
+index 7845781..1403259 100644
+--- a/lib/Driver/ToolChains/Gnu.cpp
++++ b/lib/Driver/ToolChains/Gnu.cpp
+@@ -27,6 +27,7 @@
+ #include "llvm/Support/Path.h"
+ #include "llvm/Support/TargetParser.h"
+ #include <system_error>
++#include <cstdlib>
+ 
+ using namespace clang::driver;
+ using namespace clang::driver::toolchains;
+@@ -1635,7 +1636,7 @@ void Generic_GCC::GCCInstallationDetector::init(
+   // if --gcc-toolchain is not provided or equal to the Gentoo install
+   // in /usr. This avoids accidentally enforcing the system GCC version
+   // when using a custom toolchain.
+-  if (GCCToolchainDir == "" || GCCToolchainDir == D.SysRoot + "/usr") {
++  if (GCCToolchainDir == "" || GCCToolchainDir == D.SysRoot + "/usr" || GCCToolchainDir == GCC_INSTALL_PREFIX) {
+     for (StringRef CandidateTriple : ExtraTripleAliases) {
+       if (ScanGentooGccConfig(TargetTriple, Args, CandidateTriple))
+         return;
+@@ -2124,8 +2125,14 @@ void Generic_GCC::GCCInstallationDetector::ScanLibDirForGCCTriple(
+ bool Generic_GCC::GCCInstallationDetector::ScanGentooGccConfig(
+     const llvm::Triple &TargetTriple, const ArgList &Args,
+     StringRef CandidateTriple, bool NeedsBiarchSuffix) {
++  std::string Root = "@GENTOO_PORTAGE_EPREFIX@";
++  const char* eprefix = std::getenv("EPREFIX");
++  if (eprefix)
++    Root = eprefix;
++  if (!D.SysRoot.empty())
++    Root = D.SysRoot;
+   llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> File =
+-      D.getVFS().getBufferForFile(D.SysRoot + "/etc/env.d/gcc/config-" +
++      D.getVFS().getBufferForFile(Root + "/etc/env.d/gcc/config-" +
+                                   CandidateTriple.str());
+   if (File) {
+     SmallVector<StringRef, 2> Lines;
+@@ -2139,7 +2146,7 @@ bool Generic_GCC::GCCInstallationDetector::ScanGentooGccConfig(
+         // Note: Strictly speaking, we should be reading
+         // /etc/env.d/gcc/${CURRENT} now. However, the file doesn't
+         // contain anything new or especially useful to us.
+-        const std::string GentooPath = D.SysRoot + "/usr/lib/gcc/" +
++        const std::string GentooPath = Root + "/usr/lib/gcc/" +
+                                        ActiveVersion.first.str() + "/" +
+                                        ActiveVersion.second.str();
+         if (D.getVFS().exists(GentooPath + "/crtbegin.o")) {
+@@ -2319,6 +2326,8 @@ bool Generic_GCC::addLibStdCXXIncludePaths(
+                      Base + "/" + TargetMultiarchTriple + Suffix);
+   }
+ 
++  // Cray GCC
++  addSystemInclude(DriverArgs, CC1Args, Base + Suffix + "/x86_64-suse-linux");
+   addSystemInclude(DriverArgs, CC1Args, Base + Suffix + "/backward");
+   return true;
+ }
+diff --git a/lib/Driver/ToolChains/Linux.cpp b/lib/Driver/ToolChains/Linux.cpp
+index 1301cdf..a7701e2 100644
+--- a/lib/Driver/ToolChains/Linux.cpp
++++ b/lib/Driver/ToolChains/Linux.cpp
+@@ -22,6 +22,7 @@
+ #include "llvm/ProfileData/InstrProf.h"
+ #include "llvm/Support/Path.h"
+ #include <system_error>
++#include <cstdlib>
+ 
+ using namespace clang::driver;
+ using namespace clang::driver::toolchains;
+@@ -187,6 +188,35 @@ static void addMultilibsFilePaths(const Driver &D, const MultilibSet &Multilibs,
+     for (const auto &Path : PathsCallback(Multilib))
+       addPathIfExists(D, InstallPath + Path, Paths);
+ }
++static void addChainedEPrefixDirectories(const Driver &D, const std::string &MultiarchTriple,
++                                  const std::string &OSLibDir, ToolChain::path_list &Paths) {
++  const char *DirList = ::getenv("READONLY_R_EPREFIXES");
++
++  if (!DirList)
++    return; // Nothing to do.
++
++  StringRef Dirs(DirList);
++  if (Dirs.empty()) // Empty string should not add '.'.
++    return;
++
++  StringRef::size_type Delim;
++  while ((Delim = Dirs.find(llvm::sys::EnvPathSeparator)) != StringRef::npos) {
++    if (Delim != 0) { // Ignore leading colon.
++      addPathIfExists(D, Dirs.substr(0, Delim) + "/lib/" + MultiarchTriple, Paths);
++      addPathIfExists(D, Dirs.substr(0, Delim) + "/lib/../" + OSLibDir, Paths);
++      addPathIfExists(D, Dirs.substr(0, Delim) + "/usr/lib/" + MultiarchTriple, Paths);
++      addPathIfExists(D, Dirs.substr(0, Delim) + "/usr/lib/../" + OSLibDir, Paths);
++    }
++    Dirs = Dirs.substr(Delim + 1);
++  }
++
++  if (!Dirs.empty()) { // Trailing colon.
++    addPathIfExists(D, Dirs + "/lib/" + MultiarchTriple, Paths);
++    addPathIfExists(D, Dirs + "/lib/../" + OSLibDir, Paths);
++    addPathIfExists(D, Dirs + "/usr/lib/" + MultiarchTriple, Paths);
++    addPathIfExists(D, Dirs + "/usr/lib/../" + OSLibDir, Paths);
++  }
++}
+ 
+ Linux::Linux(const Driver &D, const llvm::Triple &Triple, const ArgList &Args)
+     : Generic_ELF(D, Triple, Args) {
+@@ -334,6 +364,16 @@ Linux::Linux(const Driver &D, const llvm::Triple &Triple, const ArgList &Args)
+   addPathIfExists(D, SysRoot + "/usr/lib/" + MultiarchTriple, Paths);
+   addPathIfExists(D, SysRoot + "/usr/lib/../" + OSLibDir, Paths);
+ 
++  const char* EPrefix = std::getenv("EPREFIX");
++  if (EPrefix) {
++    addPathIfExists(D, std::string(EPrefix) + "/lib/" + MultiarchTriple, Paths);
++    addPathIfExists(D, std::string(EPrefix) + "/lib/../" + OSLibDir, Paths);
++    addPathIfExists(D, std::string(EPrefix) + "/usr/lib/" + MultiarchTriple, Paths);
++    addPathIfExists(D, std::string(EPrefix) + "/usr/lib/../" + OSLibDir, Paths);
++  }
++
++  addChainedEPrefixDirectories(D, MultiarchTriple, OSLibDir, Paths);
++
+   // Try walking via the GCC triple path in case of biarch or multiarch GCC
+   // installations with strange symlinks.
+   if (GCCInstallation.isValid()) {
+@@ -576,6 +616,28 @@ void Linux::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
+     return;
+   }
+ 
++  const char* eprefix = ::getenv("EPREFIX");
++  if (eprefix) {
++    StringRef EPrefix = eprefix;
++    addExternCSystemInclude(DriverArgs, CC1Args, EPrefix + "/usr/local/include");
++    addExternCSystemInclude(DriverArgs, CC1Args, EPrefix + "/usr/include");
++  }
++
++  const char* reprefixes = ::getenv("READONLY_R_EPREFIXES");
++  if (reprefixes) {
++    StringRef REPrefixesIncludeDirs(reprefixes);
++    SmallVector<StringRef, 5> dirs;
++    REPrefixesIncludeDirs.split(dirs, ":");
++    for (StringRef dir : dirs) {
++      StringRef Prefix =
++          llvm::sys::path::is_absolute(dir) ? StringRef(SysRoot) : "";
++      addExternCSystemInclude(DriverArgs, CC1Args, Prefix + dir + "/usr/local/include");
++      addExternCSystemInclude(DriverArgs, CC1Args, Prefix + dir + "/usr/include");
++    }
++  }
++
++  addExternCSystemInclude(DriverArgs, CC1Args, "/usr/include");
++
+   // Lacking those, try to detect the correct set of system includes for the
+   // target triple.
+ 
+@@ -586,6 +648,11 @@ void Linux::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
+       for (const auto &Path : Callback(GCCInstallation.getMultilib()))
+         addExternCSystemIncludeIfExists(
+             DriverArgs, CC1Args, GCCInstallation.getInstallPath() + Path);
++    } else {
++      addExternCSystemIncludeIfExists(DriverArgs, CC1Args,
++            GCCInstallation.getInstallPath() + "/include");
++      addExternCSystemIncludeIfExists(DriverArgs, CC1Args,
++            GCCInstallation.getInstallPath() + "/include-fixed");
+     }
+   }
+ 
+@@ -789,6 +856,8 @@ void Linux::addLibStdCxxIncludePaths(const llvm::opt::ArgList &DriverArgs,
+       // Freescale SDK C++ headers are directly in <sysroot>/usr/include/c++,
+       // without a subdirectory corresponding to the gcc version.
+       LibDir.str() + "/../include/c++",
++      // Cray Linux GCC
++      LibDir.str() + "/../include/g++",
+   };
+ 
+   for (const auto &IncludePath : LibStdCXXIncludePathCandidates) {

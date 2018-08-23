@@ -1,0 +1,25 @@
+# Find the Tensorflow includes and library
+#
+# TENSORFLOW_INCLUDE_DIR -- where to find the includes
+# TENSORFLOW_LIBRARIES -- list of libraries to link against
+# TENSORFLOW_FOUND -- set to 1 if found
+
+SET(TENSORFLOW_FOUND 1)
+SET(TENSORFLOW_HAVE_GRPC @tensorflow_ENABLE_GRPC_SUPPORT@)
+SET(TENSORFLOW_HAVE_MPI @tensorflow_ENABLE_MPI@)
+SET(TENSORFLOW_HAVE_CONTRIB) @tensorflow_BUILD_CONTRIB_KERNELS@)
+SET(TENSORFLOW_INCLUDE_DIR "@TENSORFLOW_INCLUDE_DIR@")
+
+if(NOT TARGET tensorflow AND NOT tensorflow_BINARY_DIR)
+   include("${CMAKE_INSTALL_PREFIX}/share/tensorflow/cmake/TensorflowTargets.cmake")
+   include("${CMAKE_INSTALL_PREFIX}/share/tensorflow/cmake/TensorflowToolsTargets.cmake")
+   if(TENSORFLOW_HAVE_CONTRIB)
+       include("${CMAKE_INSTALL_PREFIX}/share/tensorflow/cmake/TensorflowContribTargets.cmake")
+   endif()
+
+endif()
+
+SET(TENSORFLOW_LIBRARIES tensorflow_framework tensorflow)
+if (${TENSORFLOW_HAVE_GRPC} OR ${TENSORFLOW_HAVE_MPI})
+    list(APPEND TENSORFLOW_LIBRARIES tensorflow_distributed
+endif()

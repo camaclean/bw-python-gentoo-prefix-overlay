@@ -17,5 +17,5 @@ IUSE=""
 S=${WORKDIR}
 
 src_install() {
-	dohostsyms /usr/bin/which
+	dohostsym /usr/bin/which /usr/bin/which
 }

@@ -1,0 +1,29 @@
+diff --git a/setup.py b/setup.py
+index 0989863..3ec6144 100644
+--- a/setup.py
++++ b/setup.py
+@@ -48,23 +48,4 @@ setuptools.setup(name='cov-core',
+                               'Topic :: Software Development :: Testing'])
+ 
+ if sys.argv[1] in ('install', 'develop'):
+-    for path in sys.path:
+-        if (path.endswith('site-packages')) or (path.endswith('dist-packages')
+-                                                and 'local' in path):
+-            path = os.path.join(path, PTH_FILE_NAME)
+-            try:
+-                pth_file = open(path, 'w')
+-                pth_file.write(PTH_FILE)
+-                pth_file.close()
+-                sys.stdout.write('\nWrote pth file for subprocess '
+-                                 'measurement to %s\n' % path)
+-                break
+-            except Exception:
+-                sys.stdout.write('\nFailed to write pth file for subprocess '
+-                                 'measurement to %s\n' % path)
+-                sys.stdout.write(PTH_FILE_FAILURE)
+-                break
+-    else:
+-        sys.stdout.write('\nFailed to find site-packages or dist-packages '
+-                         'dir to put pth file in.\n')
+-        sys.stdout.write(PTH_FILE_FAILURE)
++    sys.stdout.write(PTH_FILE_FAILURE)

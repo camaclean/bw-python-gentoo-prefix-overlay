@@ -1,0 +1,241 @@
+diff --git a/Makefile b/Makefile
+index bc0f1ea..2079b56 100644
+--- a/Makefile
++++ b/Makefile
+@@ -96,7 +96,7 @@ INCLUDEPATH+=$(PROTOBUF_PATH)/include
+ # COMMON_FLAGS include settings that are passed both to NVCC and C++ compilers.
+ COMMON_FLAGS:= -DHAS_MPI=$(HAS_MPI) -D_POSIX_SOURCE -D_XOPEN_SOURCE=600 -D__USE_XOPEN2K -std=c++11 -DCUDA_NO_HALF -D__CUDA_NO_HALF_OPERATORS__
+ CPPFLAGS:=
+-CXXFLAGS:= $(SSE_FLAGS) -std=c++0x -fopenmp -fpermissive -fPIC -Werror -fcheck-new
++CXXFLAGS:= $(SSE_FLAGS) -std=c++0x -fopenmp -fpermissive -fPIC -fcheck-new
+ LIBPATH:=
+ LIBS_LIST:=
+ LDFLAGS:=
+@@ -173,12 +173,13 @@ endif
+ ifeq ("$(MATHLIB)","mkl")
+   INCLUDEPATH += $(MKL_PATH)/include
+   # disable MKL-DNN until we pick up the fix for AMD cache size https://github.com/intel/mkl-dnn/commit/ccfbf83ab489b42f7452b6701498b07c28cdb502
+-  #LIBS_LIST += m iomp5 pthread mklml_intel mkldnn
+-  LIBS_LIST += m iomp5 pthread mklml_intel
+-  MKL_LIB_PATH := $(MKL_PATH)/lib
++  COMMON_FLAGS += -DUSE_MKL -DUSE_MKLDNN
++  #COMMON_FLAGS += -DUSE_MKL
++  LIBS_LIST += m pthread mkl_core mkl_gnu_thread mkl_intel_lp64 mkldnn
++  MKL_LIB_PATH := $(MKL_PATH)/lib/intel64
++  INTEL_LIB_PATH= /opt/intel/lib/intel64
+   LIBPATH += $(MKL_LIB_PATH)
+-  #COMMON_FLAGS += -DUSE_MKL -DUSE_MKLDNN
+-  COMMON_FLAGS += -DUSE_MKL
++  LIBPATH += $(INTEL_LIB_PATH)
+ endif
+ 
+ ifeq ($(CUDA_GDR),1)
+@@ -563,7 +564,7 @@ $(CNTKLIBRARY_LIB): $(CNTKLIBRARY_OBJ) | $(CNTKMATH_LIB)
+ 	@echo $(SEPARATOR)
+ 	@mkdir -p $(dir $@)
+ 	@echo building $@ for $(ARCH) with build type $(BUILDTYPE)
+-	$(CXX) $(LDFLAGS) -shared $(patsubst %,-L%, $(LIBDIR) $(LIBPATH) $(GDK_NVML_LIB_PATH)) $(patsubst %,$(RPATH)%, $(ORIGINDIR) $(LIBPATH))  -o $@ $^ $(LIBS) -l$(CNTKMATH) $(PROTOBUF_PATH)/lib/libprotobuf.a -ldl -fopenmp
++	$(CXX) $(LDFLAGS) -shared $(patsubst %,-L%, $(LIBDIR) $(LIBPATH) $(GDK_NVML_LIB_PATH)) $(patsubst %,$(RPATH)%, $(ORIGINDIR) $(LIBPATH))  -o $@ $^ $(LIBS) -l$(CNTKMATH) $(PROTOBUF_PATH)/lib/libprotobuf.so -ldl -fopenmp
+ 
+ 
+ ########################################
+@@ -673,7 +674,7 @@ $(EVAL_LIB): $(EVAL_OBJ) | $(CNTKMATH_LIB)
+ 	@echo $(SEPARATOR)
+ 	@mkdir -p $(dir $@)
+ 	@echo Building $(EVAL_LIB) for $(ARCH) with build type $(BUILDTYPE)
+-	$(CXX) $(LDFLAGS) -shared $(patsubst %,-L%, $(LIBDIR) $(LIBPATH) $(GDK_NVML_LIB_PATH)) $(patsubst %,$(RPATH)%, $(ORIGINDIR) $(LIBPATH)) -o $@ $^ $(LIBS) -l$(CNTKMATH) -ldl $(lMULTIVERSO) $(PROTOBUF_PATH)/lib/libprotobuf.a
++	$(CXX) $(LDFLAGS) -shared $(patsubst %,-L%, $(LIBDIR) $(LIBPATH) $(GDK_NVML_LIB_PATH)) $(patsubst %,$(RPATH)%, $(ORIGINDIR) $(LIBPATH)) -o $@ $^ $(LIBS) -l$(CNTKMATH) -ldl $(lMULTIVERSO) $(PROTOBUF_PATH)/lib/libprotobuf.so
+ 
+ ########################################
+ # Eval Sample clients
+@@ -1085,7 +1086,7 @@ ifeq (,$(wildcard Source/Multiverso/include/multiverso/*.h))
+   $(error Build with Multiverso was requested but cannot find the code. Please check https://docs.microsoft.com/en-us/cognitive-toolkit/Multiple-GPUs-and-machines#8-data-parallel-training-with-parameter-server to learn more.)
+ endif
+ 
+-lMULTIVERSO:=-lmultiverso
++lMULTIVERSO:= -L$(SOURCEDIR)/Multiverso/build/$(BUILDTYPE)/src -lmultiverso
+ 
+ INCLUDEPATH += $(SOURCEDIR)/Multiverso/include
+ COMMON_FLAGS += -DASGD_PARALLEL_SUPPORT
+@@ -1107,15 +1108,6 @@ $(MULTIVERSO_LIB):
+ 	@mkdir -p $(BINDIR)
+ 	@mkdir -p $(SOURCEDIR)/Multiverso/build/$(BUILDTYPE)
+ 	@cmake -DCMAKE_VERBOSE_MAKEFILE=TRUE \
+-		-DCMAKE_CXX_COMPILER=$(CXX) \
+-		-DOpenMP_CXX_FLAGS="" \
+-		-DOpenMP_C_FLAGS="" \
+-		-DBoost_NO_BOOST_CMAKE=TRUE \
+-		-DBoost_NO_SYSTEM_PATHS=TRUE \
+-		-DBOOST_ROOT:PATHNAME=$(BOOST_PATH) \
+-		-DBOOST_LIBRARY_DIRS:FILEPATH=$(BOOST_PATH) \
+-		-DLIBRARY_OUTPUT_PATH=$(shell readlink -f $(LIBDIR)) \
+-		-DEXECUTABLE_OUTPUT_PATH=$(shell readlink -f $(BINDIR)) \
+ 		-DCMAKE_BUILD_TYPE=$(MULTIVERSO_CMAKE_BUILDTYPE) \
+ 		-B./Source/Multiverso/build/$(BUILDTYPE) -H./Source/Multiverso
+ 	@make VERBOSE=1 -C ./Source/Multiverso/build/$(BUILDTYPE) -j multiverso
+@@ -1179,7 +1171,7 @@ $(CNTK): $(CNTK_OBJ) | $(READER_LIBS) $(MULTIVERSO_LIB)
+ 	@echo $(SEPARATOR)
+ 	@mkdir -p $(dir $@)
+ 	@echo building $@ for $(ARCH) with build type $(BUILDTYPE)
+-	$(CXX) $(LDFLAGS) $(patsubst %,-L%, $(LIBDIR) $(LIBPATH) $(GDK_NVML_LIB_PATH)) $(patsubst %,$(RPATH)%, $(ORIGINLIBDIR) $(LIBPATH)) -o $@ $^ $(LIBS) $(L_READER_LIBS) $(lMULTIVERSO) -ldl -fopenmp $(PROTOBUF_PATH)/lib/libprotobuf.a
++	$(CXX) $(LDFLAGS) $(patsubst %,-L%, $(LIBDIR) $(LIBPATH) $(GDK_NVML_LIB_PATH)) $(patsubst %,$(RPATH)%, $(ORIGINLIBDIR) $(LIBPATH)) -o $@ $^ $(LIBS) $(L_READER_LIBS) $(lMULTIVERSO) -ldl -fopenmp $(PROTOBUF_PATH)/lib/libprotobuf.so
+ 
+ # deployable resources: standard library of BS
+ CNTK_CORE_BS:=$(BINDIR)/cntk.core.bs
+@@ -1319,7 +1311,7 @@ $(UNITTEST_NETWORK): $(UNITTEST_NETWORK_OBJ) | $(READER_LIBS) $(CNTKTEXTFORMATRE
+ 	@echo $(SEPARATOR)
+ 	@mkdir -p $(dir $@)
+ 	@echo building $@ for $(ARCH) with build type $(BUILDTYPE)
+-	$(CXX) $(LDFLAGS) $(patsubst %,-L%, $(LIBDIR) $(LIBPATH) $(GDK_NVML_LIB_PATH) $(BOOSTLIB_PATH)) $(patsubst %, $(RPATH)%, $(ORIGINLIBDIR) $(LIBPATH) $(BOOSTLIB_PATH)) -o $@ $^ $(BOOSTLIBS) $(LIBS) $(lMULTIVERSO) $(L_READER_LIBS) -ldl -fopenmp  $(PROTOBUF_PATH)/lib/libprotobuf.a  
++	$(CXX) $(LDFLAGS) $(patsubst %,-L%, $(LIBDIR) $(LIBPATH) $(GDK_NVML_LIB_PATH) $(BOOSTLIB_PATH)) $(patsubst %, $(RPATH)%, $(ORIGINLIBDIR) $(LIBPATH) $(BOOSTLIB_PATH)) -o $@ $^ $(BOOSTLIBS) $(LIBS) $(lMULTIVERSO) $(L_READER_LIBS) -ldl -fopenmp  $(PROTOBUF_PATH)/lib/libprotobuf.so
+ 
+ UNITTEST_MATH_SRC = \
+ 	$(SOURCEDIR)/../Tests/UnitTests/MathTests/BatchNormalizationEngineTests.cpp \
+diff --git a/Source/Common/CrossProcessMutex.h b/Source/Common/CrossProcessMutex.h
+index 2f3ce70..f2a9e37 100644
+--- a/Source/Common/CrossProcessMutex.h
++++ b/Source/Common/CrossProcessMutex.h
+@@ -128,7 +128,7 @@ class CrossProcessMutex
+ public:
+     CrossProcessMutex(const std::string& name)
+         : m_fd(-1),
+-          m_fileName("/var/lock/" + name)
++          m_fileName("/tmp/" + name)
+     {
+     }
+ 
+diff --git a/Source/Multiverso/Test/CMakeLists.txt b/Source/Multiverso/Test/CMakeLists.txt
+index 53fee77..1aaf555 100644
+--- a/Source/Multiverso/Test/CMakeLists.txt
++++ b/Source/Multiverso/Test/CMakeLists.txt
+@@ -7,8 +7,8 @@ SET(CMAKE_CXX_COMPILER mpicxx)
+ LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
+ 
+ 
+-MESSAGE(${MPI_LIBRARIES})
+-MESSAGE(${MPI_CXX_LIBRARIES})
++MESSAGE("${MPI_LIBRARIES}")
++MESSAGE("${MPI_CXX_LIBRARIES}")
+ 
+ ENABLE_TESTING()
+ 
+diff --git a/Source/Multiverso/src/CMakeLists.txt b/Source/Multiverso/src/CMakeLists.txt
+index 1e1c973..ba3fecb 100644
+--- a/Source/Multiverso/src/CMakeLists.txt
++++ b/Source/Multiverso/src/CMakeLists.txt
+@@ -20,12 +20,14 @@ set(MULTIVERSO_SRC actor.cpp communicator.cpp controller.cpp dashboard.cpp multi
+ add_library(multiverso SHARED ${MULTIVERSO_SRC})
+ #add_library(imultiverso ${MULTIVERSO_SRC})
+ if (NOT USE_ZMQ)
+-    target_link_libraries(multiverso ${MPI_LIBRARY})
++    if (MPI_LIBRARY)
++        target_link_libraries(multiverso ${MPI_LIBRARY})
++    endif()
+ else()
+     target_link_libraries(multiverso zmq)
+ endif()
+ 
+ install (TARGETS multiverso DESTINATION lib)
+-if (UNIX)
+-    install(CODE "execute_process(COMMAND ldconfig)")  # run ldconfig. Otherwise ld.so.cache won't be created.
+-endif()
++#if (UNIX)
++#    install(CODE "execute_process(COMMAND ldconfig)")  # run ldconfig. Otherwise ld.so.cache won't be created.
++#endif()
+diff --git a/bindings/python/setup.py b/bindings/python/setup.py
+index ad63454..2638829 100644
+--- a/bindings/python/setup.py
++++ b/bindings/python/setup.py
+@@ -207,18 +207,17 @@ if IS_WINDOWS:
+         "/Zi",
+         "/WX"
+     ]
+-    extra_link_args = [LINKER_DEBUG_ARG]
++    extra_link_args = [LINKER_DEBUG_ARG,'-L' + os.path.join(os.environ.get('WORKDIR','../../../'),'cntk-build/lib')]
+     runtime_library_dirs = []
+ else:
+     extra_compile_args += [
+         '--std=c++11',
+     ]
+-    extra_link_args = [] # TODO: LINKER_DEBUG_ARG is not passed in to avoid compilation error
++    extra_link_args = ['-L' + os.path.join(os.environ.get('WORKDIR','../../../'),'cntk-build/lib')]
+ 
+     # Expecting the dependent libs (libcntklibrary-[CNTK_COMPONENT_VERSION].so, etc.) inside
+     # site-packages/cntk/libs.
+     runtime_library_dirs = ['$ORIGIN/cntk/libs']
+-    os.environ["CXX"] = "mpic++"
+ 
+ cntkV2LibraryInclude = os.path.join(CNTK_SOURCE_PATH, "CNTKv2LibraryDll", "API")
+ cntkBindingCommon = os.path.join(CNTK_PATH, "bindings", "common")
+diff --git a/configure b/configure
+index 7520c5b..eb875f4 100755
+--- a/configure
++++ b/configure
+@@ -43,7 +43,7 @@ boost_check=include/boost/test/unit_test.hpp
+ 
+ # Protocol buffers library
+ protobuf_path=
+-protobuf_check=lib/libprotobuf.a
++protobuf_check=lib/libprotobuf.so
+ 
+ # MPI library
+ mpi_path=
+@@ -119,7 +119,7 @@ default_use_asgd=yes
+ enable_asgd=$default_use_asgd
+ 
+ # List from best to worst choice
+-default_path_list="/usr /usr/local /opt /opt/local /lib /usr/lib"
++default_path_list="${EPREFIX}/usr ${EPREFIX}/usr/local /opt /opt/local ${EPREFIX}/lib ${EPREFIX}/usr/lib"
+ 
+ # List from best to worst choice
+ default_mkls="mklml/$mklml_version"
+@@ -313,9 +313,15 @@ function check_python ()
+     # Required version: exact match against major and minor version
+     local required_version="$1"
+     local py_dir="$2"
+-    local py_bin="$py_dir/$py_check"
++    local exe_version
++    [[ $required_version == 27 ]] && exe_version=2.7
++    [[ $required_version == 34 ]] && exe_version=3.4
++    [[ $required_version == 35 ]] && exe_version=3.5
++    [[ $required_version == 36 ]] && exe_version=3.6
++    local py_bin="$py_dir/$py_check$exe_version"
++    echo "$py_bin" >&2
+     [ -x "$py_bin" ] || return 1
+-    local py_version=$("$py_bin" -c "import sys; sys.stdout.write('{0}{1}'.format(sys.version_info.major,sys.version_info.minor))")
++    local py_version=$("$py_bin" -c "import sys; sys.stdout.write('{0}{1}'.format(sys.version_info[0],sys.version_info[1]))")
+     [ "$?" = "0" ] && [ -x "$py_bin" ] && [ "$py_version" = "$required_version" ] && {
+         echo $py_dir
+         return 0
+@@ -327,7 +333,11 @@ function check_python ()
+ function find_python ()
+ {
+     local required_version="$1"
++    echo $required_version >&2
++    [[ required_version == 35 ]] && required_version="3.5"
+     local py_dir=$(find_dir "" "$py_check")
++    echo $py_dir >&2
++    [[ required_version == 3.5 ]] && required_version="35"
+     check_python "$required_version" "$py_dir"
+ }
+ 
+@@ -506,6 +516,8 @@ do
+                 show_help
+                 exit 1
+             else
++                IFS_bak=$IFS
++                IFS=","
+                 for ver in $optarg
+                 do
+                     case $ver in
+@@ -517,8 +529,9 @@ do
+                             exit
+                     esac
+                 done
++                IFS=$IFS_bak
+                 # TODO filter duplicates?
+-                py_versions="$optarg"
++                py_versions="$(echo "$optarg" | tr ',' ' ')"
+             fi
+             ;;
+ 

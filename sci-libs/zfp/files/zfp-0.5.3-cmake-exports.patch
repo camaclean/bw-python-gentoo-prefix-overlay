@@ -1,0 +1,27 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 8e7decd..a49ff7b 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -22,13 +22,20 @@ endif()
+ target_compile_definitions(zfp PRIVATE ${zfp_defs})
+ 
+ target_include_directories(zfp
+-  PUBLIC    ${ZFP_SOURCE_DIR}/include
+-  INTERFACE ${ZFP_SOURCE_DIR}/array)
++  PUBLIC    ${CMAKE_INSTALL_FULL_INCLUDEDIR}
++  INTERFACE ${CMAKE_INSTALL_FULL_INCLUDEDIR})
+ 
+ set_property(TARGET zfp PROPERTY VERSION ${ZFP_VERSION})
+ set_property(TARGET zfp PROPERTY SOVERSION 0)
+ 
+ install(TARGETS zfp
++  EXPORT ZFPTargets
+   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
++EXPORT(TARGETS zfp FILE "${CMAKE_CURRENT_BINARY_DIR}/ZFPTargets.cmake")
++INSTALL(EXPORT ZFPTargets DESTINATION "share/zfp/cmake")
++
++EXPORT(PACKAGE ZFP)
++CONFIGURE_FILE(../ZFPConfig.cmake.in "${PROJECT_BINARY_DIR}/ZFPConfig.cmake")
++INSTALL(FILES "${PROJECT_BINARY_DIR}/ZFPConfig.cmake" DESTINATION "share/zfp/cmake")

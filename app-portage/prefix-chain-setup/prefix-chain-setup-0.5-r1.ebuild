@@ -1,0 +1,281 @@
+# Copyright 1999-2017 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+
+EAPI=6
+
+inherit prefix
+
+DESCRIPTION="Chained EPREFIX bootstrapping utility"
+HOMEPAGE="https://prefix.gentoo.org/"
+SRC_URI=""
+
+LICENSE="GPL-3"
+SLOT="0"
+KEYWORDS="~ppc-aix ~x64-cygwin ~amd64-linux ~x86-linux ~sparc-solaris ~x86-solaris"
+IUSE="cray"
+
+DEPEND=""
+RDEPEND="sys-apps/portage[prefix-chaining]"
+
+S="${WORKDIR}"
+
+src_install() {
+	if use cray; then
+		DOMODULE="yes"
+	fi
+	eprefixify ${PN}
+	sed -i -e "s/@GENTOO_PORTAGE_CHOST@/${CHOST}/" -e "s/@DOMODULE@/${DOMODULE}/" ${PN}
+	dobin ${PN}
+	insinto /usr/share/prefix-chaining
+	doins "${FILESDIR}"/modulefile.in
+}
+
+src_unpack() {
+	{ cat > "${PN}" || die; } <<'EOF'
+#!/usr/bin/env bash
+
+PARENT_EPREFIX="@GENTOO_PORTAGE_EPREFIX@"
+PARENT_CHOST="@GENTOO_PORTAGE_CHOST@"
+CHILD_EPREFIX=
+CHILD_PROFILE=
+DO_MINIMAL=no
+DO_SOURCES=no
+PORT_TMPDIR=
+
+trap 'exit 1' TERM KILL INT QUIT ABRT
+
+#
+# get ourselfs the functions.sh script for ebegin/eend/etc.
+#
+. "${PARENT_EPREFIX}"/lib/gentoo/functions.sh
+
+export PORTAGE_TMPDIR="/dev/shm/$USER/chainsetup"
+mkdir -p $PORTAGE_TMPDIR
+
+for arg in "$@"; do
+	case "${arg}" in
+	--eprefix=*)	CHILD_EPREFIX="${arg#--eprefix=}"	;;
+	--profile=*)	CHILD_PROFILE="${arg#--profile=}"	;;
+	--sources)		DO_SOURCES=yes						;;
+	--user)		INSTALL_MODULEFILE=no ;;
+#	--portage-tmpdir=*)	PORT_TMPDIR="${arg#--portage-tmpdir=}" ;;
+
+	--help)
+		einfo "$0 usage:"
+		einfo "  --eprefix=[PATH]       Path to new EPREFIX to create chained to the prefix"
+		einfo "                         where this script is installed (${PARENT_EPREFIX})"
+		einfo "  --profile=[PATH]       The absolute path to the profile to use. This path"
+		einfo "                         must point to a directory within ${PARENT_EPREFIX}"
+		einfo "  --sources              inherit 'source' statements from the parent make.conf"
+	#	einfo "  --portage-tmpdir=DIR   use DIR as portage temporary directory."
+		exit 0
+		;;
+	esac
+done
+
+#
+# sanity check of given values
+#
+
+test -n "${CHILD_EPREFIX}" || { eerror "no eprefix argument given"; exit 1; }
+test -d "${CHILD_EPREFIX}" && { eerror "${CHILD_EPREFIX} already exists"; exit 1; }
+test -n "${CHILD_PROFILE}" || { eerror "no profile argument given"; exit 1; }
+test -d "${CHILD_PROFILE}" || { eerror "${CHILD_PROFILE} does not exist"; exit 1; }
+if test -n "${PORT_TMPDIR}"; then
+	if ! test -d "${PORT_TMPDIR}"; then
+		einfo "creating temporary directory ${PORT_TMPDIR}"
+		mkdir -p "${PORT_TMPDIR}"
+	fi
+fi
+
+einfo "creating chained prefix ${CHILD_EPREFIX}"
+
+#
+# functions needed below.
+#
+eend_exit() {
+	eend $1
+	[[ $1 != 0 ]] && exit 1
+}
+
+#
+# create the directories required to bootstrap the least.
+#
+ebegin "creating directory structure"
+(
+	set -e
+	mkdir -p "${CHILD_EPREFIX}"/etc/portage
+	mkdir -p "${CHILD_EPREFIX}"/usr/portage/distfiles
+	mkdir -p "${CHILD_EPREFIX}"/var/log
+	mkdir -p "${CHILD_EPREFIX}"/usr/lib/portage
+	touch "${CHILD_EPREFIX}"/usr/lib/portage/.portage_not_installed
+)
+eend_exit $?
+
+#
+# create a make.conf and set PORTDIR and PORTAGE_TMPDIR
+#
+ebegin "creating make.conf"
+(
+	set -e
+	echo "#"
+	echo "# The following values where taken from the parent prefix's"
+	echo "# environment. Feel free to adopt them as you like."
+	echo "#"
+	echo "CFLAGS=\"-I${CHILD_EPREFIX}/usr/include $(EPREFIX=${PARENT_EPREFIX} ${PARENT_EPREFIX}/usr/bin/portageq envvar CFLAGS)\""
+	echo "CXXFLAGS=\"-I${CHILD_EPREFIX}/usr/include $(EPREFIX=${PARENT_EPREFIX} ${PARENT_EPREFIX}/usr/bin/portageq envvar CXXFLAGS)\""
+	echo "FFLAGS=\"-I${CHILD_EPREFIX}/usr/include $(EPREFIX=${PARENT_EPREFIX} ${PARENT_EPREFIX}/usr/bin/portageq envvar FFLAGS)\""
+	echo "MAKEOPTS=\"$(EPREFIX=${PARENT_EPREFIX} ${PARENT_EPREFIX}/usr/bin/portageq envvar MAKEOPTS)\""
+	echo "LDFLAGS=\"-L${CHILD_EPREFIX}/usr/lib -L${CHILD_EPREFIX}/lib -Wl,--rpath=${CHILD_EPREFIX}/usr/lib -Wl,--rpath=${CHILD_EPREFIX}/lib $(EPREFIX=${PARENT_EPREFIX} ${PARENT_EPREFIX}/usr/bin/portageq envvar LDFLAGS)\""
+	niceness=$(EPREFIX=${PARENT_EPREFIX} ${PARENT_EPREFIX}/usr/bin/portageq envvar PORTAGE_NICENESS)
+	[[ -n ${niceness} ]] &&
+		echo "PORTAGE_NICENESS=\"${niceness}\""
+	echo "USE=\"$(. ${PARENT_EPREFIX}/etc/portage/make.conf && echo $USE)\""
+	echo
+	echo "# Mirrors from parent prefix."
+	echo "GENTOO_MIRRORS=\"$(EPREFIX=${PARENT_EPREFIX} ${PARENT_EPREFIX}/usr/bin/portageq envvar GENTOO_MIRRORS)\""
+	echo
+	#
+	# Remove deprecated portage config. Replaced by repos.conf
+	#
+	#echo "#"
+	#echo "# Below comes the chained-prefix setup. Only change things"
+	#echo "# if you know exactly what you are doing!"
+	#echo "# by default, only DEPEND is inherited from the parent in"
+	#echo "# the chain. if you want more, make it a comma seperated"
+	#echo "# list - like this: DEPEND,RDEPEND,PDEPEND,HDEPEND - which would the"
+	#echo "# all that is possible"
+	#echo "#"
+	#echo "PORTDIR=\"$(EPREFIX=${PARENT_EPREFIX} ${PARENT_EPREFIX}/usr/bin/portageq envvar PORTDIR)\""
+	#echo "SYNC=\"$(EPREFIX=${PARENT_EPREFIX} ${PARENT_EPREFIX}/usr/bin/portageq envvar SYNC)\""
+	#if test -z "${PORT_TMPDIR}"; then
+	#	case "${CHILD_PROFILE}" in
+	#	*winnt*)	echo "PORTAGE_TMPDIR=/var/tmp" ;;
+	#	*)			echo "PORTAGE_TMPDIR=\"${CHILD_EPREFIX}/var/tmp\"" ;;
+	#	esac
+	#else
+	#	echo "PORTAGE_TMPDIR=\"${PORT_TMPDIR}\""
+	#fi
+	echo "READONLY_EPREFIX=\"${PARENT_EPREFIX}:DEPEND,RDEPEND,PDEPEND,HDEPEND\""
+	echo "EPREFIX=\"${CHILD_EPREFIX}\""
+	echo "BASE_EPREFIX=\"${PARENT_EPREFIX}\""
+	echo "DISTDIR=\"${CHILD_EPREFIX}/usr/portage/distfiles\""
+	echo "PORTAGE_USER='$USER'"
+	echo "PORTAGE_GROUP='$(id -g -n $USER)'"
+	echo "PORTAGE_ROOT_USER='$USER'"
+	echo "PORTAGE_INST_UID=\"$(id -u $USER)\""
+	echo "PORTAGE_INST_GID=\"$(id -g $USER)\""
+	_ro_name="${CHILD_EPREFIX}"
+	_ro_name="${_ro_name##*/}"
+	echo "PORTAGE_TMPDIR=\"/dev/shm/$USER/$_ro_name\""
+
+	if test "${DO_SOURCES}" == "yes"; then
+        # don't fail if nothing found
+		egrep "^source .*" "${PARENT_EPREFIX}/etc/portage/make.conf" 2>/dev/null || true
+	fi
+) > "${CHILD_EPREFIX}"/etc/portage/make.conf
+eend_exit $?
+
+#
+# create the make.profile symlinks.
+#
+ebegin "creating make.profile"
+(
+	ln -s "${CHILD_PROFILE}" "${CHILD_EPREFIX}/etc/portage/make.profile"
+)
+eend_exit $?
+
+#
+# copy portage config files
+#
+ebegin "copying portage config files"
+(
+	mkdir -p "${CHILD_EPREFIX}"/usr/share/portage/config/sets
+	mkdir -p "${CHILD_EPREFIX}"/etc/init.d
+	mkdir -p $(. ${CHILD_EPREFIX}/etc/portage/make.conf && echo $PORTAGE_TMPDIR)
+	cp "${PARENT_EPREFIX}"/etc/init.d/functions.sh "${CHILD_EPREFIX}"/etc/init.d/functions.sh
+	cp "${PARENT_EPREFIX}"/usr/share/portage/config/make.globals "${CHILD_EPREFIX}"/usr/share/portage/config/make.globals
+	sed -i -e "s/PORTAGE_USER='.*'/PORTAGE_USER='$USER'/" \
+	       -e "s/PORTAGE_GROUP='.*'/PORTAGE_GROUP='$(id -g -n $USER)'/" \
+	       -e "s/PORTAGE_ROOT_USER='.*'/PORTAGE_ROOT_USER='$USER'/" \
+	       -e "s/PORTAGE_INST_UID=\".*\"/PORTAGE_INST_UID=\"$(id -u $USER)\"/" \
+	       -e "s/PORTAGE_INST_GID=\".*\"/PORTAGE_INST_GID=\"$(id -g $USER)\"/" \
+	    ${CHILD_EPREFIX}/usr/share/portage/config/make.globals
+	cp "${PARENT_EPREFIX}"/usr/share/portage/config/sets/portage.conf "${CHILD_EPREFIX}"/usr/share/portage/config/sets/portage.conf
+	sed -i -e 's/@profile @selected @system/@profile @selected/' ${CHILD_EPREFIX}/usr/share/portage/config/sets/portage.conf
+	cp -r ${PARENT_EPREFIX}/etc/portage/package.use ${CHILD_EPREFIX}/etc/portage/package.use
+	cp -r "${PARENT_EPREFIX}"/etc/portage/repos.conf "${CHILD_EPREFIX}"/etc/portage/
+)
+eend $?
+
+#
+# adjust permissions of generated files.
+#
+ebegin "adjusting permissions"
+(
+	chmod 644 "${CHILD_EPREFIX}"/etc/portage/make.conf
+)
+eend_exit $?
+
+#
+# now merge some basics.
+#
+ebegin "installing required basic packages"
+(
+	# this -pv is there to avoid the global update output, which is
+	# there on the first emerge run. (thus, just cosmetics).
+	PORTAGE_OVERRIDE_EPREFIX="${CHILD_EPREFIX}" EPREFIX="${CHILD_EPREFIX}" PORTAGE_TMPDIR="/dev/shm/$USER/chainsetup" $PARENT_EPREFIX/usr/bin/emerge -p1qO baselayout-prefix > /dev/null 2>&1 || exit 1
+
+	PORTAGE_OVERRIDE_EPREFIX="${CHILD_EPREFIX}" EPREFIX="${CHILD_EPREFIX}" PORTAGE_TMPDIR="/dev/shm/$USER/chainsetup" $PARENT_EPREFIX/usr/bin/emerge -1qO baselayout-prefix prefix-chain-utils || exit 1
+
+	# merge with the parent's chost. this forces the use of the parent
+	# compiler, which generally would be illegal - this is an exception.
+	# This is required for example on winnt, because the wrapper has to
+	# be able to use/resolve symlinks, etc. native winnt binaries miss that
+	# ability, but interix binaries don't.
+	#EPREFIX="${CHILD_EPREFIX}" CHOST="${PARENT_CHOST}" $PARENT_EPREFIX/usr/bin/emerge -1qO gcc-config
+
+	# select the chain wrapper profile from gcc-config
+	#env -i "$(type -P bash)" "${CHILD_EPREFIX}"/usr/bin/gcc-config 1
+
+	# do this _AFTER_ selecting the correct compiler!
+	#EPREFIX="${CHILD_EPREFIX}" $PARENT_EPREFIX/usr/bin/emerge -1qO libtool
+
+	# These will be found in the parent, so make sure emerged in order
+	PORTAGE_OVERRIDE_EPREFIX="${CHILD_EPREFIX}" EPREFIX="${CHILD_EPREFIX}" PORTAGE_TMPDIR="/dev/shm/$USER/chainsetup" $PARENT_EPREFIX/usr/bin/emerge -qO eselect || exit 1
+	PORTAGE_OVERRIDE_EPREFIX="${CHILD_EPREFIX}" EPREFIX="${CHILD_EPREFIX}" PORTAGE_TMPDIR="/dev/shm/$USER/chainsetup" $PARENT_EPREFIX/usr/bin/emerge -qO eselect-envmod || exit 1
+	PORTAGE_OVERRIDE_EPREFIX="${CHILD_EPREFIX}" EPREFIX="${CHILD_EPREFIX}" PORTAGE_TMPDIR="/dev/shm/$USER/chainsetup" $PARENT_EPREFIX/usr/bin/emerge -qO eselect-cray || exit 1
+	PORTAGE_OVERRIDE_EPREFIX="${CHILD_EPREFIX}" EPREFIX="${CHILD_EPREFIX}" PORTAGE_TMPDIR="$(. ${CHILD_EPREFIX}/etc/portage/make.conf && echo PORTAGE_TMPDIR)" $PARENT_EPREFIX/usr/bin/emerge -p1qO baselayout-prefix > /dev/null 2>&1 || exit 1
+)
+eend_exit $?
+
+domodule="@DOMODULE@"
+if [ ! -z "$domodule" ]; then
+	ebegin "Setting up module file"
+	(
+		echo -n "Enter the name for this module:"
+		read PACKAGE
+		echo -n "Enter the version of this module:"
+		read VERSION
+		echo -n "Enter the prefix for environment variables:"
+		read ENVVAR_PREFIX
+		cp "${PARENT_EPREFIX}"/usr/share/prefix-chaining/modulefile.in "${CHILD_EPREFIX}"/usr/share/modulefile
+		sed -i -e "s:@CHILD_EPREFIX@:${CHILD_EPREFIX}:" -e "s/@ENVVAR_PREFIX@/${ENVVAR_PREFIX}/g" -e "s/@PACKAGE@/${PACKAGE}/" -e "s/@VERSION@/${VERSION}/" "${CHILD_EPREFIX}"/usr/share/modulefile
+		einfo "A environment module file for this prefix has been installed into ${CHILD_EPREFIX}/usr/share/modulefile"
+		if [ -z "${INSTALL_MODULEFILE_IN_PARENT}" ]; then
+			mkdir -p "${PARENT_EPREFIX}"/usr/share/modulefiles/${PACKAGE}
+			ln -s "${CHILD_EPREFIX}"/usr/share/modulefile "${PARENT_EPREFIX}"/usr/share/modulefiles/${PACKAGE}/${VERSION}
+		fi
+	)
+	eend_exit $?
+fi
+
+#
+# wow, all ok :)
+#
+ewarn
+ewarn "all done. don't forget to tune ${CHILD_EPREFIX}/etc/portage/make.conf."
+ewarn "to enter the new prefix, run \"${CHILD_EPREFIX}/startprefix\"."
+ewarn
+EOF
+}

@@ -26,11 +26,10 @@ DISTUTILS_IN_SOURCE_BUILD=1
 
 PATCHES=( "${FILESDIR}"/${P}-py3-test-backport-1.patch "${FILESDIR}"/${P}-ldshared.patch )
 
-ENVMOD="-acml"
-export CRAYPE_LINK_TYPE=dynamic
-export CRAY_ADD_RPATH=yes
-
 python_prepare_all() {
+	export CRAYPE_LINK_TYPE=dynamic
+	export CRAY_ADD_RPATH=yes
+
 	# not needed on install
 	rm -r docs/source || die
 	export FFLAGS="$(echo "$FFLAGS" | sed -e "s/-O2//" -e "s/-march=bdver1//")"

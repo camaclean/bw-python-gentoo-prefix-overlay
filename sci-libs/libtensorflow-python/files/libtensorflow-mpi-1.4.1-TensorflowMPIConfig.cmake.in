@@ -1,0 +1,12 @@
+# Find the Tensorflow includes and library
+#
+# TENSORFLOW_MPI_LIBRARIES -- list of libraries to link against
+# TENSORFLOW_MPI_FOUND -- set to 1 if found
+
+SET(TENSORFLOW_MPI_FOUND 1)
+
+if(NOT TARGET tensorflow_mpi AND NOT TensorflowMPI_BINARY_DIR)
+   include("${CMAKE_INSTALL_PREFIX}/share/tensorflow/cmake/TensorflowMPITargets.cmake")
+endif()
+
+SET(TENSORFLOW_MPI_LIBRARIES tensorflow_mpi)

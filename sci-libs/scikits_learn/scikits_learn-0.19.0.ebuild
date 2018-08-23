@@ -17,7 +17,7 @@ SRC_URI="mirror://pypi/${MYPN:0:1}/${MYPN}/${MYP}.tar.gz"
 LICENSE="BSD"
 SLOT="0"
 KEYWORDS="~amd64 ~x86 ~amd64-linux ~x86-linux"
-IUSE="cray examples test"
+IUSE="cray examples mkl test"
 
 # tried to unbundle virtual/python-funcsigs, funcsigs, odict
 # but it is a large mess to maintain
@@ -46,6 +46,7 @@ S="${WORKDIR}/${MYP}"
 PATCHES=( "${FILESDIR}"/${PN}-0.18.1-system-cblas.patch )
 
 python_prepare_all() {
+	use mkl && eapply "${FILESDIR}"/scikits_learn-0.19.0-mkl.patch
 	# bug #397605
 	[[ ${CHOST} == *-darwin* ]] \
 		&& append-ldflags -bundle "-undefined dynamic_lookup" \

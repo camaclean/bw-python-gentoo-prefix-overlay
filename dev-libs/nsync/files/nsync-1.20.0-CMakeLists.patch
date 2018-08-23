@@ -1,0 +1,71 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 5afe8ec..ae09e96 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -11,7 +11,7 @@ project (nsync)
+ set (CMAKE_POSITION_INDEPENDENT_CODE ON)
+ 
+ # Allow nsync users to turn the tests on or off.
+-option(NSYNC_ENABLE_TESTS "Enable for building tests" ON)
++option(NSYNC_ENABLE_TESTS "Enable for building tests" OFF)
+ 
+ # -----------------------------------------------------------------
+ # Platform dependencies
+@@ -312,10 +312,6 @@ if (NSYNC_ENABLE_TESTS)
+ 	endforeach (t)
+ endif ()
+ 
+-install (TARGETS nsync
+-	LIBRARY DESTINATION lib COMPONENT RuntimeLibraries
+-	ARCHIVE DESTINATION lib COMPONENT Development)
+-
+ set (NSYNC_INCLUDES
+ 	"public/nsync.h"
+ 	"public/nsync_atomic.h"
+@@ -332,6 +328,27 @@ set (NSYNC_INCLUDES
+ 	"public/nsync_waiter.h"
+ )
+ 
++set_target_properties(nsync PROPERTIES 
++	PUBLIC_HEADER "${NSYNC_INCLUDES}"
++	INTERFACE_INCLUDE_DIRECTORIES $<INSTALL_INTERFACE:include>
++)
++
++install (TARGETS nsync
++	EXPORT nsyncTargets
++	LIBRARY DESTINATION lib COMPONENT RuntimeLibraries
++	ARCHIVE DESTINATION lib COMPONENT Development
++	PUBLIC_HEADER DESTINATION include
++)
++
++
+ foreach (NSYNC_INCLUDE ${NSYNC_INCLUDES})
+ 	install (FILES ${NSYNC_INCLUDE} DESTINATION include COMPONENT Development)
+ endforeach ()
++
++# Create nsyncConfig.cmake
++EXPORT(TARGETS nsync FILE "${CMAKE_CURRENT_BINARY_DIR}/nsyncTargets.cmake")
++EXPORT(PACKAGE nsync)
++SET(NSYNC_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include")
++CONFIGURE_FILE(nsyncConfig.cmake.in "${PROJECT_BINARY_DIR}/nsyncConfig.cmake")
++INSTALL(FILES "${PROJECT_BINARY_DIR}/nsyncConfig.cmake" DESTINATION "share/nsync/cmake")
++INSTALL(EXPORT nsyncTargets DESTINATION "share/nsync/cmake")
+diff --git a/nsyncConfig.cmake.in b/nsyncConfig.cmake.in
+index e69de29..a41a576 100644
+--- /dev/null
++++ b/nsyncConfig.cmake.in
+@@ -0,0 +1,14 @@
++# Find the NSYNC includes and library
++#
++# NSYNC_INCLUDE_DIR -- where to find the includes
++# NSYNC_LIBRARIES -- list of libraries to link against
++# NSYNC_FOUND -- set to 1 if found
++
++SET(NSYNC_FOUND 1)
++SET(NSYNC_INCLUDE_DIR "@NSYNC_INCLUDE_DIR@")
++
++if(NOT TARGET nsync AND NOT nsync_BINARY_DIR)
++   include("${CMAKE_INSTALL_PREFIX}/share/nsync/cmake/nsyncTargets.cmake")
++endif()
++
++SET(NSYNC_LIBRARIES nsync)

@@ -24,7 +24,6 @@ KEYWORDS="amd64 ~arm ~arm64 x86 ~amd64-linux ~x86-linux ~x86-macos"
 IUSE="cray cuda docs lmdb leveldb mpi opencv python"
 
 CDEPEND="
-	dev-libs/boost:=[python?]
 	dev-libs/protobuf:=[python?]
 	dev-cpp/glog:=
 	dev-cpp/gflags:=
@@ -54,7 +53,7 @@ RDEPEND="
 REQUIRED_USE="python? ( ${PYTHON_REQUIRED_USE} )"
 
 PATCHES=( 
-	"${FILESDIR}"/caffe2-0.8.0-cuda75.patch 
+	#"${FILESDIR}"/caffe2-0.8.0-cuda75.patch 
 	"${FILESDIR}"/caffe2-0.8.0-install-locations.patch
 	"${FILESDIR}"/caffe2-0.8.0-libsci.patch
 )
@@ -84,6 +83,8 @@ src_prepare() {
 	mv -fT "${WORKDIR}"/cub-1.7.4 ${S}/third_party/cub || die
 	mv -fT "${WORKDIR}"/pybind-pybind11-${PYBIND11_COMMIT:0:7} "${S}"/third_party/pybind11 || die
 	mv -fT "${WORKDIR}"/NVIDIA-cnmem-${CNMEM_COMMIT:0:7} "${S}"/third_party/cnmem || die
+	git init .
+	git add .
 	cmake-utils_src_prepare
 }
 

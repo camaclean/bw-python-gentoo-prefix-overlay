@@ -1,0 +1,13 @@
+diff --git a/src/CMake/FindNetcdf.cmake b/src/CMake/FindNetcdf.cmake
+index b5bd7a6..76b6496 100644
+--- a/src/CMake/FindNetcdf.cmake
++++ b/src/CMake/FindNetcdf.cmake
+@@ -46,7 +46,7 @@ INCLUDE(${VISIT_SOURCE_DIR}/CMake/SetUpThirdParty.cmake)
+ 
+ SET_UP_THIRD_PARTY(NETCDF lib include netcdf)
+ 
+-SET (NETCDF_CXX_DIR ${NETCDF_DIR})
++#SET (NETCDF_CXX_DIR ${NETCDF_DIR})
+ 
+ SET_UP_THIRD_PARTY(NETCDF_CXX lib include netcdf_c++)
+ 

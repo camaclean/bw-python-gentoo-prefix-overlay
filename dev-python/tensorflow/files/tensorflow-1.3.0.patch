@@ -1,5 +1,5 @@
 diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
-index 83c82c7..ccf0985 100644
+index 83c82c7..2926905 100644
 --- a/tensorflow/contrib/cmake/CMakeLists.txt
 +++ b/tensorflow/contrib/cmake/CMakeLists.txt
 @@ -19,6 +19,9 @@ cmake_policy(SET CMP0022 NEW)
@@ -12,14 +12,19 @@ index 83c82c7..ccf0985 100644
  option(tensorflow_ENABLE_SSL_SUPPORT "Enable boringssl support" OFF)
  option(tensorflow_ENABLE_GRPC_SUPPORT "Enable gRPC support" ON)
  option(tensorflow_ENABLE_HDFS_SUPPORT "Enable HDFS support" OFF)
-@@ -32,6 +35,18 @@ option(tensorflow_BUILD_PYTHON_TESTS "Build python unit tests " OFF)
+@@ -32,6 +35,23 @@ option(tensorflow_BUILD_PYTHON_TESTS "Build python unit tests " OFF)
  option(tensorflow_BUILD_SHARED_LIB "Build TensorFlow as a shared library" OFF)
  option(tensorflow_OPTIMIZE_FOR_NATIVE_ARCH "Enable compiler optimizations for the native processor architecture (if available)" ON)
  option(tensorflow_WIN_CPU_SIMD_OPTIONS "Enables CPU SIMD instructions")
++option(tensorflow_USE_MKL OFF)
 +option(tensorflow_ENABLE_MPI OFF)
 +
 +if(tensorflow_ENABLE_MPI)
 +  find_package(MPI REQUIRED)
++endif()
++
++if(tensorflow_USE_MKL)
++  add_definitions(-DINTEL_MKL=1 -fopenmp)
 +endif()
 +
 +if(UNIX)
@@ -31,7 +36,7 @@ index 83c82c7..ccf0985 100644
  
  if (NOT WIN32)
    # Threads: defines CMAKE_THREAD_LIBS_INIT and adds -pthread compile option
-@@ -202,53 +217,127 @@ if(UNIX)
+@@ -202,53 +222,127 @@ if(UNIX)
    list(APPEND tensorflow_EXTERNAL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
  endif()
  
@@ -197,7 +202,7 @@ index 83c82c7..ccf0985 100644
  endif()
  
  # Find python executable
-@@ -262,9 +351,7 @@ include(tf_core_framework.cmake)
+@@ -262,9 +356,7 @@ include(tf_core_framework.cmake)
  # NOTE: Disabled until issue #3996 is fixed.
  # include(tf_stream_executor.cmake)
  if (tensorflow_ENABLE_GPU)
@@ -208,7 +213,7 @@ index 83c82c7..ccf0985 100644
  endif()
  
  include(tf_core_cpu.cmake)
-@@ -293,3 +380,14 @@ endif()
+@@ -293,3 +385,14 @@ endif()
  if(tensorflow_BUILD_CC_TESTS OR tensorflow_BUILD_PYTHON_TESTS)
    include(tf_tests.cmake)
  endif()
@@ -1432,7 +1437,7 @@ index b350b82..e2434a2 100644
  GENERATE_CONTRIB_OP_LIBRARY(factorization_clustering "${tensorflow_source_dir}/tensorflow/contrib/factorization/ops/clustering_ops.cc")
  GENERATE_CONTRIB_OP_LIBRARY(factorization_factorization "${tensorflow_source_dir}/tensorflow/contrib/factorization/ops/factorization_ops.cc")
 diff --git a/tensorflow/contrib/cmake/tf_python.cmake b/tensorflow/contrib/cmake/tf_python.cmake
-index 0024efa..70b32b9 100755
+index 0024efa..903057c 100755
 --- a/tensorflow/contrib/cmake/tf_python.cmake
 +++ b/tensorflow/contrib/cmake/tf_python.cmake
 @@ -124,6 +124,7 @@ file(GLOB_RECURSE tf_protos_python_srcs RELATIVE ${tensorflow_source_dir}
@@ -1520,22 +1525,24 @@ index 0024efa..70b32b9 100755
  GENERATE_PYTHON_OP_LIB("contrib_cudnn_rnn_ops"
    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/cudnn_rnn/ops/gen_cudnn_rnn_ops.py)
  GENERATE_PYTHON_OP_LIB("contrib_factorization_clustering_ops"
-@@ -806,6 +837,14 @@ if(WIN32)
+@@ -806,6 +837,16 @@ if(WIN32)
      )
  endif(WIN32)
  
 +if(tensorflow_ENABLE_MPI)
++    add_definitions(-DTENSORFLOW_USE_MPI)
 +    add_library(tf_core_mpi OBJECT
 +        "${tensorflow_source_dir}/tensorflow/contrib/mpi/mpi_utils.cc"
 +        "${tensorflow_source_dir}/tensorflow/contrib/mpi/mpi_server_lib.cc"
 +        "${tensorflow_source_dir}/tensorflow/contrib/mpi/mpi_rendezvous_mgr.cc"
 +    )
++    add_dependencies(tf_core_mpi tf_protos_cc tf_python_protos_cc)
 +endif()
 +
  # pywrap_tensorflow_internal is a shared library containing all of the
  # TensorFlow runtime and the standard ops and kernels. These are installed into
  # tf_python/tensorflow/python/.
-@@ -824,6 +863,7 @@ add_library(pywrap_tensorflow_internal SHARED
+@@ -824,6 +865,7 @@ add_library(pywrap_tensorflow_internal SHARED
      $<TARGET_OBJECTS:tf_grappler>
      $<TARGET_OBJECTS:tf_tools_transform_graph_lib>
      $<$<BOOL:${tensorflow_ENABLE_GRPC_SUPPORT}>:$<TARGET_OBJECTS:tf_core_distributed_runtime>>
@@ -1543,8 +1550,12 @@ index 0024efa..70b32b9 100755
      $<TARGET_OBJECTS:tf_core_kernels>
      $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_core_kernels_cpu_only>>
      $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_stream_executor>>
-@@ -847,7 +887,7 @@ target_link_libraries(pywrap_tensorflow_internal PRIVATE
+@@ -845,9 +887,11 @@ target_link_libraries(pywrap_tensorflow_internal PRIVATE
+     tf_protos_cc
+     tf_python_protos_cc
      ${PYTHON_LIBRARIES}
++    /opt/intel/lib/intel64/libiomp5.so
++    /opt/intel/mkl/lib/intel64/libmkl_rt.so
  )
  
 -if(WIN32)
@@ -1552,7 +1563,7 @@ index 0024efa..70b32b9 100755
      # include contrib/rnn as .so
      #
      set(tf_gru_srcs
-@@ -883,9 +923,8 @@ if(WIN32)
+@@ -883,9 +927,8 @@ if(WIN32)
          GPUSOURCES ${tf_lstm_gpu_srcs}
          DEPENDS pywrap_tensorflow_internal tf_python_ops
          DISTCOPY ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/rnn/python/ops/)
@@ -1563,7 +1574,7 @@ index 0024efa..70b32b9 100755
      # include contrib/seq2seq as .so
      #
      set(tf_beam_search_srcs
-@@ -903,7 +942,767 @@ if(WIN32)
+@@ -903,7 +946,767 @@ if(WIN32)
          GPUSOURCES ${tf_beam_search_gpu_srcs}
          DEPENDS pywrap_tensorflow_internal tf_python_ops
          DISTCOPY ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/contrib/seq2seq/python/ops/)
@@ -2332,7 +2343,7 @@ index 0024efa..70b32b9 100755
  
  ############################################################
  # Build a PIP package containing the TensorFlow runtime.
-@@ -936,6 +1735,9 @@ else()
+@@ -936,6 +1739,9 @@ else()
    add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
      COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libpywrap_tensorflow_internal.so
                                       ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/python/_pywrap_tensorflow_internal.so)
@@ -2342,7 +2353,7 @@ index 0024efa..70b32b9 100755
  endif()
  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
    COMMAND ${CMAKE_COMMAND} -E copy ${tensorflow_source_dir}/tensorflow/tools/pip_package/README
-@@ -983,6 +1785,7 @@ add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
+@@ -983,6 +1789,7 @@ add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
    COMMAND ${CMAKE_COMMAND} -E copy_directory ${tensorflow_source_dir}/tensorflow/stream_executor
                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/include/tensorflow/stream_executor)
  
@@ -2350,7 +2361,7 @@ index 0024efa..70b32b9 100755
  # google protobuf headers
  add_custom_command(TARGET tf_python_build_pip_package PRE_BUILD
    COMMAND ${CMAKE_COMMAND} -E make_directory
-@@ -1031,13 +1834,5 @@ add_custom_command(TARGET tf_python_build_pip_package PRE_BUILD
+@@ -1031,13 +1838,5 @@ add_custom_command(TARGET tf_python_build_pip_package PRE_BUILD
  add_custom_command(TARGET tf_python_build_pip_package POST_BUILD
    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_BINARY_DIR}/eigen/src/eigen/unsupported/Eigen
                                     ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/include/unsupported/Eigen)

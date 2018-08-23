@@ -3,7 +3,7 @@
 
 EAPI=6
 
-PYTHON_COMPAT=( python2_7 python3_{4,5,6} )
+PYTHON_COMPAT=( pypy pypy3 python2_7 python3_{4,5,6} )
 
 inherit distutils-r1
 
@@ -22,7 +22,10 @@ DEPEND="${RDEPEND}
 	virtual/mpi[romio] )"
 DISTUTILS_IN_SOURCE_BUILD=1
 
-PATCHES=( "${FILESDIR}/${P}-pickling-fix.patch" )
+PATCHES=( 
+	"${FILESDIR}/${P}-pickling-fix.patch"
+	#"${FILESDIR}/${P}-tau.patch"
+)
 
 python_prepare_all() {
 	# not needed on install
@@ -39,7 +42,14 @@ EOT
 	use cray && export MPICFG="cray"
 	export CRAYPE_LINK_TYPE=dynamic
 	export CRAY_ADD_RPATH="yes"
+	patch -p1 </u/staff/cmaclean/mpi4py-tau2.patch || die
 	distutils-r1_python_prepare_all
+	patch -p1 -R </u/staff/cmaclean/mpi4py-tau2.patch || die
+	git init .
+	git add .
+	patch -p1 </u/staff/cmaclean/mpi4py-tau2.patch || die
+	git add -N src/lib-pmpi/tau{,-papi}.c || die
+	git add -N src/lib-pmpi/craypat-*.c || die
 }
 
 src_compile() {
@@ -56,10 +66,20 @@ python_test() {
 }
 
 python_install() {
-       distutils-r1_python_install
-       esetup.py install_exe
-       dosym ${EPREFIX%/}/usr/lib/python-exec/${EPYTHON}/${EPYTHON}-mpi /usr/bin/${EPYTHON}-mpi
-       dosym ${EPREFIX%/}/usr/lib/python-exec/${EPYTHON}/${EPYTHON}-mpi /usr/lib/python-exec/${EPYTHON}/python-mpi
+	distutils-r1_python_install
+	if [[ ${EPYTHON} =~ python* ]]; then
+		esetup.py install_exe
+		cd build/lib/mpi4py/bin
+		mv python-mpi ${EPYTHON}-mpi
+		python_doexe ${EPYTHON}-mpi
+		python_export PYTHON_SCRIPTDIR
+		echo script dir: ${PYTHON_SCRIPTDIR}
+		ln -s ${EPYTHON}-mpi "${ED}/usr/lib/python-exec/${EPYTHON}/${EPYTHON%.*}-mpi"
+		ln -s ${EPYTHON%.*}-mpi "${ED}/usr/lib/python-exec/${EPYTHON}/python-mpi"
+		dosym ../lib/python-exec/python-exec2 /usr/bin/${EPYTHON%.*}-mpi
+		#dosym ${EPREFIX%/}/usr/lib/python-exec/${EPYTHON}/${EPYTHON}-mpi /usr/bin/${EPYTHON}-mpi
+		#dosym ${EPREFIX%/}/usr/lib/python-exec/${EPYTHON}/${EPYTHON}-mpi /usr/lib/python-exec/${EPYTHON}/python-mpi
+	fi
 }
 
 
@@ -67,5 +87,7 @@ python_install_all() {
 	use doc && local HTML_DOCS=( docs/. )
 	use examples && local DOCS=( demo )
 	distutils-r1_python_install_all
-	dosym ${EPREFIX%/}/usr/bin/python-exec2c /usr/bin/python-mpi
+	dosym ../lib/python-exec/python-exec2 /usr/bin/python-mpi
+	#dosym ${EPREFIX%/}/usr/bin/python-exec2c /usr/bin/python-mpi
+	#python_doexe python-mpi
 }

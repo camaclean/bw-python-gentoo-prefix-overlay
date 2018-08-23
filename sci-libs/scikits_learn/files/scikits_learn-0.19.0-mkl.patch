@@ -1,0 +1,178 @@
+diff --git a/sklearn/cluster/_k_means.c b/sklearn/cluster/_k_means.c
+index a48104a..d74b6f0 100644
+--- a/sklearn/cluster/_k_means.c
++++ b/sklearn/cluster/_k_means.c
+@@ -467,7 +467,7 @@ static CYTHON_INLINE float __PYX_NAN() {
+ #include <stdlib.h>
+ #include "numpy/arrayobject.h"
+ #include "numpy/ufuncobject.h"
+-#include "cblas.h"
++#include <mkl_cblas.h>
+ #include "pythread.h"
+ #include "pystate.h"
+ #ifdef _OPENMP
+diff --git a/sklearn/cluster/_k_means.pyx b/sklearn/cluster/_k_means.pyx
+index cdaa31f..92bfb88 100644
+--- a/sklearn/cluster/_k_means.pyx
++++ b/sklearn/cluster/_k_means.pyx
+@@ -23,7 +23,7 @@ ctypedef np.int32_t INT
+ ctypedef floating (*DOT)(int N, floating *X, int incX, floating *Y,
+                          int incY)
+ 
+-cdef extern from "cblas.h":
++cdef extern from "mkl_cblas.h":
+     double ddot "cblas_ddot"(int N, double *X, int incX, double *Y, int incY)
+     float sdot "cblas_sdot"(int N, float *X, int incX, float *Y, int incY)
+ 
+diff --git a/sklearn/linear_model/cd_fast.c b/sklearn/linear_model/cd_fast.c
+index 12ff70c..1c39096 100644
+--- a/sklearn/linear_model/cd_fast.c
++++ b/sklearn/linear_model/cd_fast.c
+@@ -467,7 +467,7 @@ static CYTHON_INLINE float __PYX_NAN() {
+ #include <stdlib.h>
+ #include "numpy/arrayobject.h"
+ #include "numpy/ufuncobject.h"
+-#include "cblas.h"
++#include "mkl_cblas.h"
+ #include "pythread.h"
+ #include "pystate.h"
+ #ifdef _OPENMP
+@@ -16180,8 +16180,8 @@ static PyObject *__pyx_pf_7sklearn_12linear_model_7cd_fast_26enet_coordinate_des
+   float (*__pyx_v_nrm2)(int, float *, int);
+   void (*__pyx_v_copy)(int, float *, int, float *, int);
+   void (*__pyx_v_scal)(int, float, float *, int);
+-  void (*__pyx_v_ger)(enum CBLAS_ORDER, int, int, float, float *, int, float *, int, float *, int);
+-  void (*__pyx_v_gemv)(enum CBLAS_ORDER, enum CBLAS_TRANSPOSE, int, int, float, float *, int, float *, int, float, float *, int);
++  void (*__pyx_v_ger)(CBLAS_LAYOUT, int, int, float, float *, int, float *, int, float *, int);
++  void (*__pyx_v_gemv)(CBLAS_LAYOUT, CBLAS_TRANSPOSE, int, int, float, float *, int, float *, int, float, float *, int);
+   unsigned int __pyx_v_n_samples;
+   unsigned int __pyx_v_n_features;
+   unsigned int __pyx_v_n_tasks;
+@@ -17887,8 +17887,8 @@ static PyObject *__pyx_pf_7sklearn_12linear_model_7cd_fast_28enet_coordinate_des
+   double (*__pyx_v_nrm2)(int, double *, int);
+   void (*__pyx_v_copy)(int, double *, int, double *, int);
+   void (*__pyx_v_scal)(int, double, double *, int);
+-  void (*__pyx_v_ger)(enum CBLAS_ORDER, int, int, double, double *, int, double *, int, double *, int);
+-  void (*__pyx_v_gemv)(enum CBLAS_ORDER, enum CBLAS_TRANSPOSE, int, int, double, double *, int, double *, int, double, double *, int);
++  void (*__pyx_v_ger)(CBLAS_LAYOUT, int, int, double, double *, int, double *, int, double *, int);
++  void (*__pyx_v_gemv)(CBLAS_LAYOUT, CBLAS_TRANSPOSE, int, int, double, double *, int, double *, int, double, double *, int);
+   unsigned int __pyx_v_n_samples;
+   unsigned int __pyx_v_n_features;
+   unsigned int __pyx_v_n_tasks;
+diff --git a/sklearn/linear_model/cd_fast.pyx b/sklearn/linear_model/cd_fast.pyx
+index 6641a8f..3aafb9b 100644
+--- a/sklearn/linear_model/cd_fast.pyx
++++ b/sklearn/linear_model/cd_fast.pyx
+@@ -99,11 +99,11 @@ cdef floating diff_abs_max(int n, floating* a, floating* b) nogil:
+     return m
+ 
+ 
+-cdef extern from "cblas.h":
+-    enum CBLAS_ORDER:
++cdef extern from "mkl_cblas.h":
++    ctypedef enum CBLAS_LAYOUT:
+         CblasRowMajor=101
+         CblasColMajor=102
+-    enum CBLAS_TRANSPOSE:
++    ctypedef enum CBLAS_TRANSPOSE:
+         CblasNoTrans=111
+         CblasTrans=112
+         CblasConjTrans=113
+@@ -119,17 +119,17 @@ cdef extern from "cblas.h":
+                             int incY) nogil
+     double dasum "cblas_dasum"(int N, double *X, int incX) nogil
+     float sasum "cblas_sasum"(int N, float *X, int incX) nogil
+-    void dger "cblas_dger"(CBLAS_ORDER Order, int M, int N, double alpha,
++    void dger "cblas_dger"(CBLAS_LAYOUT Order, int M, int N, double alpha,
+                            double *X, int incX, double *Y, int incY,
+                            double *A, int lda) nogil
+-    void sger "cblas_sger"(CBLAS_ORDER Order, int M, int N, float alpha,
++    void sger "cblas_sger"(CBLAS_LAYOUT Order, int M, int N, float alpha,
+                            float *X, int incX, float *Y, int incY,
+                            float *A, int lda) nogil
+-    void dgemv "cblas_dgemv"(CBLAS_ORDER Order, CBLAS_TRANSPOSE TransA,
++    void dgemv "cblas_dgemv"(CBLAS_LAYOUT Order, CBLAS_TRANSPOSE TransA,
+                              int M, int N, double alpha, double *A, int lda,
+                              double *X, int incX, double beta,
+                              double *Y, int incY) nogil
+-    void sgemv "cblas_sgemv"(CBLAS_ORDER Order, CBLAS_TRANSPOSE TransA,
++    void sgemv "cblas_sgemv"(CBLAS_LAYOUT Order, CBLAS_TRANSPOSE TransA,
+                              int M, int N, float alpha, float *A, int lda,
+                              float *X, int incX, float beta,
+                              float *Y, int incY) nogil
+diff --git a/sklearn/metrics/pairwise_fast.c b/sklearn/metrics/pairwise_fast.c
+index b84da5b..683c273 100644
+--- a/sklearn/metrics/pairwise_fast.c
++++ b/sklearn/metrics/pairwise_fast.c
+@@ -466,7 +466,7 @@ static CYTHON_INLINE float __PYX_NAN() {
+ #include <stdlib.h>
+ #include "numpy/arrayobject.h"
+ #include "numpy/ufuncobject.h"
+-#include "cblas.h"
++#include <mkl_cblas.h>
+ #include "pythread.h"
+ #include "pystate.h"
+ #ifdef _OPENMP
+diff --git a/sklearn/metrics/pairwise_fast.pyx b/sklearn/metrics/pairwise_fast.pyx
+index 09d39bd..3958e4a 100644
+--- a/sklearn/metrics/pairwise_fast.pyx
++++ b/sklearn/metrics/pairwise_fast.pyx
+@@ -11,7 +11,7 @@ from libc.string cimport memset
+ import numpy as np
+ cimport numpy as np
+ 
+-cdef extern from "cblas.h":
++cdef extern from "mkl_cblas.h":
+     double cblas_dasum(int, const double *, int) nogil
+ 
+ ctypedef float [:, :] float_array_2d_t
+diff --git a/sklearn/svm/src/liblinear/tron.cpp b/sklearn/svm/src/liblinear/tron.cpp
+index 1bf3204..b287db7 100644
+--- a/sklearn/svm/src/liblinear/tron.cpp
++++ b/sklearn/svm/src/liblinear/tron.cpp
+@@ -13,7 +13,7 @@ template <class T> static inline T max(T x,T y) { return (x>y)?x:y; }
+ #endif
+ 
+ extern "C" {
+-#include <cblas.h>
++#include <mkl_cblas.h>
+ }
+ 
+ static void default_print(const char *buf)
+diff --git a/sklearn/utils/src/cholesky_delete.h b/sklearn/utils/src/cholesky_delete.h
+index 6e20a2b..a2c8532 100644
+--- a/sklearn/utils/src/cholesky_delete.h
++++ b/sklearn/utils/src/cholesky_delete.h
+@@ -1,5 +1,5 @@
+ #include <math.h>
+-#include <cblas.h>
++#include <mkl_cblas.h>
+ 
+ #ifdef _MSC_VER
+ # define inline __inline
+diff --git a/sklearn/utils/weight_vector.c b/sklearn/utils/weight_vector.c
+index d676f03..6963877 100644
+--- a/sklearn/utils/weight_vector.c
++++ b/sklearn/utils/weight_vector.c
+@@ -469,7 +469,7 @@ static CYTHON_INLINE float __PYX_NAN() {
+ #include "math.h"
+ #include <limits.h>
+ #include <math.h>
+-#include "cblas.h"
++#include "mkl_cblas.h"
+ #ifdef _OPENMP
+ #include <omp.h>
+ #endif /* _OPENMP */
+diff --git a/sklearn/utils/weight_vector.pyx b/sklearn/utils/weight_vector.pyx
+index bb4e852..d9a076f 100644
+--- a/sklearn/utils/weight_vector.pyx
++++ b/sklearn/utils/weight_vector.pyx
+@@ -14,7 +14,7 @@ from libc.math cimport sqrt
+ import numpy as np
+ cimport numpy as np
+ 
+-cdef extern from "cblas.h":
++cdef extern from "mkl_cblas.h":
+     double ddot "cblas_ddot"(int, double *, int, double *, int) nogil
+     void dscal "cblas_dscal"(int, double, double *, int) nogil
+     void daxpy "cblas_daxpy" (int, double, const double*,

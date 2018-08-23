@@ -1,0 +1,22 @@
+diff --git a/src/hdf5_drv/silo_hdf5.c b/src/hdf5_drv/silo_hdf5.c
+index 6fd99ec..783a356 100644
+--- a/src/hdf5_drv/silo_hdf5.c
++++ b/src/hdf5_drv/silo_hdf5.c
+@@ -4755,7 +4755,7 @@ db_hdf5_process_file_options(int opts_set_id, int mode)
+         case DB_FILE_OPTS_H5_DEFAULT_MPIP:
+         {
+ #ifdef H5_HAVE_PARALLEL
+-            h5status |= H5Pset_fapl_mpiposix(retval, MPI_COMM_SELF, TRUE);
++            h5status |= H5Pset_fapl_mpio(retval, MPI_COMM_SELF, TRUE);
+ #else
+             H5Pclose(retval);
+             return db_perror("HDF5 MPI VFD", E_NOTENABLEDINBUILD, me);
+@@ -5076,7 +5076,7 @@ db_hdf5_process_file_options(int opts_set_id, int mode)
+                     }
+                     else
+                     {
+-                        h5status |= H5Pset_fapl_mpiposix(retval, mpi_comm, use_gpfs_hints);
++                        h5status |= H5Pset_fapl_mpio(retval, mpi_comm, use_gpfs_hints);
+                     }
+ #else 
+                     H5Pclose(retval);

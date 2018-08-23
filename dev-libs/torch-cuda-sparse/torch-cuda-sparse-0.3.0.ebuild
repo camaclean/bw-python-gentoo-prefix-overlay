@@ -21,10 +21,6 @@ S="${WORKDIR}"/pytorch-${PV}/torch/lib/THCS
 
 PATCHES=( "${FILESDIR}"/torch-cuda-sparse-0.3.0-standalone.patch )
 
-src_prepare() {
-	eapply "${PATCHES[@]}"
-}
-
 src_configure() {
 	export CFLAGS="${CFLAGS} -DTH_INDEX_BASE=0"
 	export CXXFLAGS="-std=c++11 ${CXXFLAGS} -DTH_INDEX_BASE=0"

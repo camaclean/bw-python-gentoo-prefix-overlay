@@ -1,0 +1,128 @@
+diff --git a/src/cpu/xbyak/xbyak_util.h b/src/cpu/xbyak/xbyak_util.h
+index 713c68d..d533420 100644
+--- a/src/cpu/xbyak/xbyak_util.h
++++ b/src/cpu/xbyak/xbyak_util.h
+@@ -135,7 +135,6 @@ class Cpu {
+ 	}
+ 	void setCacheHierarchy()
+ 	{
+-		if ((type_ & tINTEL) == 0) return;
+ 		const unsigned int NO_CACHE = 0;
+ 		const unsigned int DATA_CACHE = 1;
+ //		const unsigned int INSTRUCTION_CACHE = 2;
+@@ -143,50 +142,77 @@ class Cpu {
+ 		unsigned int smt_width = 0;
+ 		unsigned int n_cores = 0;
+ 		unsigned int data[4];
++		if (type_ & tINTEL) {
+ 
+-		/*
+-			if leaf 11 exists, we use it to get the number of smt cores and cores on socket
+-			If x2APIC is supported, these are the only correct numbers.
++			/*
++				if leaf 11 exists, we use it to get the number of smt cores and cores on socket
++				If x2APIC is supported, these are the only correct numbers.
+ 
+-			leaf 0xB can be zeroed-out by a hypervisor
+-		*/
+-		getCpuidEx(0x0, 0, data);
+-		if (data[0] >= 0xB) {
+-			getCpuidEx(0xB, 0, data); // CPUID for SMT Level
+-			smt_width = data[1] & 0x7FFF;
+-			getCpuidEx(0xB, 1, data); // CPUID for CORE Level
+-			n_cores = data[1] & 0x7FFF;
++				leaf 0xB can be zeroed-out by a hypervisor
++			*/
++			getCpuidEx(0x0, 0, data);
++			if (data[0] >= 0xB) {
++				getCpuidEx(0xB, 0, data); // CPUID for SMT Level
++				smt_width = data[1] & 0x7FFF;
++				getCpuidEx(0xB, 1, data); // CPUID for CORE Level
++				n_cores = data[1] & 0x7FFF;
+ 		}
+ 
+-		/*
+-			Assumptions:
+-			the first level of data cache is not shared (which is the
+-			case for every existing architecture) and use this to
+-			determine the SMT width for arch not supporting leaf 11.
+-			when leaf 4 reports a number of core less than n_cores
+-			on socket reported by leaf 11, then it is a correct number
+-			of cores not an upperbound.
+-		*/
+-		for (int i = 0; data_cache_levels < maxNumberCacheLevels; i++) {
+-			getCpuidEx(0x4, i, data);
+-			unsigned int cacheType = extractBit(data[0], 0, 4);
+-			if (cacheType == NO_CACHE) break;
+-			if (cacheType == DATA_CACHE || cacheType == UNIFIED_CACHE) {
+-				unsigned int nb_logical_cores = extractBit(data[0], 14, 25) + 1;
+-				if (n_cores != 0) // true only if leaf 0xB is supported and valid
+-					nb_logical_cores = (std::min)(nb_logical_cores, n_cores);
+-				assert(nb_logical_cores != 0);
+-				data_cache_size[data_cache_levels] =
+-					(extractBit(data[1], 22, 31) + 1)
+-					* (extractBit(data[1], 12, 21) + 1)
+-					* (extractBit(data[1], 0, 11) + 1)
+-					* (data[2] + 1);
+-				if (cacheType == DATA_CACHE && smt_width == 0) smt_width = nb_logical_cores;
+-				assert(smt_width != 0);
+-				cores_sharing_data_cache[data_cache_levels] = nb_logical_cores / smt_width;
+-				data_cache_levels++;
++			/*
++				Assumptions:
++				the first level of data cache is not shared (which is the
++				case for every existing architecture) and use this to
++				determine the SMT width for arch not supporting leaf 11.
++				when leaf 4 reports a number of core less than n_cores
++				on socket reported by leaf 11, then it is a correct number
++				of cores not an upperbound.
++			*/
++			for (int i = 0; data_cache_levels < maxNumberCacheLevels; i++) {
++				getCpuidEx(0x4, i, data);
++				unsigned int cacheType = extractBit(data[0], 0, 4);
++				if (cacheType == NO_CACHE) break;
++				if (cacheType == DATA_CACHE || cacheType == UNIFIED_CACHE) {
++					unsigned int nb_logical_cores = extractBit(data[0], 14, 25) + 1;
++					if (n_cores != 0) // true only if leaf 0xB is supported and valid
++						nb_logical_cores = (std::min)(nb_logical_cores, n_cores);
++					assert(nb_logical_cores != 0);
++					data_cache_size[data_cache_levels] =
++						(extractBit(data[1], 22, 31) + 1)
++						* (extractBit(data[1], 12, 21) + 1)
++						* (extractBit(data[1], 0, 11) + 1)
++						* (data[2] + 1);
++					if (cacheType == DATA_CACHE && smt_width == 0) smt_width = nb_logical_cores;
++					assert(smt_width != 0);
++					cores_sharing_data_cache[data_cache_levels] = nb_logical_cores / smt_width;
++					data_cache_levels++;
++				}
++			}
++		}
++		else if (type_ & tAMD) {
++			getCpuidEx(0x8000001e,0,data);
++			unsigned nodes_per_socket = ((data[2] >> 8) & 7) + 1;
++			getCpuidEx(0x80000005, 0, data );
++			data_cache_size[0] = extractBit(data[2],24,31)*1024;
++			if (data_cache_size[0] != 0) {
++				++data_cache_levels;
++				getCpuidEx(0x8000001d, 0, data );
++				cores_sharing_data_cache[0] = extractBit(data[0],14,25) + 1;
++			}
++			getCpuidEx(0x80000006, 0, data );
++			data_cache_size[1] = extractBit(data[2],16,31)*1024;
++			data_cache_size[2] = extractBit(data[3],18,31)*512*1024/nodes_per_socket;
++			if (data_cache_size[1] != 0) {
++				++data_cache_levels;
++				getCpuidEx(0x8000001d, 2, data );
++				cores_sharing_data_cache[1] = extractBit(data[0],14,25) + 1;
++			}
++			if (data_cache_size[2] != 0) {
++				++data_cache_levels;
++				getCpuidEx(0x8000001d, 3, data );
++				cores_sharing_data_cache[2] = extractBit(data[0],14,25) + 1;
+ 			}
+ 		}
++		else return;
+ 	}
+ 
+ public:
