@@ -1,6 +1,5 @@
-# Copyright 1999-2015 Gentoo Foundation
+# Copyright 1999-2018 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Id$
 
 # @ECLASS: distutils-r1.eclass
 # @MAINTAINER:
@@ -44,10 +43,10 @@
 # https://wiki.gentoo.org/wiki/Project:Python/distutils-r1
 
 case "${EAPI:-0}" in
-	0|1|2|3)
+	0|1|2|3|4)
 		die "Unsupported EAPI=${EAPI:-0} (too old) for ${ECLASS}"
 		;;
-	4|5|6)
+	5|6|7)
 		;;
 	*)
 		die "Unsupported EAPI=${EAPI} (unknown) for ${ECLASS}"
@@ -80,6 +79,7 @@ esac
 if [[ ! ${_DISTUTILS_R1} ]]; then
 
 [[ ${EAPI} == [45] ]] && inherit eutils
+[[ ${EAPI} == [56] ]] && inherit xdg-utils
 inherit toolchain-funcs
 
 if [[ ! ${DISTUTILS_SINGLE_IMPL} ]]; then
@@ -98,7 +98,11 @@ if [[ ! ${_DISTUTILS_R1} ]]; then
 
 if [[ ! ${DISTUTILS_OPTIONAL} ]]; then
 	RDEPEND=${PYTHON_DEPS}
-	DEPEND=${PYTHON_DEPS}
+	if [[ ${EAPI} != [56] ]]; then
+		BDEPEND=${PYTHON_DEPS}
+	else
+		DEPEND=${PYTHON_DEPS}
+	fi
 	REQUIRED_USE=${PYTHON_REQUIRED_USE}
 fi
 
@@ -192,6 +196,12 @@ fi
 # (allowing any implementation). If multiple values are specified,
 # implementations matching any of the patterns will be accepted.
 #
+# The patterns can be either fnmatch-style patterns (matched via bash
+# == operator against PYTHON_COMPAT values) or '-2' / '-3' to indicate
+# appropriately all enabled Python 2/3 implementations (alike
+# python_is_python3). Remember to escape or quote the fnmatch patterns
+# to prevent accidental shell filename expansion.
+#
 # If the restriction needs to apply conditionally to a USE flag,
 # the variable should be set conditionally as well (e.g. in an early
 # phase function or other convenient location).
@@ -225,13 +235,13 @@ fi
 # @USAGE: [<args>...]
 # @DESCRIPTION:
 # Run setup.py using currently selected Python interpreter
-# (if ${PYTHON} is set; fallback 'python' otherwise).
+# (if ${EPYTHON} is set; fallback 'python' otherwise).
 #
 # setup.py will be passed the following, in order:
 # 1. ${mydistutilsargs[@]}
 # 2. additional arguments passed to the esetup.py function.
 #
-# Please note that setup.py will respect defaults (unless overriden
+# Please note that setup.py will respect defaults (unless overridden
 # via command-line options) from setup.cfg that is created
 # in distutils-r1_python_compile and in distutils-r1_python_install.
 #
@@ -242,10 +252,19 @@ esetup.py() {
 	local die_args=()
 	[[ ${EAPI} != [45] ]] && die_args+=( -n )
 
-	set -- "${PYTHON:-python}" setup.py "${mydistutilsargs[@]}" "${@}"
+	[[ ${BUILD_DIR} ]] && _distutils-r1_create_setup_cfg
+
+	set -- "${EPYTHON:-python}" setup.py "${mydistutilsargs[@]}" "${@}"
 
 	echo "${@}" >&2
-	"${@}" || die "${die_args[@]}" || return ${?}
+	"${@}" || die "${die_args[@]}"
+	local ret=${?}
+
+	if [[ ${BUILD_DIR} ]]; then
+		rm "${HOME}"/.pydistutils.cfg || die "${die_args[@]}"
+	fi
+
+	return ${ret}
 }
 
 # @FUNCTION: distutils_install_for_testing
@@ -315,11 +334,13 @@ _distutils-r1_disable_ez_setup() {
 distutils-r1_python_prepare_all() {
 	debug-print-function ${FUNCNAME} "${@}"
 
-	if [[ ${EAPI} != [45] ]]; then
-		default
-	else
-		[[ ${PATCHES} ]] && epatch "${PATCHES[@]}"
-		epatch_user
+	if [[ ! ${DISTUTILS_OPTIONAL} ]]; then
+		if [[ ${EAPI} != [45] ]]; then
+			default
+		else
+			[[ ${PATCHES} ]] && epatch "${PATCHES[@]}"
+			epatch_user
+		fi
 	fi
 
 	# by default, use in-source build if python_prepare() is used
@@ -374,15 +395,12 @@ _distutils-r1_create_setup_cfg() {
 		#
 		# note: due to some packages (wxpython) relying on separate
 		# platlib & purelib dirs, we do not set --build-lib (which
-		# can not be overriden with --build-*lib)
+		# can not be overridden with --build-*lib)
 		build-platlib = %(build-base)s/lib
 		build-purelib = %(build-base)s/lib
 
 		# make the ebuild writer lives easier
 		build-scripts = %(build-base)s/scripts
-
-		[egg_info]
-		egg-base = ${BUILD_DIR}
 
 		# this is needed by distutils_install_for_testing since
 		# setuptools like to create .egg files for install --home.
@@ -399,7 +417,7 @@ _distutils-r1_create_setup_cfg() {
 			[install]
 			compile = True
 			optimize = 2
-			root = ${D}
+			root = ${D%/}
 		_EOF_
 
 		if [[ ! ${DISTUTILS_SINGLE_IMPL} ]]; then
@@ -434,7 +452,6 @@ _distutils-r1_copy_egg_info() {
 distutils-r1_python_compile() {
 	debug-print-function ${FUNCNAME} "${@}"
 
-	_distutils-r1_create_setup_cfg
 	_distutils-r1_copy_egg_info
 
 	esetup.py build "${@}"
@@ -509,9 +526,6 @@ distutils-r1_python_install() {
 	# enable compilation for the install phase.
 	local -x PYTHONDONTWRITEBYTECODE=
 
-	# re-create setup.cfg with install paths
-	_distutils-r1_create_setup_cfg
-
 	# python likes to compile any module it sees, which triggers sandbox
 	# failures if some packages haven't compiled their modules yet.
 	addpredict "$(python_get_sitedir)"
@@ -553,8 +567,8 @@ distutils-r1_python_install() {
 		done
 	fi
 
-	local root=${D}/_${EPYTHON}
-	[[ ${DISTUTILS_SINGLE_IMPL} ]] && root=${D}
+	local root=${D%/}/_${EPYTHON}
+	[[ ${DISTUTILS_SINGLE_IMPL} ]] && root=${D%/}
 
 	local install_prefix="${EPREFIX}/usr"
 	if [[ ${EPYTHON} == pypy* ]]; then
@@ -578,7 +592,7 @@ distutils-r1_python_install() {
 
 	if [[ ! ${DISTUTILS_SINGLE_IMPL} ]]; then
 		_distutils-r1_wrap_scripts "${root}" "${scriptdir}"
-		multibuild_merge_root "${root}" "${D}"
+		multibuild_merge_root "${root}" "${D%/}"
 	fi
 }
 
@@ -593,9 +607,11 @@ distutils-r1_python_install_all() {
 	if declare -p EXAMPLES &>/dev/null; then
 		[[ ${EAPI} != [45] ]] && die "EXAMPLES are banned in EAPI ${EAPI}"
 
-		local INSDESTTREE=/usr/share/doc/${PF}/examples
-		doins -r "${EXAMPLES[@]}"
-		docompress -x "${INSDESTTREE}"
+		(
+			docinto examples
+			dodoc -r "${EXAMPLES[@]}"
+		)
+		docompress -x "/usr/share/doc/${PF}/examples"
 	fi
 
 	_DISTUTILS_DEFAULT_CALLED=1
@@ -633,12 +649,6 @@ distutils-r1_run_phase() {
 	# in the sys.path_importer_cache)
 	mkdir -p "${BUILD_DIR}/lib" || die
 
-	# We need separate home for each implementation, for .pydistutils.cfg.
-	if [[ ! ${DISTUTILS_SINGLE_IMPL} ]]; then
-		local -x HOME=${HOME}/${EPYTHON}
-		mkdir -p "${HOME}" || die
-	fi
-
 	# Set up build environment, bug #513664.
 	local -x AR=${AR} CC=${CC} CPP=${CPP} CXX=${CXX}
 	tc-export AR CC CPP CXX
@@ -672,23 +682,20 @@ distutils-r1_run_phase() {
 _distutils-r1_run_common_phase() {
 	local DISTUTILS_ORIG_BUILD_DIR=${BUILD_DIR}
 
-	if [[ ! ${DISTUTILS_SINGLE_IMPL} ]]; then
-		local best_impl patterns=( "${DISTUTILS_ALL_SUBPHASE_IMPLS[@]-*}" )
-		_distutils_try_impl() {
-			local pattern
-			for pattern in "${patterns[@]}"; do
-				if [[ ${EPYTHON} == ${pattern} ]]; then
-					best_impl=${MULTIBUILD_VARIANT}
-				fi
-			done
-		}
-		python_foreach_impl _distutils_try_impl
-		unset -f _distutils_try_impl
+	if [[ ${DISTUTILS_SINGLE_IMPL} ]]; then
+		# reuse the dedicated code branch
+		_distutils-r1_run_foreach_impl "${@}"
+	else
+		local -x EPYTHON PYTHON
+		local -x PATH=${PATH} PKG_CONFIG_PATH=${PKG_CONFIG_PATH}
+		python_setup "${DISTUTILS_ALL_SUBPHASE_IMPLS[@]}"
 
-		local PYTHON_COMPAT=( "${best_impl}" )
+		local MULTIBUILD_VARIANTS=( "${EPYTHON/./_}" )
+		# store for restoring after distutils-r1_run_phase.
+		local _DISTUTILS_INITIAL_CWD=${PWD}
+		multibuild_foreach_variant \
+			distutils-r1_run_phase "${@}"
 	fi
-
-	_distutils-r1_run_foreach_impl "${@}"
 }
 
 # @FUNCTION: _distutils-r1_run_foreach_impl
@@ -698,15 +705,6 @@ _distutils-r1_run_common_phase() {
 # are enabled, once otherwise.
 _distutils-r1_run_foreach_impl() {
 	debug-print-function ${FUNCNAME} "${@}"
-
-	if [[ ${DISTUTILS_NO_PARALLEL_BUILD} ]]; then
-		[[ ${EAPI} == [45] ]] || die "DISTUTILS_NO_PARALLEL_BUILD is banned in EAPI ${EAPI}"
-
-		eqawarn "DISTUTILS_NO_PARALLEL_BUILD is no longer meaningful. Now all builds"
-		eqawarn "are non-parallel. Please remove it from the ebuild."
-
-		unset DISTUTILS_NO_PARALLEL_BUILD # avoid repeated warnings
-	fi
 
 	# store for restoring after distutils-r1_run_phase.
 	local _DISTUTILS_INITIAL_CWD=${PWD}
@@ -751,6 +749,7 @@ distutils-r1_src_prepare() {
 
 distutils-r1_src_configure() {
 	python_export_utf8_locale
+	[[ ${EAPI} == [56] ]] && xdg_environment_reset # Bug 577704
 
 	if declare -f python_configure >/dev/null; then
 		_distutils-r1_run_foreach_impl python_configure
@@ -775,10 +774,14 @@ distutils-r1_src_compile() {
 	fi
 }
 
-_clean_egg_info() {
-	# Work around for setuptools test behavior (bug 534058).
-	# https://bitbucket.org/pypa/setuptools/issue/292
-	rm -rf "${BUILD_DIR}"/lib/*.egg-info
+# @FUNCTION: _distutils-r1_clean_egg_info
+# @INTERNAL
+# @DESCRIPTION:
+# Clean up potential stray egg-info files left by setuptools test phase.
+# Those files ended up being unversioned, and caused issues:
+# https://bugs.gentoo.org/534058
+_distutils-r1_clean_egg_info() {
+	rm -rf "${BUILD_DIR}"/lib/*.egg-info || die
 }
 
 distutils-r1_src_test() {
@@ -786,11 +789,38 @@ distutils-r1_src_test() {
 
 	if declare -f python_test >/dev/null; then
 		_distutils-r1_run_foreach_impl python_test
-		_distutils-r1_run_foreach_impl _clean_egg_info
+		_distutils-r1_run_foreach_impl _distutils-r1_clean_egg_info
 	fi
 
 	if declare -f python_test_all >/dev/null; then
 		_distutils-r1_run_common_phase python_test_all
+	fi
+}
+
+# @FUNCTION: _distutils-r1_check_namespace_pth
+# @INTERNAL
+# @DESCRIPTION:
+# Check if any *-nspkg.pth files were installed (by setuptools)
+# and warn about the policy non-conformance if they were.
+_distutils-r1_check_namespace_pth() {
+	local f pth=()
+
+	while IFS= read -r -d '' f; do
+		pth+=( "${f}" )
+	done < <(find "${ED%/}" -name '*-nspkg.pth' -print0)
+
+	if [[ ${pth[@]} ]]; then
+		ewarn "The following *-nspkg.pth files were found installed:"
+		ewarn
+		for f in "${pth[@]}"; do
+			ewarn "  ${f#${ED%/}}"
+		done
+		ewarn
+		ewarn "The presence of those files may break namespaces in Python 3.5+. Please"
+		ewarn "read our documentation on reliable handling of namespaces and update"
+		ewarn "the ebuild accordingly:"
+		ewarn
+		ewarn "  https://wiki.gentoo.org/wiki/Project:Python/Namespace_packages"
 	fi
 }
 
@@ -817,6 +847,8 @@ distutils-r1_src_install() {
 
 		"${cmd}" "QA: python_install_all() didn't call distutils-r1_python_install_all"
 	fi
+
+	_distutils-r1_check_namespace_pth
 }
 
 # -- distutils.eclass functions --

@@ -1,6 +1,5 @@
 # Copyright 1999-2016 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Id$
 
 inherit flag-o-matic toolchain-funcs versionator
 
@@ -31,7 +30,7 @@ if [[ -z ${_CUDA_ECLASS} ]]; then
 
 # @FUNCTION: cuda_gccdir
 # @USAGE: [-f]
-# @RETURN: gcc bindir compatible with current cuda, optionally (-f) prefixed with "--compiler-bindir="
+# @RETURN: gcc bindir compatible with current cuda, optionally (-f) prefixed with "--compiler-bindir "
 # @DESCRIPTION:
 # Helper for determination of the latest gcc bindir supported by
 # then current nvidia cuda toolkit.
@@ -39,7 +38,7 @@ if [[ -z ${_CUDA_ECLASS} ]]; then
 # Example:
 # @CODE
 # cuda_gccdir -f
-# -> --compiler-bindir="/usr/x86_64-pc-linux-gnu/gcc-bin/4.6.3"
+# -> --compiler-bindir "/usr/x86_64-pc-linux-gnu/gcc-bin/4.6.3"
 # @CODE
 cuda_gccdir() {
 	debug-print-function ${FUNCNAME} "$@"
@@ -47,16 +46,15 @@ cuda_gccdir() {
 	local gcc_bindir ver args="" flag ret
 
 	# Currently we only support the gnu compiler suite
-	# Actually, cray and pgi work as well
-	#if [[ $(tc-getCXX) != *g++* ]]; then
-	#	ewarn "Currently we only support the gnu compiler suite"
-	#	return 2
-	#fi
+	if  ! tc-is-gcc ; then
+		ewarn "Currently we only support the gnu compiler suite"
+		return 2
+	fi
 
 	while [ "$1" ]; do
 		case $1 in
 			-f)
-				flag="--compiler-bindir="
+				flag="--compiler-bindir "
 				;;
 			*)
 				;;
@@ -64,34 +62,26 @@ cuda_gccdir() {
 		shift
 	done
 
-	# Rely on environment modules getting version conflicts right. We do not have cuda-config on Cray
-	#if ! args=$(cuda-config -s); then
-	#	eerror "Could not execute cuda-config"
-	#	eerror "Make sure >=dev-util/nvidia-cuda-toolkit-4.2.9-r1 is installed"
-	#	die "cuda-config not found"
-	#else
-	#	args=$(version_sort ${args})
-	#	if [[ -z ${args} ]]; then
-	#		die "Could not determine supported gcc versions from cuda-config"
-	#	fi
-	#fi
-	#
-	#for ver in ${args}; do
-	#	has_version "=sys-devel/gcc-${ver}*" && \
-	#	 gcc_bindir="$(ls -d ${EPREFIX}/usr/*pc-linux-gnu/gcc-bin/${ver}* | tail -n 1)"
-	#done
-
-	# https://bluewaters.ncsa.illinois.edu/cuda uses `which CC` for compiler bindir
-	local cc_tmp
-	if [ -d "/opt/cray/nvidia" ]; then
-		cc_tmp=$(which g++)
-		gcc_bindir="$(dirname $(which g++))/../snos/bin"
+	args=$(cuda-config -s)
+	if [[ -z "${args}" || -n "${GCC_PATH}" ]] ; then
+		if [ -d "/opt/cray/nvidia" ]; then
+			gcc_bindir="$(dirname $(which g++))/../snos/bin"
+		else
+			eerror "Could not execute cuda-config"
+			eerror "Make sure >=dev-util/nvidia-cuda-toolkit-4.2.9-r1 is installed"
+			die "cuda-config not found"
+		fi
 	else
-		cc_tmp=$(which g++)
-		gcc_bindir="${cc_tmp%/g++}"
+		args=$(version_sort ${args})
+		if [[ -z ${args} ]]; then
+			die "Could not determine supported gcc versions from cuda-config"
+		fi
+		
+		for ver in ${args}; do
+			has_version "=sys-devel/gcc-${ver}*" && \
+			gcc_bindir="$(ls -d ${EPREFIX}/usr/*pc-linux-gnu/gcc-bin/${ver}* | tail -n 1)"
+		done
 	fi
-	# Clean up gcc_bindir to actually be the directory, not the executable itself
-	echo ${gcc_bindir} >/dev/stderr
 
 	if [[ -n ${gcc_bindir} ]]; then
 		if [[ -n ${flag} ]]; then

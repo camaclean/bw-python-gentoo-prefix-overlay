@@ -529,7 +529,7 @@ cmake-utils_src_configure() {
 			sysincpath="${sysincpath};${prefix}/usr/include"
 		done
 		IFS=$save_IFS
-		CMAKE_SYSTEM_PREFIX_PATH="${EPREFIX}/usr;${EPREFIX};${READONLY_SPP%;};/usr;/"
+		CMAKE_SYSTEM_PREFIX_PATH="${EPREFIX}/usr;${EPREFIX};${READONLY_SPP%;}"
 	fi
 	cat > "${build_rules}" <<- _EOF_ || die
 		SET (CMAKE_ASM_COMPILE_OBJECT "<CMAKE_ASM_COMPILER> <DEFINES> ${includes} ${CPPFLAGS} <FLAGS> -o <OBJECT> -c <SOURCE>" CACHE STRING "ASM compile command" FORCE)
@@ -539,6 +539,7 @@ cmake-utils_src_configure() {
 		SET (CMAKE_CXX_COMPILE_OBJECT "<CMAKE_CXX_COMPILER> <DEFINES> ${includes} ${CPPFLAGS} <FLAGS> -o <OBJECT> -c <SOURCE>" CACHE STRING "C++ compile command" FORCE)
 		SET (CMAKE_Fortran_COMPILE_OBJECT "<CMAKE_Fortran_COMPILER> <DEFINES> ${includes} ${FCFLAGS} <FLAGS> -o <OBJECT> -c <SOURCE>" CACHE STRING "Fortran compile command" FORCE)
 		SET (CMAKE_SYSTEM_PREFIX_PATH "${CMAKE_SYSTEM_PREFIX_PATH}" CACHE STRING "Chained Prefix system paths" FORCE)
+		SET (CMAKE_PREFIX_PATH "${CMAKE_SYSTEM_PREFIX_PATH}" CACHE STRING "Chained Prefix system paths" FORCE)
 	_EOF_
 
 	local myCC=$(tc-getCC) myCXX=$(tc-getCXX) myFC=$(tc-getFC)

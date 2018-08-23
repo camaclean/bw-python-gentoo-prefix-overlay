@@ -1,6 +1,5 @@
 # Copyright 1999-2015 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Id$
 
 # @ECLASS: qmake-utils.eclass
 # @MAINTAINER:
@@ -17,14 +16,15 @@
 if [[ -z ${_QMAKE_UTILS_ECLASS} ]]; then
 _QMAKE_UTILS_ECLASS=1
 
-[[ ${EAPI:-0} == [012345] ]] && inherit multilib
-inherit eutils toolchain-funcs
+[[ ${EAPI:-0} == [012345] ]] && inherit eutils multilib
+inherit estack toolchain-funcs
 
 # @FUNCTION: qt4_get_bindir
 # @DESCRIPTION:
 # Echoes the directory where Qt4 binaries are installed.
 # EPREFIX is already prepended to the returned path.
 qt4_get_bindir() {
+	[[ ${EAPI:-0} == [0123456] ]] || die "${FUNCNAME[1]} is banned in EAPI 7 and later"
 	has "${EAPI:-0}" 0 1 2 && use !prefix && EPREFIX=
 
 	local qteprefix="$(get_eprefix dev-qt/qtcore:4)"
@@ -40,6 +40,7 @@ qt4_get_bindir() {
 # @DESCRIPTION:
 # Echoes the directory where Qt4 headers are installed.
 qt4_get_headerdir() {
+	[[ ${EAPI:-0} == [0123456] ]] || die "${FUNCNAME[1]} is banned in EAPI 7 and later"
 	echo /usr/include/qt4
 }
 
@@ -47,6 +48,7 @@ qt4_get_headerdir() {
 # @DESCRIPTION:
 # Echoes the directory where Qt4 libraries are installed.
 qt4_get_libdir() {
+	[[ ${EAPI:-0} == [0123456] ]] || die "${FUNCNAME[1]} is banned in EAPI 7 and later"
 	echo /usr/$(get_libdir)/qt4
 }
 
@@ -54,6 +56,7 @@ qt4_get_libdir() {
 # @DESCRIPTION:
 # Echoes the directory where Qt4 mkspecs are installed.
 qt4_get_mkspecsdir() {
+	[[ ${EAPI:-0} == [0123456] ]] || die "${FUNCNAME[1]} is banned in EAPI 7 and later"
 	echo /usr/share/qt4/mkspecs
 }
 
@@ -61,6 +64,7 @@ qt4_get_mkspecsdir() {
 # @DESCRIPTION:
 # Echoes the directory where Qt4 plugins are installed.
 qt4_get_plugindir() {
+	[[ ${EAPI:-0} == [0123456] ]] || die "${FUNCNAME[1]} is banned in EAPI 7 and later"
 	echo $(qt4_get_libdir)/plugins
 }
 
@@ -164,6 +168,7 @@ qmake-utils_find_pro_file() {
 eqmake4() {
 	debug-print-function ${FUNCNAME} "$@"
 
+	[[ ${EAPI:-0} == [0123456] ]] || die "${FUNCNAME[1]} is banned in EAPI 7 and later"
 	has "${EAPI:-0}" 0 1 2 && use !prefix && EPREFIX=
 
 	ebegin "Running qmake"
@@ -187,7 +192,7 @@ eqmake4() {
 	# Make sure the CONFIG variable is correctly set for both release and debug builds.
 	local config_add=release
 	local config_remove=debug
-	if use_if_iuse debug; then
+	if in_iuse debug && use debug; then
 		config_add=debug
 		config_remove=release
 	fi

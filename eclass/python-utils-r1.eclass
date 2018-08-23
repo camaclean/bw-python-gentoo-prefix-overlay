@@ -1,4 +1,4 @@
-# Copyright 1999-2017 Gentoo Foundation
+# Copyright 1999-2018 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
 # @ECLASS: python-utils-r1.eclass
@@ -19,7 +19,7 @@
 # https://wiki.gentoo.org/wiki/Project:Python/python-utils-r1
 
 case "${EAPI:-0}" in
-	0|1|2|3|4|5|6)
+	0|1|2|3|4|5|6|7)
 		;;
 	*)
 		die "Unsupported EAPI=${EAPI} (unknown) for ${ECLASS}"
@@ -43,7 +43,7 @@ _PYTHON_ALL_IMPLS=(
 	jython2_7
 	pypy pypy3
 	python2_7
-	python3_3 python3_4 python3_5 python3_6
+	python3_4 python3_5 python3_6 python3_7
 )
 readonly _PYTHON_ALL_IMPLS
 
@@ -79,10 +79,10 @@ _python_impl_supported() {
 	# keep in sync with _PYTHON_ALL_IMPLS!
 	# (not using that list because inline patterns shall be faster)
 	case "${impl}" in
-		python2_7|python3_[3456]|jython2_7)
+		python2_7|python3_[4567]|jython2_7)
 			return 0
 			;;
-		pypy1_[89]|pypy2_0|python2_[56]|python3_[12])
+		pypy1_[89]|pypy2_0|python2_[56]|python3_[123])
 			return 1
 			;;
 		pypy|pypy3)
@@ -169,7 +169,8 @@ _python_set_impls() {
 # Check whether the specified <impl> matches at least one
 # of the patterns following it. Return 0 if it does, 1 otherwise.
 #
-# <impl> should be in PYTHON_COMPAT form. The patterns can be either:
+# <impl> can be in PYTHON_COMPAT or EPYTHON form. The patterns can be
+# either:
 # a) fnmatch-style patterns, e.g. 'python2*', 'pypy'...
 # b) '-2' to indicate all Python 2 variants (= !python_is_python3)
 # c) '-3' to indicate all Python 3 variants (= python_is_python3)
@@ -186,7 +187,8 @@ _python_impl_matches() {
 		elif [[ ${pattern} == -3 ]]; then
 			python_is_python3 "${impl}"
 			return
-		elif [[ ${impl} == ${pattern} ]]; then
+		# unify value style to allow lax matching
+		elif [[ ${impl/./_} == ${pattern/./_} ]]; then
 			return 0
 		fi
 	done
@@ -377,25 +379,6 @@ python_export() {
 	esac
 	debug-print "${FUNCNAME}: implementation: ${impl}"
 
-	if [[ -z "${EPREFIX}" ]]; then
-		prefixes="$PORTAGE_READONLY_EPREFIXES"
-	else
-		prefixes="$EPREFIX:$PORTAGE_READONLY_EPREFIXES"
-	fi
-
-	local save_IFS=$IFS
-	local prefix=""
-	IFS=":"
-	local p
-	for p in $prefixes; do
-		if [ -x $p/usr/bin/${impl} ]; then
-			prefix="$p"
-			break
-		fi
-	done
-	[ -z "${prefix}" ] && prefix="${EPREFIX}"
-	IFS="$save_IFS"
-
 	for var; do
 		case "${var}" in
 			EPYTHON)
@@ -405,36 +388,24 @@ python_export() {
 			PYTHON)
 				export PYTHON=${EPREFIX}/usr/bin/${impl}
 				if [[ " python jython pypy pypy3 " != *" ${PN} "* ]] \
-				&& [[ ! -x ${PYTHON} ]] \
-				&& use prefix-chain; then
-					# Need to search in parent prefixes
-					local parent
-					local parents=()
-					IFS=: eval 'parents=(${PORTAGE_READONLY_EPREFIXES})'
-					for parent in "${parents[@]}"; do
-						if [[ -x ${parent}/usr/bin/${impl} ]]; then
-							PYTHON=${parent}/usr/bin/${impl}
-							break
-						fi
-					done
+				&& [[ ! -x ${EPREFIX}/usr/bin/${impl} ]] \
+				&& has stacked-prefix ${FEATURES}; then
+					# Need to look in build prefix
+					if [[ -x ${BROOT-${PORTAGE_OVERRIDE_EPREFIX}}/usr/bin/${impl} ]]; then
+						PYTHON=${BROOT-${PORTAGE_OVERRIDE_EPREFIX}}/usr/bin/${impl}
+					fi
 				fi
 				debug-print "${FUNCNAME}: PYTHON = ${PYTHON}"
 				;;
 			PYTHON_EPREFIX)
 				export PYTHON_EPREFIX=${EPREFIX}
 				if [[ " python jython pypy pypy3 " != *" ${PN} "* ]] \
-				&& [[ ! -x ${PYTHON_EPREFIX}/usr/bin/${impl} ]] \
-				&& use prefix-chain; then
-					# Need to search in parent prefixes
-					local parent
-					local parents=()
-					IFS=: eval 'parents=(${PORTAGE_READONLY_EPREFIXES})'
-					for parent in "${parents[@]}"; do
-						if [[ -x ${parent}/usr/bin/${impl} ]]; then
-							PYTHON_EPREFIX=${parent}
-							break
-						fi
-					done
+				&& [[ ! -x ${EPREFIX}/usr/bin/${impl} ]] \
+				&& has stacked-prefix ${FEATURES}; then
+					# Need to look in build prefix
+					if [[ -x ${BROOT-${PORTAGE_OVERRIDE_EPREFIX}}/usr/bin/${impl} ]]; then
+						PYTHON_EPREFIX=${BROOT-${PORTAGE_OVERRIDE_EPREFIX}}
+					fi
 				fi
 				debug-print "${FUNCNAME}: PYTHON_EPREFIX = ${PYTHON_EPREFIX}"
 				;;
@@ -443,25 +414,11 @@ python_export() {
 				# sysconfig can't be used because:
 				# 1) pypy doesn't give site-packages but stdlib
 				# 2) jython gives paths with wrong case
-				PYTHON_SITEDIR=$(${PYTHON} -c 'import site; print(site.getsitepackages()[0])') || die
+				PYTHON_SITEDIR=$("${PYTHON}" -c 'import distutils.sysconfig; print(distutils.sysconfig.get_python_lib())') || die
 				export PYTHON_SITEDIR
 				debug-print "${FUNCNAME}: PYTHON_SITEDIR = ${PYTHON_SITEDIR}"
 				;;
 			PYTHON_INCLUDEDIR)
-				#local dir
-				#case "${impl}" in
-				#	python*)
-				#		dir=/usr/include/${impl}
-				#		;;
-				#	pypy|pypy3)
-				#		dir=/usr/$(get_libdir)/${impl}/include
-				#		;;
-				#	*)
-				#		die "${impl} lacks header files"
-				#		;;
-				#esac
-
-				#export PYTHON_INCLUDEDIR=${prefix}${dir}
 				[[ -n ${PYTHON} ]] || die "PYTHON needs to be set for ${var} to be exported, or requested before it"
 				PYTHON_INCLUDEDIR=$("${PYTHON}" -c 'import distutils.sysconfig; print(distutils.sysconfig.get_python_inc())') || die
 				export PYTHON_INCLUDEDIR
@@ -562,18 +519,12 @@ python_export() {
 				local dir
 				export PYTHON_SCRIPTDIR=${EPREFIX}/usr/lib/python-exec/${impl}
 				if [[ " python jython pypy pypy3 " != *" ${PN} "* ]] \
-				&& [[ ! -d ${PYTHON_SCRIPTDIR} ]] \
-				&& use prefix-chain; then
-					# Need to search in parent prefixes
-					local parent
-					local parents=()
-					IFS=: eval 'parents=(${PORTAGE_READONLY_EPREFIXES})'
-					for parent in "${parents[@]}"; do
-						if [[ -e ${parent}/usr/lib/python-exec/${impl} ]]; then
-							PYTHON_SCRIPTDIR=${parent}/usr/lib/python-exec/${impl}
-							break
-						fi
-					done
+				&& [[ ! -x ${EPREFIX}/usr/bin/${impl} ]] \
+				&& has stacked-prefix ${FEATURES}; then
+					# Need to look in build prefix
+					if [[ -x ${BROOT-${PORTAGE_OVERRIDE_EPREFIX}}/usr/bin/${impl} ]]; then
+						PYTHON_SCRIPTDIR=${BROOT-${PORTAGE_OVERRIDE_EPREFIX}}/usr/lib/python-exec/${impl}
+					fi
 				fi
 				debug-print "${FUNCNAME}: PYTHON_SCRIPTDIR = ${PYTHON_SCRIPTDIR}"
 				;;
@@ -778,8 +729,8 @@ python_optimize() {
 			# 2) skip paths which do not exist
 			#    (python2.6 complains about them verbosely)
 
-			if [[ ${f} == /* && -d ${D}${f} ]]; then
-				set -- "${D}${f}" "${@}"
+			if [[ ${f} == /* && -d ${D%/}${f} ]]; then
+				set -- "${D%/}${f}" "${@}"
 			fi
 		done < <("${PYTHON}" -c 'import sys; print("\0".join(sys.path))' || die)
 
@@ -789,7 +740,7 @@ python_optimize() {
 	local d
 	for d; do
 		# make sure to get a nice path without //
-		local instpath=${d#${D}}
+		local instpath=${d#${D%/}}
 		instpath=/${instpath##/}
 
 		case "${EPYTHON}" in
@@ -879,6 +830,7 @@ python_newexe() {
 
 	(
 		dodir "${wrapd}"
+		exeopts -m 0755
 		exeinto "${d}"
 		newexe "${f}" "${newfn}" || return ${?}
 	)
@@ -1010,11 +962,12 @@ python_domodule() {
 	fi
 
 	(
+		insopts -m 0644
 		insinto "${d}"
 		doins -r "${@}" || return ${?}
 	)
 
-	python_optimize "${ED}/${d}"
+	python_optimize "${ED%/}/${d}"
 }
 
 # @FUNCTION: python_doheader
@@ -1044,6 +997,7 @@ python_doheader() {
 	d=${PYTHON_INCLUDEDIR#${PYTHON_EPREFIX:-${EPREFIX}}}
 
 	(
+		insopts -m 0644
 		insinto "${d}"
 		doins -r "${@}" || return ${?}
 	)
@@ -1176,9 +1130,20 @@ python_is_python3() {
 python_is_installed() {
 	local impl=${1:-${EPYTHON}}
 	[[ ${impl} ]] || die "${FUNCNAME}: no impl nor EPYTHON"
+	local hasv_args=()
 
-	# for has_version
-	local -x ROOT=/
+	case ${EAPI:-0} in
+		0|1|2|3|4)
+			local -x ROOT=/
+			;;
+		5|6)
+			hasv_args+=( --host-root )
+			;;
+		*)
+			hasv_args+=( -b )
+			;;
+	esac
+
 	case "${impl}" in
 		pypy|pypy3)
 			local append=
@@ -1187,13 +1152,13 @@ python_is_installed() {
 			fi
 
 			# be happy with just the interpeter, no need for the virtual
-			has_version "dev-python/${impl}${append}" \
-				|| has_version "dev-python/${impl}-bin${append}"
+			has_version "${hasv_args[@]}" "dev-python/${impl}${append}" \
+				|| has_version "${hasv_args[@]}" "dev-python/${impl}-bin${append}"
 			;;
 		*)
 			local PYTHON_PKG_DEP
 			python_export "${impl}" PYTHON_PKG_DEP
-			has_version "${PYTHON_PKG_DEP}"
+			has_version "${hasv_args[@]}" "${PYTHON_PKG_DEP}"
 			;;
 	esac
 }
@@ -1258,7 +1223,7 @@ python_fix_shebang() {
 				for i in "${split_shebang[@]}"; do
 					case "${i}" in
 						*"${EPYTHON}")
-							debug-print "${FUNCNAME}: in file ${f#${D}}"
+							debug-print "${FUNCNAME}: in file ${f#${D%/}}"
 							debug-print "${FUNCNAME}: shebang matches EPYTHON: ${shebang}"
 
 							# Nothing to do, move along.
@@ -1267,7 +1232,7 @@ python_fix_shebang() {
 							break
 							;;
 						*python|*python[23])
-							debug-print "${FUNCNAME}: in file ${f#${D}}"
+							debug-print "${FUNCNAME}: in file ${f#${D%/}}"
 							debug-print "${FUNCNAME}: rewriting shebang: ${shebang}"
 
 							if [[ ${i} == *python2 ]]; then
@@ -1317,7 +1282,7 @@ python_fix_shebang() {
 			fi
 
 			if [[ ! ${quiet} ]]; then
-				einfo "Fixing shebang in ${f#${D}}."
+				einfo "Fixing shebang in ${f#${D%/}}."
 			fi
 
 			if [[ ! ${error} ]]; then
@@ -1331,7 +1296,7 @@ python_fix_shebang() {
 				any_fixed=1
 			else
 				eerror "The file has incompatible shebang:"
-				eerror "  file: ${f#${D}}"
+				eerror "  file: ${f#${D%/}}"
 				eerror "  current shebang: ${shebang}"
 				eerror "  requested impl: ${EPYTHON}"
 				die "${FUNCNAME}: conversion of incompatible shebang requested"
@@ -1342,7 +1307,7 @@ python_fix_shebang() {
 			local cmd=eerror
 			[[ ${EAPI:-0} == [012345] ]] && cmd=eqawarn
 
-			"${cmd}" "QA warning: ${FUNCNAME}, ${path#${D}} did not match any fixable files."
+			"${cmd}" "QA warning: ${FUNCNAME}, ${path#${D%/}} did not match any fixable files."
 			if [[ ${any_correct} ]]; then
 				"${cmd}" "All files have ${EPYTHON} shebang already."
 			else
