@@ -25,8 +25,8 @@ export CPATH="${CPATH%:}"
 Pkgenvs=(
 	 "sys-devel/gdb addL"
 	 "dev-python/numpy-pypy cray"
-	 "dev-python/pypy ncurses"
-	 "dev-python/pypy3 ncurses"
+	 #"dev-python/pypy ncurses"
+	 #"dev-python/pypy3 ncurses"
 	 "dev-python/pycdf cray"
 	 "sci-libs/arpack cray"
 	 "dev-libs/c-blosc cray"
@@ -255,7 +255,11 @@ do
 				;;
 
 			rt)
-				export LDFLAGS="${LDFLAGS} -lrt"
+				export LDFLAGS="${LDFLAGS} -Wl,--as-needed -lrt -Wl,--no-as-needed"
+				;;
+			hostdirs)
+				#export LDFLAGS="${LDFLAGS} -Wl,--as-needed -lcrypt -Wl,--no-as-needed"
+				export LDFLAGS="${LDFLAGS} -L/usr/lib64 -L/lib64"
 				;;
 			*)
 				;;	
@@ -294,26 +298,26 @@ if [[ ${EBUILD_PHASE} == unpack ]]; then
 	export LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
 fi
 
-pre_src_prepare() {
-	#if ! type epatch_user > /dev/null 2>&1; then
-	#	local names="EPATCH_USER_SOURCE epatch_user epatch evar_push evar_push_set evar_pop estack_push estack_pop"
-	#	source <(awk "/^# @(FUNCTION|VARIABLE): / { p = 0 } /^# @(FUNCTION|VARIABLE): (${names// /|})\$/ { p = 1 } p { print }" ${PORTDIR}/eclass/eutils.eclass)
-	#fi
-
-	if (( ${EAPI:-0} < 6 )); then
-		if ! type epatch_user > /dev/null 2>&1; then
-			local names="EPATCH_USER_SOURCE epatch_user epatch evar_push evar_push_set evar_pop estack_push estack_pop"
-			source <(awk "/^# @(FUNCTION|VARIABLE): / { p = 0 } /^# @(FUNCTION|VARIABLE): (${names// /|})\$/ { p = 1 } p { print }" ${PORTDIR}/eclass/eutils.eclass)
-		fi
-		epatch_user
-		for name in $names; do
-			unset $name
-		done
-	else
-		eapply_user
-	fi
-
-}
+#pre_src_prepare() {
+#	#if ! type epatch_user > /dev/null 2>&1; then
+#	#	local names="EPATCH_USER_SOURCE epatch_user epatch evar_push evar_push_set evar_pop estack_push estack_pop"
+#	#	source <(awk "/^# @(FUNCTION|VARIABLE): / { p = 0 } /^# @(FUNCTION|VARIABLE): (${names// /|})\$/ { p = 1 } p { print }" ${PORTDIR}/eclass/eutils.eclass)
+#	#fi
+#
+#	if (( ${EAPI:-0} < 6 )); then
+#		if ! type epatch_user > /dev/null 2>&1; then
+#			local names="EPATCH_USER_SOURCE epatch_user epatch evar_push evar_push_set evar_pop estack_push estack_pop"
+#			source <(awk "/^# @(FUNCTION|VARIABLE): / { p = 0 } /^# @(FUNCTION|VARIABLE): (${names// /|})\$/ { p = 1 } p { print }" ${PORTDIR}/eclass/eutils.eclass)
+#		fi
+#		epatch_user
+#		for name in $names; do
+#			unset $name
+#		done
+#	else
+#		eapply_user
+#	fi
+#
+#}
 
 post_src_test() {
 	if has savetests ${FEATURES}; then

@@ -39,4 +39,14 @@ sys-apps/man-db
 >=dev-python/hypothesis-2.0.0 
 
 #>sys-apps/portage-2.2.28-r1
->sys-apps/portage-2.3.5
+#>sys-apps/portage-2.3.5
+>=sys-apps/util-linux-2.31
+>dev-libs/libbsd-0.8.3
+
+#glib 2.54 not in prefix, yet
+=dev-util/gdbus-codegen-2.54.3
+
+# No Cuda 9.1 support
+>=dev-libs/cudnn-7.1
+
+=dev-db/postgresql-11_beta*

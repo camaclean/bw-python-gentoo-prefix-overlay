@@ -7,7 +7,7 @@
 ARCH="amd64"
 CHOST="x86_64-pc-linux-gnu"
 ACCEPT_KEYWORDS="amd64 ~amd64 ~amd64-linux"
-USE="$USE -doc unicode nls jpeg jpeg2k lcms tiff truetype lapack -e2fsprogs lzo lzma python threads hdf hdf5 sqlite -python_targets_python3_5"
+USE="$USE -doc unicode nls jpeg jpeg2k lcms tiff truetype lapack -e2fsprogs lzo lzma python threads hdf hdf5 sqlite"
 
 # We don't have lib64 in prefix so, remove it here.
 SYMLINK_LIB=""
@@ -17,9 +17,9 @@ LIBDIR_amd64="lib"
 MULTILIB_ABIS="amd64"
 DEFAULT_ABI="amd64"
 ABI="amd64"
-IUSE_IMPLICIT="abi_x86_64"
+IUSE_IMPLICIT="abi_x86_64 cray prefix-chain prefix prefix-guest cray_xk7 cray_xe6"
 LIBDIR_amd64="lib"
 
 PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:$EPREFIX/usr/lib/pkgconfig"
 ACLOCAL_PATH="$EPREFIX/usr/share/aclocal:/usr/share/aclocal"
-CPU_FLAGS_X86="sse2 sse mmx avx fma4 sse4_1 sse4_2"
+CPU_FLAGS_X86="sse2 sse sse3 ssse3 mmx avx fma4 sse4_1 sse4_2 popcnt"

@@ -1,4 +1,6 @@
 virtual/jdk-1.8.0
+sys-fs/udev-init-scripts-32
+sys-fs/eudev-3.2.5
 virtual/jdk-1.7.0
 virtual/linux-sources-1
 dev-vcs/subversion-1.6.17
@@ -70,7 +72,7 @@ app-editors/vim-core-7.4.827
 #sci-libs/lapack-reference-3.5.0
 #sci-libs/lapack-reference-3.6.0-r1
 #media-libs/freetype-2.6
-sys-libs/libcap-2.24-r2
+#sys-libs/libcap-2.24-r2
 #x11-libs/libSM-1.2.1-r1
 #x11-libs/libX11-1.5.0-r1
 #x11-libs/libXft-2.1.13
@@ -110,7 +112,6 @@ virtual/os-headers-0
 virtual/ttf-fonts-1
 #x11-libs/cairo-1.8.8
 #app-text/sgml-common-0.6.3-r5
-app-text/sgml-common-0.6.3-r5
 #sys-apps/less-479
 #app-misc/ca-certificates-20141019.3.19 #needed for git
 dev-perl/perl-tk-804.33.0
@@ -118,7 +119,9 @@ dev-perl/perl-tk-804.33.0
 #dev-util/cmake-3.2.3
 x11-drivers/nvidia-drivers-352.09
 dev-util/nvidia-cuda-toolkit-7.5.18
+dev-util/nvidia-cuda-toolkit-9.1.85
 dev-util/nvidia-cuda-sdk-7.5.18
+dev-util/nvidia-cuda-sdk-9.1.85
 virtual/opencl-0-r4
 #dev-libs/boost-1.53.0
 #dev-util/boost-build-1.53.0
@@ -158,8 +161,10 @@ sci-libs/scotch-5.1.12b
 #app-arch/xz-utils-5.2.2 provided package lacks lzma support
 virtual/ssh-0
 virtual/man-0-r1
-#sys-apps/coreutils-9999
+sys-apps/coreutils-9999
 #app-arch/bzip2-9999 #System bz2 is too old for python3 
 #sys-devel/make-9999 #make is not gnu make
 #dev-libs/glib-2.44.1
 #sys-devel/patch-9999 Need a newer patch for bison
+sci-libs/mkl-11.3.2.181
+dev-libs/intel-common-16.0.2.181
