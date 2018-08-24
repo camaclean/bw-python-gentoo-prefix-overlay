@@ -69,7 +69,7 @@ PATCHES=(
 src_prepare() {
 	sed -i 's@$(prefix)/lib@$(prefix)/$(INSTALL_LIBDIR)@g' Makefile || die "fix libdir"
 	sed -i 's/#define GPR_LINUX_PTHREAD_NAME 1//g' include/grpc/impl/codegen/port_platform.h || die
-	default
+	cmake-utils_src_prepare
 #	mv src/core/lib/gpr/cpu_posix.cc src/core/lib/gpr/cpu_posix.c || die
 #	mv src/core/lib/gpr/cpu_linux.cc src/core/lib/gpr/cpu_linux.c || die
 #	mv src/core/lib/gpr/cpu_iphone.cc src/core/lib/gpr/cpu_iphone.c || die
@@ -108,6 +108,7 @@ src_configure() {
 		"-DgRPC_PROTOBUF_PACKAGE_TYPE=MODULE"
 		"-DgRPC_GFLAGS_PROVIDER=package"
 		"-DgRPC_BENCHMARK_PROVIDER=package"
+		"-DBUILD_SHARED_LIBS=$(usex !static-libs)"
 	)
 	cmake-utils_src_configure
 }
@@ -143,13 +144,12 @@ python_compile_all() {
 }
 
 src_install() {
-	emake \
-		prefix="${D}"/usr \
-		INSTALL_LIBDIR="$(get_libdir)" \
-		STRIP=/bin/true \
-		install
-
-	use static-libs || find "${ED}" -name '*.a' -delete
+	#emake \
+	#	prefix="${D}"/usr \
+	#	INSTALL_LIBDIR="$(get_libdir)" \
+	#	STRIP=/bin/true \
+	#	install
+	cmake-utils_src_install
 
 	if use examples; then
 		find examples -name '.gitignore' -delete || die

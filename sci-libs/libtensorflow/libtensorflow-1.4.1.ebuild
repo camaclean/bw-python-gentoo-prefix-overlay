@@ -19,7 +19,7 @@ IUSE="cray cuda graphviz mkl prefix-chaining prefix-chain"
 RDEPEND="dev-libs/nccl
 	 ~dev-libs/protobuf-3.1.0
 	 ~dev-libs/grpc-1.5.0
-	 ~dev-libs/nsync-${PV}
+	 ~dev-libs/nsync-1.4.1
 	 ~dev-libs/highwayhash-20160520
 	 ~dev-cpp/eigen-tensorflow-${PV}
          cuda? ( !cray? ( dev-util/nvidia-cuda-toolkit ) )

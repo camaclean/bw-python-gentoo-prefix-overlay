@@ -21,9 +21,9 @@ KEYWORDS="~amd64"
 IUSE="cray cuda graphviz mkl prefix-chaining prefix-chain"
 
 RDEPEND="dev-libs/nccl[static]
-	 ~dev-libs/protobuf-3.1.0
-	 >=dev-libs/grpc-1.5.0
-	 ~dev-libs/nsync-${PV}
+	 ~dev-libs/protobuf-3.6.0.1
+	 >=net-libs/grpc-1.5.0
+	 ~dev-libs/nsync-1.20.1
 	 ~dev-libs/highwayhash-20160520
 	 ~dev-cpp/eigen-tensorflow-${PV}
          cuda? ( !cray? ( dev-util/nvidia-cuda-toolkit ) )
@@ -37,7 +37,7 @@ DEPEND="dev-lang/swig
 #S="${WORKDIR}/tensorflow"
 
 CMAKE_USE_DIR="${S}"/tensorflow/contrib/cmake/
-CMAKE_MAKEFILE_GENERATOR="emake"
+CMAKE_MAKEFILE_GENERATOR="ninja"
 
 ENVMOD_REQUIRE="cudatoolkit"
 
@@ -58,6 +58,10 @@ src_prepare() {
 }
 
 src_configure() {
+	local mycmakeargs=( 
+		-Dtensorflow_BUILD_CC_EXAMPLE=OFF
+		-Dtensorflow_BUILD_CC_TESTS=OFF
+	)
 	if use cray; then
 		CC="${GCC_PATH}/snos/bin/gcc"
 		CXX="${GCC_PATH}/snos/bin/g++"

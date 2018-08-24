@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index cab26b3..f1c4a16 100644
+index cab26b3..21328cd 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -396,14 +396,6 @@ endif ()
@@ -17,7 +17,7 @@ index cab26b3..f1c4a16 100644
  set (NSYNC_INCLUDES
  	"public/nsync.h"
  	"public/nsync_atomic.h"
-@@ -420,8 +412,25 @@ set (NSYNC_INCLUDES
+@@ -420,8 +412,26 @@ set (NSYNC_INCLUDES
  	"public/nsync_waiter.h"
  )
  
@@ -34,7 +34,8 @@ index cab26b3..f1c4a16 100644
 +install (TARGETS nsync
 +	EXPORT nsyncTargets
 +	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT RuntimeLibraries
-+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Development)
++	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Development
++	PUBLIC_HEADER DESTINATION include COMPONENT Development)
 +
 +install (TARGETS nsync_cpp OPTIONAL
 +	EXPORT nsyncTargets
@@ -50,7 +51,7 @@ index cab26b3..f1c4a16 100644
 +INSTALL(EXPORT nsyncTargets DESTINATION "share/nsync/cmake")
 diff --git a/nsyncConfig.cmake.in b/nsyncConfig.cmake.in
 index e69de29..a41a576 100644
---- /dev/null
+--- a/nsyncConfig.cmake.in
 +++ b/nsyncConfig.cmake.in
 @@ -0,0 +1,14 @@
 +# Find the NSYNC includes and library
